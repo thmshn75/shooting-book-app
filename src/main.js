@@ -24,7 +24,7 @@ document.querySelector('#app').innerHTML = `
     <hr />
 
     <div id="entry-box" style="display:none;">
-      <h2>Neuer Eintrag</h2>
+      <h2 id="form-title">Neuer Eintrag</h2>
 
       <div class="form-grid">
         <input id="entry-date" type="date" />
@@ -79,7 +79,10 @@ document.querySelector('#app').innerHTML = `
         <p id="weapon-status"></p>
       </div>
 
-      <button id="save-entry-btn">Eintrag speichern</button>
+      <div class="row">
+        <button id="save-entry-btn">Eintrag speichern</button>
+        <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
+      </div>
       <p id="entry-status"></p>
     </div>
 
@@ -102,6 +105,7 @@ const authStatus = document.getElementById('auth-status')
 
 const entryBox = document.getElementById('entry-box')
 const listBox = document.getElementById('list-box')
+const formTitle = document.getElementById('form-title')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
 const entryDiscipline = document.getElementById('entry-discipline')
@@ -109,6 +113,7 @@ const entryWeapon = document.getElementById('entry-weapon')
 const entryLocation = document.getElementById('entry-location')
 const entryNote = document.getElementById('entry-note')
 const saveEntryBtn = document.getElementById('save-entry-btn')
+const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
 const reloadBtn = document.getElementById('reload-btn')
 const entriesList = document.getElementById('entries-list')
@@ -127,6 +132,8 @@ const newWeaponCaliber = document.getElementById('new-weapon-caliber')
 const newWeaponNotes = document.getElementById('new-weapon-notes')
 const addWeaponBtn = document.getElementById('add-weapon-btn')
 const weaponStatus = document.getElementById('weapon-status')
+
+let editingEntryId = null
 
 function showLoggedInUI() {
   entryBox.style.display = 'block'
@@ -176,17 +183,18 @@ async function getCurrentUser() {
   return user
 }
 
-function renderSeriesInputs() {
+function renderSeriesInputs(scores = []) {
   let count = parseInt(seriesCountInput.value, 10)
 
   if (!Number.isInteger(count) || count < 1) count = 1
   if (count > 20) count = 20
 
   seriesCountInput.value = count
-
   seriesInputs.innerHTML = ''
 
   for (let i = 1; i <= count; i += 1) {
+    const value = scores[i - 1] ?? ''
+
     const row = document.createElement('div')
     row.className = 'series-row'
     row.innerHTML = `
@@ -199,6 +207,7 @@ function renderSeriesInputs() {
         step="1"
         placeholder="Score"
         data-series-number="${i}"
+        value="${value}"
       />
     `
     seriesInputs.appendChild(row)
@@ -231,6 +240,21 @@ function calculateTotalScore(seriesData) {
   return seriesData.reduce((sum, item) => sum + item.score, 0)
 }
 
+function resetForm() {
+  editingEntryId = null
+  formTitle.textContent = 'Neuer Eintrag'
+  saveEntryBtn.textContent = 'Eintrag speichern'
+  cancelEditBtn.style.display = 'none'
+  entryStatus.textContent = ''
+
+  entryDate.value = todayString()
+  entryType.value = 'training'
+  entryLocation.value = ''
+  entryNote.value = ''
+  seriesCountInput.value = '5'
+  renderSeriesInputs()
+}
+
 async function loadDisciplines() {
   const user = await getCurrentUser()
   if (!user) return
@@ -254,7 +278,7 @@ async function loadDisciplines() {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
-    if (discipline.id === lastDisciplineId) {
+    if (discipline.id === lastDisciplineId && !editingEntryId) {
       option.selected = true
     }
     entryDiscipline.appendChild(option)
@@ -287,7 +311,7 @@ async function loadWeapons() {
     const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
     option.textContent = details ? `${weapon.name} (${details})` : weapon.name
 
-    if (weapon.id === lastWeaponId) {
+    if (weapon.id === lastWeaponId && !editingEntryId) {
       option.selected = true
     }
 
@@ -329,8 +353,68 @@ async function deleteEntry(entryId) {
     return
   }
 
+  if (editingEntryId === entryId) {
+    resetForm()
+    await loadFormData()
+  }
+
   entryStatus.textContent = 'Eintrag gelöscht.'
   await loadEntries()
+}
+
+async function startEditEntry(entryId) {
+  entryStatus.textContent = 'Lade Eintrag zur Bearbeitung...'
+
+  const user = await getCurrentUser()
+  if (!user) {
+    entryStatus.textContent = 'Nicht eingeloggt.'
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('entries')
+    .select(`
+      id,
+      entry_date,
+      entry_type,
+      discipline_id,
+      weapon_id,
+      location,
+      note,
+      entry_series(series_number, score)
+    `)
+    .eq('id', entryId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (error) {
+    entryStatus.textContent = `Fehler beim Laden des Eintrags: ${error.message}`
+    return
+  }
+
+  editingEntryId = data.id
+  formTitle.textContent = 'Eintrag bearbeiten'
+  saveEntryBtn.textContent = 'Änderungen speichern'
+  cancelEditBtn.style.display = 'inline-block'
+
+  entryDate.value = data.entry_date || todayString()
+  entryType.value = data.entry_type || 'training'
+  entryDiscipline.value = data.discipline_id || ''
+  entryWeapon.value = data.weapon_id || ''
+  entryLocation.value = data.location || ''
+  entryNote.value = data.note || ''
+
+  const sortedSeries = Array.isArray(data.entry_series)
+    ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number)
+    : []
+
+  const scores = sortedSeries.map((item) => item.score)
+  const count = Math.max(sortedSeries.length || 0, 1)
+  seriesCountInput.value = String(count)
+  renderSeriesInputs(scores)
+
+  entryStatus.textContent = 'Bearbeitungsmodus aktiv.'
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function loadEntries() {
@@ -400,6 +484,7 @@ async function loadEntries() {
           <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
           <div><strong>Serien:</strong> ${seriesList || '-'}</div>
           <div class="row">
+            <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
             <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
           </div>
         </div>
@@ -411,6 +496,13 @@ async function loadEntries() {
     button.addEventListener('click', async () => {
       const entryId = button.dataset.entryId
       await deleteEntry(entryId)
+    })
+  })
+
+  document.querySelectorAll('.edit-entry-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const entryId = button.dataset.entryId
+      await startEditEntry(entryId)
     })
   })
 }
@@ -453,8 +545,7 @@ loginBtn.addEventListener('click', async () => {
 
   authStatus.textContent = 'Login erfolgreich.'
   showLoggedInUI()
-  entryDate.value = todayString()
-  renderSeriesInputs()
+  resetForm()
   await loadFormData()
   await loadEntries()
 })
@@ -479,6 +570,11 @@ entryDiscipline.addEventListener('change', async () => {
 
 applySeriesCountBtn.addEventListener('click', () => {
   renderSeriesInputs()
+})
+
+cancelEditBtn.addEventListener('click', async () => {
+  resetForm()
+  await loadFormData()
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
@@ -574,7 +670,7 @@ addWeaponBtn.addEventListener('click', async () => {
 })
 
 saveEntryBtn.addEventListener('click', async () => {
-  entryStatus.textContent = 'Speichere Eintrag...'
+  entryStatus.textContent = editingEntryId ? 'Speichere Änderungen...' : 'Speichere Eintrag...'
 
   const user = await getCurrentUser()
 
@@ -591,42 +687,101 @@ saveEntryBtn.addEventListener('click', async () => {
   const seriesData = getSeriesData()
   const totalScore = calculateTotalScore(seriesData)
 
-  const { data: entryData, error: entryError } = await supabase
-    .from('entries')
-    .insert([
-      {
-        user_id: user.id,
-        entry_date: entryDate.value,
-        entry_type: entryType.value || null,
-        discipline_id: entryDiscipline.value || null,
-        weapon_id: entryWeapon.value || null,
-        location: entryLocation.value.trim() || null,
-        note: entryNote.value.trim() || null,
-        total_score: totalScore,
-      },
-    ])
-    .select('id')
-    .single()
+  if (!editingEntryId) {
+    const { data: entryData, error: entryError } = await supabase
+      .from('entries')
+      .insert([
+        {
+          user_id: user.id,
+          entry_date: entryDate.value,
+          entry_type: entryType.value || null,
+          discipline_id: entryDiscipline.value || null,
+          weapon_id: entryWeapon.value || null,
+          location: entryLocation.value.trim() || null,
+          note: entryNote.value.trim() || null,
+          total_score: totalScore,
+        },
+      ])
+      .select('id')
+      .single()
 
-  if (entryError) {
-    entryStatus.textContent = `Fehler: ${entryError.message}`
+    if (entryError) {
+      entryStatus.textContent = `Fehler: ${entryError.message}`
+      return
+    }
+
+    if (seriesData.length > 0) {
+      const seriesRows = seriesData.map((series) => ({
+        entry_id: entryData.id,
+        user_id: user.id,
+        series_number: series.series_number,
+        score: series.score,
+      }))
+
+      const { error: seriesError } = await supabase
+        .from('entry_series')
+        .insert(seriesRows)
+
+      if (seriesError) {
+        entryStatus.textContent = `Fehler bei Serien: ${seriesError.message}`
+        return
+      }
+    }
+
+    localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
+    localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
+
+    entryStatus.textContent = 'Eintrag gespeichert.'
+    resetForm()
+    await loadFormData()
+    await loadEntries()
+    return
+  }
+
+  const { error: updateError } = await supabase
+    .from('entries')
+    .update({
+      entry_date: entryDate.value,
+      entry_type: entryType.value || null,
+      discipline_id: entryDiscipline.value || null,
+      weapon_id: entryWeapon.value || null,
+      location: entryLocation.value.trim() || null,
+      note: entryNote.value.trim() || null,
+      total_score: totalScore,
+    })
+    .eq('id', editingEntryId)
+    .eq('user_id', user.id)
+
+  if (updateError) {
+    entryStatus.textContent = `Fehler beim Aktualisieren: ${updateError.message}`
+    return
+  }
+
+  const { error: deleteSeriesError } = await supabase
+    .from('entry_series')
+    .delete()
+    .eq('entry_id', editingEntryId)
+    .eq('user_id', user.id)
+
+  if (deleteSeriesError) {
+    entryStatus.textContent = `Fehler beim Aktualisieren der Serien: ${deleteSeriesError.message}`
     return
   }
 
   if (seriesData.length > 0) {
     const seriesRows = seriesData.map((series) => ({
-      entry_id: entryData.id,
+      entry_id: editingEntryId,
       user_id: user.id,
       series_number: series.series_number,
       score: series.score,
     }))
 
-    const { error: seriesError } = await supabase
+    const { error: insertSeriesError } = await supabase
       .from('entry_series')
       .insert(seriesRows)
 
-    if (seriesError) {
-      entryStatus.textContent = `Fehler bei Serien: ${seriesError.message}`
+    if (insertSeriesError) {
+      entryStatus.textContent = `Fehler beim Speichern der Serien: ${insertSeriesError.message}`
       return
     }
   }
@@ -634,15 +789,8 @@ saveEntryBtn.addEventListener('click', async () => {
   localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
   localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
 
-  entryStatus.textContent = 'Eintrag gespeichert.'
-
-  entryDate.value = todayString()
-  entryType.value = 'training'
-  entryLocation.value = ''
-  entryNote.value = ''
-  seriesCountInput.value = '5'
-  renderSeriesInputs()
-
+  entryStatus.textContent = 'Eintrag aktualisiert.'
+  resetForm()
   await loadFormData()
   await loadEntries()
 })
@@ -654,8 +802,7 @@ reloadBtn.addEventListener('click', async () => {
 
 async function init() {
   document.title = 'Shooting Book'
-  entryDate.value = todayString()
-  renderSeriesInputs()
+  resetForm()
 
   const {
     data: { session },
@@ -674,8 +821,7 @@ async function init() {
     if (session) {
       authStatus.textContent = `Eingeloggt als ${session.user.email}`
       showLoggedInUI()
-      entryDate.value = todayString()
-      renderSeriesInputs()
+      resetForm()
       await loadFormData()
       await loadEntries()
     } else {
