@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
   <div class="container">
-    <h1>Shotting Book</h1>
+    <h1>Shooting Book</h1>
 
     <div id="auth-box">
       <h2>Login / Registrierung</h2>
