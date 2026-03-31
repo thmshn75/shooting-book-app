@@ -27,10 +27,16 @@ document.querySelector('#app').innerHTML = `
       <h2>Neuer Eintrag</h2>
       <div class="form-grid">
         <input id="entry-date" type="date" />
-        <input id="entry-type" type="text" placeholder="Typ (z. B. Training / Wettkampf)" />
+        
+        <select id="entry-type">
+          <option value="training">Training</option>
+          <option value="competition">Bewerb</option>
+        </select>
+
         <input id="entry-location" type="text" placeholder="Ort" />
         <input id="entry-note" type="text" placeholder="Notiz" />
       </div>
+
       <button id="save-entry-btn">Eintrag speichern</button>
       <p id="entry-status"></p>
     </div>
@@ -85,6 +91,12 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('de-AT')
 }
 
+function formatEntryType(type) {
+  if (type === 'training') return 'Training'
+  if (type === 'competition') return 'Bewerb'
+  return type || '-'
+}
+
 async function loadEntries() {
   entriesList.innerHTML = '<p>Lade Einträge...</p>'
 
@@ -119,7 +131,7 @@ async function loadEntries() {
       (entry) => `
         <div class="entry-card">
           <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
-          <div><strong>Typ:</strong> ${entry.entry_type || '-'}</div>
+          <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
           <div><strong>Ort:</strong> ${entry.location || '-'}</div>
           <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
         </div>
@@ -198,7 +210,7 @@ saveEntryBtn.addEventListener('click', async () => {
   entryStatus.textContent = 'Eintrag gespeichert.'
 
   entryDate.value = ''
-  entryType.value = ''
+  entryType.value = 'training'
   entryLocation.value = ''
   entryNote.value = ''
 
@@ -210,7 +222,7 @@ reloadBtn.addEventListener('click', async () => {
 })
 
 async function init() {
-  document.title = 'Shotting Book'
+  document.title = 'Shooting Book'
 
   const {
     data: { session },
