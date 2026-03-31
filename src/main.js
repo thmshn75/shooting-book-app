@@ -56,27 +56,41 @@ document.querySelector('#app').innerHTML = `
         <div id="series-inputs"></div>
       </div>
 
-      <div class="manage-box">
-        <h3>Neue Disziplin anlegen</h3>
-        <div class="row">
-          <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
-          <button id="add-discipline-btn">Disziplin hinzufügen</button>
+      <div class="collapsible-box">
+        <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
+          + Neue Disziplin anlegen
+        </button>
+        <div id="discipline-panel" class="collapsible-panel" style="display:none;">
+          <div class="manage-box inner-manage-box">
+            <h3>Neue Disziplin anlegen</h3>
+            <div class="row">
+              <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
+              <button id="add-discipline-btn">Disziplin hinzufügen</button>
+            </div>
+            <p id="discipline-status"></p>
+          </div>
         </div>
-        <p id="discipline-status"></p>
       </div>
 
-      <div class="manage-box">
-        <h3>Neue Waffe anlegen</h3>
-        <div class="form-grid">
-          <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
-          <input id="new-weapon-type" type="text" placeholder="Typ" />
-          <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
-          <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
+      <div class="collapsible-box">
+        <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
+          + Neue Waffe anlegen
+        </button>
+        <div id="weapon-panel" class="collapsible-panel" style="display:none;">
+          <div class="manage-box inner-manage-box">
+            <h3>Neue Waffe anlegen</h3>
+            <div class="form-grid">
+              <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
+              <input id="new-weapon-type" type="text" placeholder="Typ" />
+              <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
+              <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
+            </div>
+            <div class="row">
+              <button id="add-weapon-btn">Waffe hinzufügen</button>
+            </div>
+            <p id="weapon-status"></p>
+          </div>
         </div>
-        <div class="row">
-          <button id="add-weapon-btn">Waffe hinzufügen</button>
-        </div>
-        <p id="weapon-status"></p>
       </div>
 
       <div class="row">
@@ -150,10 +164,14 @@ const seriesCountInput = document.getElementById('series-count')
 const applySeriesCountBtn = document.getElementById('apply-series-count-btn')
 const seriesInputs = document.getElementById('series-inputs')
 
+const toggleDisciplinePanelBtn = document.getElementById('toggle-discipline-panel-btn')
+const disciplinePanel = document.getElementById('discipline-panel')
 const newDisciplineName = document.getElementById('new-discipline-name')
 const addDisciplineBtn = document.getElementById('add-discipline-btn')
 const disciplineStatus = document.getElementById('discipline-status')
 
+const toggleWeaponPanelBtn = document.getElementById('toggle-weapon-panel-btn')
+const weaponPanel = document.getElementById('weapon-panel')
 const newWeaponName = document.getElementById('new-weapon-name')
 const newWeaponType = document.getElementById('new-weapon-type')
 const newWeaponCaliber = document.getElementById('new-weapon-caliber')
@@ -214,6 +232,51 @@ function formatNumber(value) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })
+}
+
+function setCollapsibleState(button, panel, isOpen, openText, closedText) {
+  panel.style.display = isOpen ? 'block' : 'none'
+  button.textContent = isOpen ? openText : closedText
+}
+
+function openDisciplinePanel() {
+  setCollapsibleState(
+    toggleDisciplinePanelBtn,
+    disciplinePanel,
+    true,
+    '− Disziplin schließen',
+    '+ Neue Disziplin anlegen'
+  )
+}
+
+function closeDisciplinePanel() {
+  setCollapsibleState(
+    toggleDisciplinePanelBtn,
+    disciplinePanel,
+    false,
+    '− Disziplin schließen',
+    '+ Neue Disziplin anlegen'
+  )
+}
+
+function openWeaponPanel() {
+  setCollapsibleState(
+    toggleWeaponPanelBtn,
+    weaponPanel,
+    true,
+    '− Waffe schließen',
+    '+ Neue Waffe anlegen'
+  )
+}
+
+function closeWeaponPanel() {
+  setCollapsibleState(
+    toggleWeaponPanelBtn,
+    weaponPanel,
+    false,
+    '− Waffe schließen',
+    '+ Neue Waffe anlegen'
+  )
 }
 
 function renderStatsTable(container, rows, emptyText) {
@@ -719,6 +782,8 @@ loginBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Login erfolgreich.'
   showLoggedInUI()
   resetForm()
+  closeDisciplinePanel()
+  closeWeaponPanel()
   await loadFormData()
   await loadEntries()
 })
@@ -727,6 +792,24 @@ logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut()
   authStatus.textContent = 'Ausgeloggt.'
   showLoggedOutUI()
+})
+
+toggleDisciplinePanelBtn.addEventListener('click', () => {
+  const isOpen = disciplinePanel.style.display === 'block'
+  if (isOpen) {
+    closeDisciplinePanel()
+  } else {
+    openDisciplinePanel()
+  }
+})
+
+toggleWeaponPanelBtn.addEventListener('click', () => {
+  const isOpen = weaponPanel.style.display === 'block'
+  if (isOpen) {
+    closeWeaponPanel()
+  } else {
+    openWeaponPanel()
+  }
 })
 
 entryWeapon.addEventListener('change', async () => {
@@ -791,6 +874,8 @@ addDisciplineBtn.addEventListener('click', async () => {
     entryDiscipline.value = data.id
     localStorage.setItem(getLastDisciplineKey(user.id), data.id)
   }
+
+  closeDisciplinePanel()
 })
 
 addWeaponBtn.addEventListener('click', async () => {
@@ -840,6 +925,8 @@ addWeaponBtn.addEventListener('click', async () => {
     entryWeapon.value = data.id
     localStorage.setItem(getLastWeaponKey(user.id), data.id)
   }
+
+  closeWeaponPanel()
 })
 
 saveEntryBtn.addEventListener('click', async () => {
@@ -976,6 +1063,8 @@ reloadBtn.addEventListener('click', async () => {
 async function init() {
   document.title = 'Shooting Book'
   resetForm()
+  closeDisciplinePanel()
+  closeWeaponPanel()
 
   const {
     data: { session },
@@ -995,6 +1084,8 @@ async function init() {
       authStatus.textContent = `Eingeloggt als ${session.user.email}`
       showLoggedInUI()
       resetForm()
+      closeDisciplinePanel()
+      closeWeaponPanel()
       await loadFormData()
       await loadEntries()
     } else {
