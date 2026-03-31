@@ -8,9 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 document.querySelector('#app').innerHTML = `
   <div class="app-shell">
     <header class="topbar">
-      <div class="topbar-left">
-        <div class="brand-mark">Shooting Book</div>
-      </div>
+      <div class="topbar-left"></div>
       <div class="topbar-right" id="topbar-user-area" style="display:none;">
         <span id="user-badge" class="user-badge"></span>
         <button id="logout-btn" class="topbar-logout-btn" style="display:none;">Logout</button>
@@ -47,13 +45,6 @@ document.querySelector('#app').innerHTML = `
         <section id="entry-tab" class="tab-panel active">
           <div id="entry-box">
             <h2 id="form-title">Neuer Eintrag</h2>
-
-            <div class="shots-info-box">
-              <strong>Schuss pro Serie</strong>
-              <div class="shots-info-text">
-                Wie viele Schüsse umfasst eine Serie bei diesem Eintrag?
-              </div>
-            </div>
 
             <div class="form-grid">
               <input id="entry-date" type="date" />
@@ -157,7 +148,54 @@ document.querySelector('#app').innerHTML = `
         <section id="list-tab" class="tab-panel">
           <div id="list-box">
             <h2>Meine Einträge</h2>
-            <button id="reload-btn">Liste aktualisieren</button>
+
+            <div class="manage-box filter-box">
+              <h3>Filter</h3>
+              <div class="form-grid">
+                <select id="filter-type">
+                  <option value="">Alle Typen</option>
+                  <option value="training">Training</option>
+                  <option value="competition">Bewerb</option>
+                </select>
+
+                <select id="filter-year">
+                  <option value="">Alle Jahre</option>
+                </select>
+
+                <select id="filter-month">
+                  <option value="">Alle Monate</option>
+                  <option value="1">Januar</option>
+                  <option value="2">Februar</option>
+                  <option value="3">März</option>
+                  <option value="4">April</option>
+                  <option value="5">Mai</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Dezember</option>
+                </select>
+
+                <select id="filter-discipline">
+                  <option value="">Alle Disziplinen</option>
+                </select>
+
+                <select id="filter-weapon">
+                  <option value="">Alle Waffen</option>
+                </select>
+              </div>
+
+              <div class="row">
+                <button id="apply-filters-btn" type="button">Filter anwenden</button>
+                <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
+                <button id="reload-btn" type="button">Liste aktualisieren</button>
+              </div>
+
+              <div id="list-summary" class="list-summary"></div>
+            </div>
+
             <div id="entries-list"></div>
           </div>
         </section>
@@ -197,13 +235,22 @@ const shotsPerSeriesInput = document.getElementById('shots-per-series')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
-const reloadBtn = document.getElementById('reload-btn')
 const entriesList = document.getElementById('entries-list')
 
 const statsSummary = document.getElementById('stats-summary')
 const statsByType = document.getElementById('stats-by-type')
 const statsByDiscipline = document.getElementById('stats-by-discipline')
 const statsByWeapon = document.getElementById('stats-by-weapon')
+
+const filterType = document.getElementById('filter-type')
+const filterYear = document.getElementById('filter-year')
+const filterMonth = document.getElementById('filter-month')
+const filterDiscipline = document.getElementById('filter-discipline')
+const filterWeapon = document.getElementById('filter-weapon')
+const applyFiltersBtn = document.getElementById('apply-filters-btn')
+const resetFiltersBtn = document.getElementById('reset-filters-btn')
+const reloadBtn = document.getElementById('reload-btn')
+const listSummary = document.getElementById('list-summary')
 
 const seriesCountInput = document.getElementById('series-count')
 const applySeriesCountBtn = document.getElementById('apply-series-count-btn')
@@ -225,6 +272,7 @@ const addWeaponBtn = document.getElementById('add-weapon-btn')
 const weaponStatus = document.getElementById('weapon-status')
 
 let editingEntryId = null
+let allEntriesCache = []
 
 function activateTab(tabName) {
   const buttons = [tabEntryBtn, tabStatsBtn, tabListBtn]
@@ -276,7 +324,9 @@ function showLoggedOutUI() {
   loginBtn.style.display = 'inline-flex'
   registerBtn.style.display = 'inline-flex'
 
+  allEntriesCache = []
   entriesList.innerHTML = ''
+  listSummary.innerHTML = ''
   statsSummary.innerHTML = ''
   statsByType.innerHTML = ''
   statsByDiscipline.innerHTML = ''
@@ -541,6 +591,173 @@ function resetForm() {
   renderSeriesInputs()
 }
 
+function populateFilterOptions(entries) {
+  const years = [...new Set(entries.map((entry) => {
+    if (!entry.entry_date) return null
+    return new Date(entry.entry_date).getFullYear()
+  }).filter(Boolean))].sort((a, b) => b - a)
+
+  const disciplines = [...new Map(
+    entries
+      .filter((entry) => entry.disciplines?.name)
+      .map((entry) => [entry.discipline_id, entry.disciplines.name])
+  ).entries()]
+
+  const weapons = [...new Map(
+    entries
+      .filter((entry) => entry.weapons?.name)
+      .map((entry) => {
+        const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+        const label = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+        return [entry.weapon_id, label]
+      })
+  ).entries()]
+
+  const currentYear = filterYear.value
+  const currentDiscipline = filterDiscipline.value
+  const currentWeapon = filterWeapon.value
+
+  filterYear.innerHTML = '<option value="">Alle Jahre</option>'
+  years.forEach((year) => {
+    const option = document.createElement('option')
+    option.value = String(year)
+    option.textContent = String(year)
+    if (String(year) === currentYear) option.selected = true
+    filterYear.appendChild(option)
+  })
+
+  filterDiscipline.innerHTML = '<option value="">Alle Disziplinen</option>'
+  disciplines.forEach(([id, name]) => {
+    const option = document.createElement('option')
+    option.value = id
+    option.textContent = name
+    if (id === currentDiscipline) option.selected = true
+    filterDiscipline.appendChild(option)
+  })
+
+  filterWeapon.innerHTML = '<option value="">Alle Waffen</option>'
+  weapons.forEach(([id, name]) => {
+    const option = document.createElement('option')
+    option.value = id
+    option.textContent = name
+    if (id === currentWeapon) option.selected = true
+    filterWeapon.appendChild(option)
+  })
+}
+
+function getFilteredEntries() {
+  return allEntriesCache.filter((entry) => {
+    const entryDateObj = entry.entry_date ? new Date(entry.entry_date) : null
+    const entryYear = entryDateObj ? String(entryDateObj.getFullYear()) : ''
+    const entryMonth = entryDateObj ? String(entryDateObj.getMonth() + 1) : ''
+
+    if (filterType.value && entry.entry_type !== filterType.value) return false
+    if (filterYear.value && entryYear !== filterYear.value) return false
+    if (filterMonth.value && entryMonth !== filterMonth.value) return false
+    if (filterDiscipline.value && entry.discipline_id !== filterDiscipline.value) return false
+    if (filterWeapon.value && entry.weapon_id !== filterWeapon.value) return false
+
+    return true
+  })
+}
+
+function renderListSummary(entries) {
+  const trainingCount = entries.filter((entry) => entry.entry_type === 'training').length
+  const competitionCount = entries.filter((entry) => entry.entry_type === 'competition').length
+
+  let periodText = 'Zeitraum: alle'
+  const dates = entries
+    .map((entry) => entry.entry_date)
+    .filter(Boolean)
+    .sort()
+
+  if (dates.length > 0) {
+    periodText = `Zeitraum: ${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
+  }
+
+  listSummary.innerHTML = `
+    <div class="summary-chip"><strong>Gefilterte Einträge:</strong> ${entries.length}</div>
+    <div class="summary-chip"><strong>Training:</strong> ${trainingCount}</div>
+    <div class="summary-chip"><strong>Bewerb:</strong> ${competitionCount}</div>
+    <div class="summary-chip"><strong>${periodText}</strong></div>
+  `
+}
+
+function renderEntriesList(entries) {
+  if (!entries.length) {
+    entriesList.innerHTML = '<p>Keine Einträge für den aktuellen Filter.</p>'
+    renderListSummary(entries)
+    return
+  }
+
+  renderListSummary(entries)
+
+  entriesList.innerHTML = entries
+    .map((entry) => {
+      const disciplineName = entry.disciplines?.name || '-'
+
+      let weaponText = '-'
+      if (entry.weapons?.name) {
+        const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+        weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+      }
+
+      const seriesList = Array.isArray(entry.entry_series)
+        ? [...entry.entry_series]
+            .sort((a, b) => a.series_number - b.series_number)
+            .map((series) => `Serie ${series.series_number}: ${series.score}`)
+            .join(' | ')
+        : ''
+
+      return `
+        <div class="entry-card">
+          <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
+          <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
+          <div><strong>Disziplin:</strong> ${disciplineName}</div>
+          <div><strong>Waffe:</strong> ${weaponText}</div>
+          <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
+          <div><strong>Ort:</strong> ${entry.location || '-'}</div>
+          <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
+          <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
+          <div><strong>Serien:</strong> ${seriesList || '-'}</div>
+          <div class="row">
+            <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
+            <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
+          </div>
+        </div>
+      `
+    })
+    .join('')
+
+  document.querySelectorAll('.delete-entry-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const entryId = button.dataset.entryId
+      await deleteEntry(entryId)
+    })
+  })
+
+  document.querySelectorAll('.edit-entry-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const entryId = button.dataset.entryId
+      await startEditEntry(entryId)
+    })
+  })
+}
+
+function applyEntryFilters() {
+  const filteredEntries = getFilteredEntries()
+  renderEntriesList(filteredEntries)
+}
+
+function resetFilters() {
+  filterType.value = ''
+  filterYear.value = ''
+  filterMonth.value = ''
+  filterDiscipline.value = ''
+  filterWeapon.value = ''
+  applyEntryFilters()
+}
+
 async function loadDisciplines() {
   const user = await getCurrentUser()
   if (!user) return
@@ -741,64 +958,11 @@ async function loadEntries() {
     return
   }
 
-  if (!data || data.length === 0) {
-    entriesList.innerHTML = '<p>Noch keine Einträge vorhanden.</p>'
-    renderStatistics([])
-    return
-  }
+  allEntriesCache = data || []
 
-  renderStatistics(data)
-
-  entriesList.innerHTML = data
-    .map((entry) => {
-      const disciplineName = entry.disciplines?.name || '-'
-
-      let weaponText = '-'
-      if (entry.weapons?.name) {
-        const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-        weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-      }
-
-      const seriesList = Array.isArray(entry.entry_series)
-        ? [...entry.entry_series]
-            .sort((a, b) => a.series_number - b.series_number)
-            .map((series) => `Serie ${series.series_number}: ${series.score}`)
-            .join(' | ')
-        : ''
-
-      return `
-        <div class="entry-card">
-          <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
-          <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
-          <div><strong>Disziplin:</strong> ${disciplineName}</div>
-          <div><strong>Waffe:</strong> ${weaponText}</div>
-          <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
-          <div><strong>Ort:</strong> ${entry.location || '-'}</div>
-          <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
-          <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
-          <div><strong>Serien:</strong> ${seriesList || '-'}</div>
-          <div class="row">
-            <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
-            <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
-          </div>
-        </div>
-      `
-    })
-    .join('')
-
-  document.querySelectorAll('.delete-entry-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const entryId = button.dataset.entryId
-      await deleteEntry(entryId)
-    })
-  })
-
-  document.querySelectorAll('.edit-entry-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const entryId = button.dataset.entryId
-      await startEditEntry(entryId)
-    })
-  })
+  renderStatistics(allEntriesCache)
+  populateFilterOptions(allEntriesCache)
+  applyEntryFilters()
 }
 
 async function loadFormData() {
@@ -894,6 +1058,14 @@ applySeriesCountBtn.addEventListener('click', () => {
 cancelEditBtn.addEventListener('click', async () => {
   resetForm()
   await loadFormData()
+})
+
+applyFiltersBtn.addEventListener('click', () => {
+  applyEntryFilters()
+})
+
+resetFiltersBtn.addEventListener('click', () => {
+  resetFilters()
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
