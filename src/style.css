@@ -1,17 +1,16 @@
 :root {
-  --surface: rgba(232, 222, 205, 0.90);
-  --surface-2: rgba(224, 212, 192, 0.92);
-  --surface-3: rgba(213, 198, 175, 0.92);
-  --card: rgba(238, 229, 213, 0.93);
-  --card-2: rgba(226, 214, 193, 0.94);
+  --surface: rgba(236, 227, 212, 0.90);
+  --surface-2: rgba(228, 217, 198, 0.92);
+  --surface-3: rgba(217, 204, 182, 0.92);
+  --card: rgba(242, 234, 220, 0.94);
   --text: #2d2418;
   --muted: #6d5d48;
-  --border: #b9a27f;
-  --border-strong: #a78f6a;
+  --border: #bca684;
+  --border-strong: #a88f69;
   --primary: #6b5a41;
   --primary-hover: #5a4b36;
-  --secondary-btn: #dcccb0;
-  --secondary-btn-hover: #cfbc9c;
+  --secondary-btn: #dfcfb3;
+  --secondary-btn-hover: #d2bf9f;
   --danger: #8c4035;
   --danger-bg: #ecd0c8;
   --danger-border: #caa39a;
@@ -37,13 +36,13 @@ body {
   color: var(--text);
   line-height: 1.4;
   background:
-    linear-gradient(rgba(211, 193, 165, 0.28), rgba(211, 193, 165, 0.28)),
+    linear-gradient(rgba(218, 202, 177, 0.22), rgba(218, 202, 177, 0.22)),
     url('/cover.png') center center / cover no-repeat fixed;
 }
 
 body.logged-in {
   background:
-    linear-gradient(rgba(210, 191, 162, 0.20), rgba(210, 191, 162, 0.20)),
+    linear-gradient(rgba(219, 202, 176, 0.14), rgba(219, 202, 176, 0.14)),
     url('/cover.png') center center / cover no-repeat fixed;
 }
 
@@ -64,8 +63,8 @@ body.logged-in {
   align-items: center;
   gap: 12px;
   border-radius: 18px;
-  background: rgba(233, 223, 206, 0.78);
-  border: 1px solid rgba(167, 143, 106, 0.55);
+  background: rgba(237, 227, 211, 0.78);
+  border: 1px solid rgba(168, 143, 105, 0.56);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(6px);
 }
@@ -84,8 +83,8 @@ body.logged-in {
 .user-badge {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(222, 209, 188, 0.9);
-  border: 1px solid rgba(167, 143, 106, 0.6);
+  background: rgba(226, 214, 193, 0.92);
+  border: 1px solid rgba(168, 143, 105, 0.6);
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--text);
@@ -104,13 +103,13 @@ body.logged-in {
   overflow: hidden;
   position: relative;
   background:
-    linear-gradient(rgba(16, 14, 12, 0.18), rgba(16, 14, 12, 0.26)),
+    linear-gradient(rgba(18, 15, 12, 0.14), rgba(18, 15, 12, 0.22)),
     url('/cover.png') center 35% / cover no-repeat;
   box-shadow: var(--shadow);
 }
 
 .cover-hero.compact {
-  height: 180px;
+  height: 140px;
 }
 
 .cover-overlay {
@@ -136,7 +135,7 @@ body.logged-in {
   margin: 18px auto 28px;
   padding: 24px;
   background: var(--surface);
-  border: 1px solid rgba(167, 143, 106, 0.78);
+  border: 1px solid rgba(168, 143, 105, 0.78);
   border-radius: 26px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(6px);
@@ -183,7 +182,7 @@ select {
   padding: 11px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 13px;
-  background: #f0e6d5;
+  background: #f3eadb;
   color: var(--text);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -197,7 +196,7 @@ input:focus,
 select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(107, 90, 65, 0.16);
-  background: #f6eedf;
+  background: #f8f1e4;
 }
 
 button {
@@ -249,6 +248,53 @@ button[type='button']:hover {
   gap: 12px;
 }
 
+.tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  background: #ddccae;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.tab-btn:hover {
+  background: #d2bf9f;
+  border-color: #8f7858;
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #f8f3ea;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.shots-info-box {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(238, 228, 211, 0.96) 0%, rgba(228, 215, 191, 0.96) 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.shots-info-text {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .manage-box {
   margin-top: 18px;
   padding: 16px;
@@ -274,14 +320,14 @@ button[type='button']:hover {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
-  background: #d8c7aa;
+  background: #dcc9aa;
   border-color: var(--border-strong);
   color: var(--text);
   font-weight: 700;
 }
 
 .section-toggle-btn:hover {
-  background: #ccb894;
+  background: #cfbb98;
   border-color: #90795a;
 }
 
@@ -307,7 +353,7 @@ button[type='button']:hover {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: linear-gradient(180deg, #efe4d1 0%, #e4d6bc 100%);
+  background: linear-gradient(180deg, #f0e5d3 0%, #e6d8be 100%);
 }
 
 .entry-card {
@@ -315,7 +361,7 @@ button[type='button']:hover {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(239, 230, 214, 0.96) 0%, rgba(229, 216, 191, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(241, 232, 217, 0.96) 0%, rgba(230, 217, 192, 0.96) 100%);
   box-shadow: var(--shadow-soft);
 }
 
@@ -341,7 +387,7 @@ button[type='button']:hover {
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(239, 230, 214, 0.96) 0%, rgba(227, 214, 190, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(241, 232, 217, 0.96) 0%, rgba(229, 216, 191, 0.96) 100%);
   box-shadow: var(--shadow-soft);
 }
 
@@ -372,7 +418,7 @@ button[type='button']:hover {
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(236, 226, 208, 0.96);
+  background: rgba(238, 228, 210, 0.96);
 }
 
 .stats-table-head,
@@ -383,13 +429,13 @@ button[type='button']:hover {
 }
 
 .stats-table-head {
-  background: #d4bf98;
+  background: #d7c29a;
   font-weight: 800;
   color: var(--text);
 }
 
 .stats-table-row:nth-child(even) {
-  background: rgba(227, 214, 189, 0.92);
+  background: rgba(230, 217, 191, 0.92);
 }
 
 .stats-table-head > div,
@@ -458,7 +504,7 @@ button[type='button']:hover {
   }
 
   .cover-hero.compact {
-    height: 150px;
+    height: 120px;
   }
 
   .stats-grid {
@@ -501,7 +547,7 @@ button[type='button']:hover {
   }
 
   .cover-hero.compact {
-    height: 120px;
+    height: 100px;
   }
 
   .cover-overlay {
@@ -537,7 +583,8 @@ button[type='button']:hover {
 
   .manage-box,
   .stat-card,
-  .series-row {
+  .series-row,
+  .shots-info-box {
     border-radius: 14px;
   }
 
