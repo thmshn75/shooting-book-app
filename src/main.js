@@ -88,6 +88,28 @@ document.querySelector('#app').innerHTML = `
 
     <hr />
 
+    <div id="stats-box" style="display:none;">
+      <h2>Statistik</h2>
+      <div id="stats-summary" class="stats-grid"></div>
+
+      <div class="manage-box">
+        <h3>Nach Typ</h3>
+        <div id="stats-by-type"></div>
+      </div>
+
+      <div class="manage-box">
+        <h3>Nach Disziplin</h3>
+        <div id="stats-by-discipline"></div>
+      </div>
+
+      <div class="manage-box">
+        <h3>Nach Waffe</h3>
+        <div id="stats-by-weapon"></div>
+      </div>
+    </div>
+
+    <hr />
+
     <div id="list-box" style="display:none;">
       <h2>Meine Einträge</h2>
       <button id="reload-btn">Liste aktualisieren</button>
@@ -105,6 +127,7 @@ const authStatus = document.getElementById('auth-status')
 
 const entryBox = document.getElementById('entry-box')
 const listBox = document.getElementById('list-box')
+const statsBox = document.getElementById('stats-box')
 const formTitle = document.getElementById('form-title')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
@@ -117,6 +140,11 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
 const reloadBtn = document.getElementById('reload-btn')
 const entriesList = document.getElementById('entries-list')
+
+const statsSummary = document.getElementById('stats-summary')
+const statsByType = document.getElementById('stats-by-type')
+const statsByDiscipline = document.getElementById('stats-by-discipline')
+const statsByWeapon = document.getElementById('stats-by-weapon')
 
 const seriesCountInput = document.getElementById('series-count')
 const applySeriesCountBtn = document.getElementById('apply-series-count-btn')
@@ -138,6 +166,7 @@ let editingEntryId = null
 function showLoggedInUI() {
   entryBox.style.display = 'block'
   listBox.style.display = 'block'
+  statsBox.style.display = 'block'
   logoutBtn.style.display = 'inline-block'
   loginBtn.style.display = 'none'
   registerBtn.style.display = 'none'
@@ -146,10 +175,15 @@ function showLoggedInUI() {
 function showLoggedOutUI() {
   entryBox.style.display = 'none'
   listBox.style.display = 'none'
+  statsBox.style.display = 'none'
   logoutBtn.style.display = 'none'
   loginBtn.style.display = 'inline-block'
   registerBtn.style.display = 'inline-block'
   entriesList.innerHTML = ''
+  statsSummary.innerHTML = ''
+  statsByType.innerHTML = ''
+  statsByDiscipline.innerHTML = ''
+  statsByWeapon.innerHTML = ''
 }
 
 function formatDate(dateString) {
@@ -173,6 +207,142 @@ function getLastWeaponKey(userId) {
 
 function getLastDisciplineKey(userId) {
   return `shooting_book_last_discipline_${userId}`
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('de-AT', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+}
+
+function renderStatsTable(container, rows, emptyText) {
+  if (!rows.length) {
+    container.innerHTML = `<p>${emptyText}</p>`
+    return
+  }
+
+  container.innerHTML = `
+    <div class="stats-table">
+      <div class="stats-table-head">
+        <div>Name</div>
+        <div>Einträge</div>
+        <div>Serien</div>
+        <div>Gesamt</div>
+        <div>Schnitt/Eintrag</div>
+      </div>
+      ${rows
+        .map(
+          (row) => `
+            <div class="stats-table-row">
+              <div>${row.name}</div>
+              <div>${row.entries}</div>
+              <div>${row.series}</div>
+              <div>${formatNumber(row.total)}</div>
+              <div>${formatNumber(row.averagePerEntry)}</div>
+            </div>
+          `
+        )
+        .join('')}
+    </div>
+  `
+}
+
+function buildGroupedStats(entries, getGroupName) {
+  const groups = new Map()
+
+  entries.forEach((entry) => {
+    const name = getGroupName(entry) || '-'
+    const key = name
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        name,
+        entries: 0,
+        series: 0,
+        total: 0,
+      })
+    }
+
+    const group = groups.get(key)
+    const seriesCount = Array.isArray(entry.entry_series) ? entry.entry_series.length : 0
+    const totalScore = Number(entry.total_score || 0)
+
+    group.entries += 1
+    group.series += seriesCount
+    group.total += totalScore
+  })
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      averagePerEntry: group.entries > 0 ? group.total / group.entries : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+}
+
+function renderStatistics(entries) {
+  if (!entries.length) {
+    statsSummary.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    statsByType.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    statsByDiscipline.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    statsByWeapon.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    return
+  }
+
+  const entryCount = entries.length
+  const seriesCount = entries.reduce(
+    (sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0),
+    0
+  )
+  const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
+  const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
+  const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
+
+  const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
+
+  const bestEntryText = bestEntry
+    ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}`
+    : '-'
+
+  statsSummary.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Einträge</div>
+      <div class="stat-value">${entryCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Serien</div>
+      <div class="stat-value">${seriesCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Gesamtscore</div>
+      <div class="stat-value">${formatNumber(totalScore)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Schnitt / Eintrag</div>
+      <div class="stat-value">${formatNumber(averagePerEntry)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Schnitt / Serie</div>
+      <div class="stat-value">${formatNumber(averagePerSeries)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bester Eintrag</div>
+      <div class="stat-value small">${bestEntryText}</div>
+    </div>
+  `
+
+  const typeStats = buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type))
+  const disciplineStats = buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-')
+  const weaponStats = buildGroupedStats(entries, (entry) => {
+    if (!entry.weapons?.name) return '-'
+    const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+    return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+  })
+
+  renderStatsTable(statsByType, typeStats, 'Noch keine Typ-Daten vorhanden.')
+  renderStatsTable(statsByDiscipline, disciplineStats, 'Noch keine Disziplin-Daten vorhanden.')
+  renderStatsTable(statsByWeapon, weaponStats, 'Noch keine Waffen-Daten vorhanden.')
 }
 
 async function getCurrentUser() {
@@ -453,8 +623,11 @@ async function loadEntries() {
 
   if (!data || data.length === 0) {
     entriesList.innerHTML = '<p>Noch keine Einträge vorhanden.</p>'
+    renderStatistics([])
     return
   }
+
+  renderStatistics(data)
 
   entriesList.innerHTML = data
     .map((entry) => {
