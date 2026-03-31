@@ -26,7 +26,7 @@ document.querySelector('#app').innerHTML = `
         <h2>Login / Registrierung</h2>
         <input id="email" type="email" placeholder="E-Mail" />
         <input id="password" type="password" placeholder="Passwort" />
-        <div class="row">
+        <div class="row auth-actions">
           <button id="register-btn">Registrieren</button>
           <button id="login-btn">Login</button>
         </div>
@@ -36,7 +36,7 @@ document.querySelector('#app').innerHTML = `
       <hr id="auth-divider" />
 
       <div id="main-app" style="display:none;">
-        <div class="tabs-bar">
+        <div class="tabs-bar main-tabs">
           <button id="tab-entry-btn" class="tab-btn active" type="button">Neuer Eintrag</button>
           <button id="tab-stats-btn" class="tab-btn" type="button">Statistik</button>
           <button id="tab-list-btn" class="tab-btn" type="button">Meine Einträge</button>
@@ -70,7 +70,7 @@ document.querySelector('#app').innerHTML = `
 
             <div class="manage-box">
               <h3>Serien</h3>
-              <div class="row">
+              <div class="row series-actions">
                 <label for="series-count">Anzahl Serien</label>
                 <input id="series-count" type="number" min="1" max="20" value="5" />
                 <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
@@ -85,7 +85,7 @@ document.querySelector('#app').innerHTML = `
               <div id="discipline-panel" class="collapsible-panel" style="display:none;">
                 <div class="manage-box inner-manage-box">
                   <h3>Neue Disziplin anlegen</h3>
-                  <div class="row">
+                  <div class="form-grid single-mobile-grid">
                     <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
                     <button id="add-discipline-btn">Disziplin hinzufügen</button>
                   </div>
@@ -115,7 +115,7 @@ document.querySelector('#app').innerHTML = `
               </div>
             </div>
 
-            <div class="row">
+            <div class="row entry-actions">
               <button id="save-entry-btn">Eintrag speichern</button>
               <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
             </div>
@@ -126,39 +126,52 @@ document.querySelector('#app').innerHTML = `
         <section id="stats-tab" class="tab-panel">
           <div id="stats-box">
             <h2>Statistik</h2>
-            <div id="stats-summary" class="stats-grid"></div>
 
-            <div class="stats-charts-grid">
-              <div class="manage-box">
-                <h3>Training vs. Bewerb</h3>
-                <div id="chart-type-breakdown"></div>
+            <div class="tabs-bar sub-tabs">
+              <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
+              <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
+              <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
+            </div>
+
+            <section id="stats-sub-summary" class="tab-panel active">
+              <div id="stats-summary" class="stats-grid"></div>
+            </section>
+
+            <section id="stats-sub-charts" class="tab-panel">
+              <div class="stats-charts-grid">
+                <div class="manage-box">
+                  <h3>Training vs. Bewerb</h3>
+                  <div id="chart-type-breakdown"></div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Einträge pro Monat</h3>
+                  <div id="chart-monthly-entries"></div>
+                </div>
               </div>
 
               <div class="manage-box">
-                <h3>Einträge pro Monat</h3>
-                <div id="chart-monthly-entries"></div>
+                <h3>Score-Entwicklung</h3>
+                <div id="chart-score-trend"></div>
               </div>
-            </div>
+            </section>
 
-            <div class="manage-box">
-              <h3>Score-Entwicklung</h3>
-              <div id="chart-score-trend"></div>
-            </div>
+            <section id="stats-sub-details" class="tab-panel">
+              <div class="manage-box">
+                <h3>Nach Typ</h3>
+                <div id="stats-by-type"></div>
+              </div>
 
-            <div class="manage-box">
-              <h3>Nach Typ</h3>
-              <div id="stats-by-type"></div>
-            </div>
+              <div class="manage-box">
+                <h3>Nach Disziplin</h3>
+                <div id="stats-by-discipline"></div>
+              </div>
 
-            <div class="manage-box">
-              <h3>Nach Disziplin</h3>
-              <div id="stats-by-discipline"></div>
-            </div>
-
-            <div class="manage-box">
-              <h3>Nach Waffe</h3>
-              <div id="stats-by-weapon"></div>
-            </div>
+              <div class="manage-box">
+                <h3>Nach Waffe</h3>
+                <div id="stats-by-weapon"></div>
+              </div>
+            </section>
           </div>
         </section>
 
@@ -204,7 +217,7 @@ document.querySelector('#app').innerHTML = `
                 </select>
               </div>
 
-              <div class="row">
+              <div class="row filter-actions">
                 <button id="apply-filters-btn" type="button">Filter anwenden</button>
                 <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
                 <button id="reload-btn" type="button">Liste aktualisieren</button>
@@ -240,6 +253,13 @@ const tabListBtn = document.getElementById('tab-list-btn')
 const entryTab = document.getElementById('entry-tab')
 const statsTab = document.getElementById('stats-tab')
 const listTab = document.getElementById('list-tab')
+
+const statsSubSummaryBtn = document.getElementById('stats-sub-summary-btn')
+const statsSubChartsBtn = document.getElementById('stats-sub-charts-btn')
+const statsSubDetailsBtn = document.getElementById('stats-sub-details-btn')
+const statsSubSummary = document.getElementById('stats-sub-summary')
+const statsSubCharts = document.getElementById('stats-sub-charts')
+const statsSubDetails = document.getElementById('stats-sub-details')
 
 const formTitle = document.getElementById('form-title')
 const entryDate = document.getElementById('entry-date')
@@ -305,15 +325,34 @@ function activateTab(tabName) {
     tabEntryBtn.classList.add('active')
     entryTab.classList.add('active')
   }
-
   if (tabName === 'stats') {
     tabStatsBtn.classList.add('active')
     statsTab.classList.add('active')
   }
-
   if (tabName === 'list') {
     tabListBtn.classList.add('active')
     listTab.classList.add('active')
+  }
+}
+
+function activateStatsSubTab(tabName) {
+  const buttons = [statsSubSummaryBtn, statsSubChartsBtn, statsSubDetailsBtn]
+  const panels = [statsSubSummary, statsSubCharts, statsSubDetails]
+
+  buttons.forEach((btn) => btn.classList.remove('active'))
+  panels.forEach((panel) => panel.classList.remove('active'))
+
+  if (tabName === 'summary') {
+    statsSubSummaryBtn.classList.add('active')
+    statsSubSummary.classList.add('active')
+  }
+  if (tabName === 'charts') {
+    statsSubChartsBtn.classList.add('active')
+    statsSubCharts.classList.add('active')
+  }
+  if (tabName === 'details') {
+    statsSubDetailsBtn.classList.add('active')
+    statsSubDetails.classList.add('active')
   }
 }
 
@@ -523,7 +562,6 @@ function renderLineChart(container, points, emptyText) {
   const maxValue = Math.max(...points.map((p) => p.value), 1)
   const minValue = Math.min(...points.map((p) => p.value), 0)
   const valueRange = maxValue - minValue || 1
-
   const stepX = (width - padding * 2) / (points.length - 1)
 
   const coordinates = points.map((point, index) => {
@@ -541,13 +579,7 @@ function renderLineChart(container, points, emptyText) {
         <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis"></line>
         <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis"></line>
         <polyline fill="none" points="${polylinePoints}" class="chart-line"></polyline>
-        ${coordinates
-          .map(
-            (point) => `
-              <circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>
-            `
-          )
-          .join('')}
+        ${coordinates.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>`).join('')}
       </svg>
       <div class="chart-label-row">
         ${points
@@ -627,10 +659,7 @@ function renderStatistics(entries) {
   const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
 
   const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
-
-  const bestEntryText = bestEntry
-    ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}`
-    : '-'
+  const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
 
   statsSummary.innerHTML = `
     <div class="stat-card">
@@ -678,13 +707,11 @@ async function getCurrentUser() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
   return user
 }
 
 function renderSeriesInputs(scores = []) {
   let count = parseInt(seriesCountInput.value, 10)
-
   if (!Number.isInteger(count) || count < 1) count = 1
   if (count > 20) count = 20
 
@@ -693,7 +720,6 @@ function renderSeriesInputs(scores = []) {
 
   for (let i = 1; i <= count; i += 1) {
     const value = scores[i - 1] ?? ''
-
     const row = document.createElement('div')
     row.className = 'series-row'
     row.innerHTML = `
@@ -719,12 +745,10 @@ function getSeriesData() {
   return inputs
     .map((input) => {
       const value = input.value.trim()
-
       if (value === '') return null
 
       const score = Number(value)
       const seriesNumber = Number(input.dataset.seriesNumber)
-
       if (!Number.isFinite(score)) return null
 
       return {
@@ -762,19 +786,15 @@ function populateFilterOptions(entries) {
   }).filter(Boolean))].sort((a, b) => b - a)
 
   const disciplines = [...new Map(
-    entries
-      .filter((entry) => entry.disciplines?.name)
-      .map((entry) => [entry.discipline_id, entry.disciplines.name])
+    entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
   ).entries()]
 
   const weapons = [...new Map(
-    entries
-      .filter((entry) => entry.weapons?.name)
-      .map((entry) => {
-        const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-        const label = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-        return [entry.weapon_id, label]
-      })
+    entries.filter((entry) => entry.weapons?.name).map((entry) => {
+      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+      const label = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+      return [entry.weapon_id, label]
+    })
   ).entries()]
 
   const currentYear = filterYear.value
@@ -820,7 +840,6 @@ function getFilteredEntries() {
     if (filterMonth.value && entryMonth !== filterMonth.value) return false
     if (filterDiscipline.value && entry.discipline_id !== filterDiscipline.value) return false
     if (filterWeapon.value && entry.weapon_id !== filterWeapon.value) return false
-
     return true
   })
 }
@@ -830,10 +849,7 @@ function renderListSummary(entries) {
   const competitionCount = entries.filter((entry) => entry.entry_type === 'competition').length
 
   let periodText = 'Zeitraum: alle'
-  const dates = entries
-    .map((entry) => entry.entry_date)
-    .filter(Boolean)
-    .sort()
+  const dates = entries.map((entry) => entry.entry_date).filter(Boolean).sort()
 
   if (dates.length > 0) {
     periodText = `Zeitraum: ${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
@@ -895,22 +911,19 @@ function renderEntriesList(entries) {
 
   document.querySelectorAll('.delete-entry-btn').forEach((button) => {
     button.addEventListener('click', async () => {
-      const entryId = button.dataset.entryId
-      await deleteEntry(entryId)
+      await deleteEntry(button.dataset.entryId)
     })
   })
 
   document.querySelectorAll('.edit-entry-btn').forEach((button) => {
     button.addEventListener('click', async () => {
-      const entryId = button.dataset.entryId
-      await startEditEntry(entryId)
+      await startEditEntry(button.dataset.entryId)
     })
   })
 }
 
 function applyEntryFilters() {
-  const filteredEntries = getFilteredEntries()
-  renderEntriesList(filteredEntries)
+  renderEntriesList(getFilteredEntries())
 }
 
 function resetFilters() {
@@ -938,16 +951,13 @@ async function loadDisciplines() {
   }
 
   const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
-
   entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
 
   ;(data || []).forEach((discipline) => {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
-    if (discipline.id === lastDisciplineId && !editingEntryId) {
-      option.selected = true
-    }
+    if (discipline.id === lastDisciplineId && !editingEntryId) option.selected = true
     entryDiscipline.appendChild(option)
   })
 }
@@ -968,53 +978,35 @@ async function loadWeapons() {
   }
 
   const lastWeaponId = localStorage.getItem(getLastWeaponKey(user.id)) || ''
-
   entryWeapon.innerHTML = '<option value="">Waffe auswählen</option>'
 
   ;(data || []).forEach((weapon) => {
     const option = document.createElement('option')
     option.value = weapon.id
-
     const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
     option.textContent = details ? `${weapon.name} (${details})` : weapon.name
-
-    if (weapon.id === lastWeaponId && !editingEntryId) {
-      option.selected = true
-    }
-
+    if (weapon.id === lastWeaponId && !editingEntryId) option.selected = true
     entryWeapon.appendChild(option)
   })
 }
 
 async function deleteEntry(entryId) {
-  const confirmed = window.confirm('Eintrag wirklich löschen?')
-  if (!confirmed) return
+  if (!window.confirm('Eintrag wirklich löschen?')) return
 
   entryStatus.textContent = 'Lösche Eintrag...'
-
   const user = await getCurrentUser()
   if (!user) {
     entryStatus.textContent = 'Nicht eingeloggt.'
     return
   }
 
-  const { error: seriesError } = await supabase
-    .from('entry_series')
-    .delete()
-    .eq('entry_id', entryId)
-    .eq('user_id', user.id)
-
+  const { error: seriesError } = await supabase.from('entry_series').delete().eq('entry_id', entryId).eq('user_id', user.id)
   if (seriesError) {
     entryStatus.textContent = `Fehler beim Löschen der Serien: ${seriesError.message}`
     return
   }
 
-  const { error: entryError } = await supabase
-    .from('entries')
-    .delete()
-    .eq('id', entryId)
-    .eq('user_id', user.id)
-
+  const { error: entryError } = await supabase.from('entries').delete().eq('id', entryId).eq('user_id', user.id)
   if (entryError) {
     entryStatus.textContent = `Fehler beim Löschen des Eintrags: ${entryError.message}`
     return
@@ -1031,7 +1023,6 @@ async function deleteEntry(entryId) {
 
 async function startEditEntry(entryId) {
   entryStatus.textContent = 'Lade Eintrag zur Bearbeitung...'
-
   const user = await getCurrentUser()
   if (!user) {
     entryStatus.textContent = 'Nicht eingeloggt.'
@@ -1073,13 +1064,9 @@ async function startEditEntry(entryId) {
   entryNote.value = data.note || ''
   shotsPerSeriesInput.value = data.shots_per_series || ''
 
-  const sortedSeries = Array.isArray(data.entry_series)
-    ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number)
-    : []
-
+  const sortedSeries = Array.isArray(data.entry_series) ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number) : []
   const scores = sortedSeries.map((item) => item.score)
-  const count = Math.max(sortedSeries.length || 0, 1)
-  seriesCountInput.value = String(count)
+  seriesCountInput.value = String(Math.max(sortedSeries.length || 0, 1))
   renderSeriesInputs(scores)
 
   activateTab('entry')
@@ -1089,9 +1076,7 @@ async function startEditEntry(entryId) {
 
 async function loadEntries() {
   entriesList.innerHTML = '<p>Lade Einträge...</p>'
-
   const user = await getCurrentUser()
-
   if (!user) {
     entriesList.innerHTML = '<p>Kein Benutzer eingeloggt.</p>'
     return
@@ -1123,7 +1108,6 @@ async function loadEntries() {
   }
 
   allEntriesCache = data || []
-
   renderStatistics(allEntriesCache)
   populateFilterOptions(allEntriesCache)
   applyEntryFilters()
@@ -1138,28 +1122,23 @@ async function loadFormData() {
 
 registerBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Registrierung läuft...'
-
   const { error } = await supabase.auth.signUp({
     email: emailInput.value,
     password: passwordInput.value,
   })
-
   if (error) {
     authStatus.textContent = `Fehler: ${error.message}`
     return
   }
-
   authStatus.textContent = 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.'
 })
 
 loginBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Login läuft...'
-
   const { data, error } = await supabase.auth.signInWithPassword({
     email: emailInput.value,
     password: passwordInput.value,
   })
-
   if (error) {
     authStatus.textContent = `Fehler: ${error.message}`
     return
@@ -1171,6 +1150,7 @@ loginBtn.addEventListener('click', async () => {
   closeDisciplinePanel()
   closeWeaponPanel()
   activateTab('entry')
+  activateStatsSubTab('summary')
   await loadFormData()
   await loadEntries()
 })
@@ -1178,7 +1158,6 @@ loginBtn.addEventListener('click', async () => {
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut()
   authStatus.textContent = 'Ausgeloggt.'
-  showLoggedInUI(null)
   showLoggedOutUI()
 })
 
@@ -1186,56 +1165,42 @@ tabEntryBtn.addEventListener('click', () => activateTab('entry'))
 tabStatsBtn.addEventListener('click', () => activateTab('stats'))
 tabListBtn.addEventListener('click', () => activateTab('list'))
 
+statsSubSummaryBtn.addEventListener('click', () => activateStatsSubTab('summary'))
+statsSubChartsBtn.addEventListener('click', () => activateStatsSubTab('charts'))
+statsSubDetailsBtn.addEventListener('click', () => activateStatsSubTab('details'))
+
 toggleDisciplinePanelBtn.addEventListener('click', () => {
-  const isOpen = disciplinePanel.style.display === 'block'
-  if (isOpen) {
-    closeDisciplinePanel()
-  } else {
-    openDisciplinePanel()
-  }
+  if (disciplinePanel.style.display === 'block') closeDisciplinePanel()
+  else openDisciplinePanel()
 })
 
 toggleWeaponPanelBtn.addEventListener('click', () => {
-  const isOpen = weaponPanel.style.display === 'block'
-  if (isOpen) {
-    closeWeaponPanel()
-  } else {
-    openWeaponPanel()
-  }
+  if (weaponPanel.style.display === 'block') closeWeaponPanel()
+  else openWeaponPanel()
 })
 
 entryWeapon.addEventListener('change', async () => {
   const user = await getCurrentUser()
-  if (!user) return
-  localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value)
+  if (user) localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value)
 })
 
 entryDiscipline.addEventListener('change', async () => {
   const user = await getCurrentUser()
-  if (!user) return
-  localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
+  if (user) localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
 })
 
-applySeriesCountBtn.addEventListener('click', () => {
-  renderSeriesInputs()
-})
+applySeriesCountBtn.addEventListener('click', () => renderSeriesInputs())
 
 cancelEditBtn.addEventListener('click', async () => {
   resetForm()
   await loadFormData()
 })
 
-applyFiltersBtn.addEventListener('click', () => {
-  applyEntryFilters()
-})
-
-resetFiltersBtn.addEventListener('click', () => {
-  resetFilters()
-})
+applyFiltersBtn.addEventListener('click', applyEntryFilters)
+resetFiltersBtn.addEventListener('click', resetFilters)
 
 addDisciplineBtn.addEventListener('click', async () => {
   disciplineStatus.textContent = 'Disziplin wird angelegt...'
-
   const user = await getCurrentUser()
   if (!user) {
     disciplineStatus.textContent = 'Nicht eingeloggt.'
@@ -1243,7 +1208,6 @@ addDisciplineBtn.addEventListener('click', async () => {
   }
 
   const name = newDisciplineName.value.trim()
-
   if (!name) {
     disciplineStatus.textContent = 'Bitte einen Disziplin-Namen eingeben.'
     return
@@ -1251,12 +1215,7 @@ addDisciplineBtn.addEventListener('click', async () => {
 
   const { data, error } = await supabase
     .from('disciplines')
-    .insert([
-      {
-        user_id: user.id,
-        name,
-      },
-    ])
+    .insert([{ user_id: user.id, name }])
     .select('id, name')
     .single()
 
@@ -1267,7 +1226,6 @@ addDisciplineBtn.addEventListener('click', async () => {
 
   disciplineStatus.textContent = 'Disziplin gespeichert.'
   newDisciplineName.value = ''
-
   await loadDisciplines()
 
   if (data?.id) {
@@ -1280,7 +1238,6 @@ addDisciplineBtn.addEventListener('click', async () => {
 
 addWeaponBtn.addEventListener('click', async () => {
   weaponStatus.textContent = 'Waffe wird angelegt...'
-
   const user = await getCurrentUser()
   if (!user) {
     weaponStatus.textContent = 'Nicht eingeloggt.'
@@ -1288,7 +1245,6 @@ addWeaponBtn.addEventListener('click', async () => {
   }
 
   const name = newWeaponName.value.trim()
-
   if (!name) {
     weaponStatus.textContent = 'Bitte einen Waffen-Namen eingeben.'
     return
@@ -1296,15 +1252,13 @@ addWeaponBtn.addEventListener('click', async () => {
 
   const { data, error } = await supabase
     .from('weapons')
-    .insert([
-      {
-        user_id: user.id,
-        name,
-        type: newWeaponType.value.trim() || null,
-        caliber: newWeaponCaliber.value.trim() || null,
-        notes: newWeaponNotes.value.trim() || null,
-      },
-    ])
+    .insert([{
+      user_id: user.id,
+      name,
+      type: newWeaponType.value.trim() || null,
+      caliber: newWeaponCaliber.value.trim() || null,
+      notes: newWeaponNotes.value.trim() || null,
+    }])
     .select('id, name')
     .single()
 
@@ -1331,21 +1285,18 @@ addWeaponBtn.addEventListener('click', async () => {
 
 saveEntryBtn.addEventListener('click', async () => {
   entryStatus.textContent = editingEntryId ? 'Speichere Änderungen...' : 'Speichere Eintrag...'
-
   const user = await getCurrentUser()
 
   if (!user) {
     entryStatus.textContent = 'Nicht eingeloggt.'
     return
   }
-
   if (!entryDate.value) {
     entryStatus.textContent = 'Bitte ein Datum wählen.'
     return
   }
 
   const shotsPerSeries = Number(shotsPerSeriesInput.value)
-
   if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
     entryStatus.textContent = 'Bitte gültige Schuss pro Serie eingeben.'
     return
@@ -1357,19 +1308,17 @@ saveEntryBtn.addEventListener('click', async () => {
   if (!editingEntryId) {
     const { data: entryData, error: entryError } = await supabase
       .from('entries')
-      .insert([
-        {
-          user_id: user.id,
-          entry_date: entryDate.value,
-          entry_type: entryType.value || null,
-          discipline_id: entryDiscipline.value || null,
-          weapon_id: entryWeapon.value || null,
-          location: entryLocation.value.trim() || null,
-          note: entryNote.value.trim() || null,
-          total_score: totalScore,
-          shots_per_series: shotsPerSeries,
-        },
-      ])
+      .insert([{
+        user_id: user.id,
+        entry_date: entryDate.value,
+        entry_type: entryType.value || null,
+        discipline_id: entryDiscipline.value || null,
+        weapon_id: entryWeapon.value || null,
+        location: entryLocation.value.trim() || null,
+        note: entryNote.value.trim() || null,
+        total_score: totalScore,
+        shots_per_series: shotsPerSeries,
+      }])
       .select('id')
       .single()
 
@@ -1386,10 +1335,7 @@ saveEntryBtn.addEventListener('click', async () => {
         score: series.score,
       }))
 
-      const { error: seriesError } = await supabase
-        .from('entry_series')
-        .insert(seriesRows)
-
+      const { error: seriesError } = await supabase.from('entry_series').insert(seriesRows)
       if (seriesError) {
         entryStatus.textContent = `Fehler bei Serien: ${seriesError.message}`
         return
@@ -1426,12 +1372,7 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
-  const { error: deleteSeriesError } = await supabase
-    .from('entry_series')
-    .delete()
-    .eq('entry_id', editingEntryId)
-    .eq('user_id', user.id)
-
+  const { error: deleteSeriesError } = await supabase.from('entry_series').delete().eq('entry_id', editingEntryId).eq('user_id', user.id)
   if (deleteSeriesError) {
     entryStatus.textContent = `Fehler beim Aktualisieren der Serien: ${deleteSeriesError.message}`
     return
@@ -1445,10 +1386,7 @@ saveEntryBtn.addEventListener('click', async () => {
       score: series.score,
     }))
 
-    const { error: insertSeriesError } = await supabase
-      .from('entry_series')
-      .insert(seriesRows)
-
+    const { error: insertSeriesError } = await supabase.from('entry_series').insert(seriesRows)
     if (insertSeriesError) {
       entryStatus.textContent = `Fehler beim Speichern der Serien: ${insertSeriesError.message}`
       return
@@ -1475,6 +1413,7 @@ async function init() {
   closeDisciplinePanel()
   closeWeaponPanel()
   activateTab('entry')
+  activateStatsSubTab('summary')
 
   const {
     data: { session },
@@ -1497,6 +1436,7 @@ async function init() {
       closeDisciplinePanel()
       closeWeaponPanel()
       activateTab('entry')
+      activateStatsSubTab('summary')
       await loadFormData()
       await loadEntries()
     } else {
