@@ -47,6 +47,16 @@ document.querySelector('#app').innerHTML = `
       </div>
 
       <div class="manage-box">
+        <h3>Serien</h3>
+        <div class="row">
+          <label for="series-count">Anzahl Serien</label>
+          <input id="series-count" type="number" min="1" max="20" value="5" />
+          <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
+        </div>
+        <div id="series-inputs"></div>
+      </div>
+
+      <div class="manage-box">
         <h3>Neue Disziplin anlegen</h3>
         <div class="row">
           <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
@@ -102,6 +112,10 @@ const saveEntryBtn = document.getElementById('save-entry-btn')
 const entryStatus = document.getElementById('entry-status')
 const reloadBtn = document.getElementById('reload-btn')
 const entriesList = document.getElementById('entries-list')
+
+const seriesCountInput = document.getElementById('series-count')
+const applySeriesCountBtn = document.getElementById('apply-series-count-btn')
+const seriesInputs = document.getElementById('series-inputs')
 
 const newDisciplineName = document.getElementById('new-discipline-name')
 const addDisciplineBtn = document.getElementById('add-discipline-btn')
@@ -160,6 +174,61 @@ async function getCurrentUser() {
   } = await supabase.auth.getUser()
 
   return user
+}
+
+function renderSeriesInputs() {
+  let count = parseInt(seriesCountInput.value, 10)
+
+  if (!Number.isInteger(count) || count < 1) count = 1
+  if (count > 20) count = 20
+
+  seriesCountInput.value = count
+
+  seriesInputs.innerHTML = ''
+
+  for (let i = 1; i <= count; i += 1) {
+    const row = document.createElement('div')
+    row.className = 'series-row'
+    row.innerHTML = `
+      <label for="series-score-${i}">Serie ${i}</label>
+      <input
+        id="series-score-${i}"
+        class="series-score-input"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Score"
+        data-series-number="${i}"
+      />
+    `
+    seriesInputs.appendChild(row)
+  }
+}
+
+function getSeriesData() {
+  const inputs = Array.from(document.querySelectorAll('.series-score-input'))
+
+  return inputs
+    .map((input) => {
+      const value = input.value.trim()
+
+      if (value === '') return null
+
+      const score = Number(value)
+      const seriesNumber = Number(input.dataset.seriesNumber)
+
+      if (!Number.isFinite(score)) return null
+
+      return {
+        series_number: seriesNumber,
+        score,
+      }
+    })
+    .filter(Boolean)
+}
+
+function calculateTotalScore(seriesData) {
+  return seriesData.reduce((sum, item) => sum + item.score, 0)
 }
 
 async function loadDisciplines() {
@@ -248,7 +317,8 @@ async function loadEntries() {
       discipline_id,
       weapon_id,
       disciplines(name),
-      weapons(name, type, caliber)
+      weapons(name, type, caliber),
+      entry_series(series_number, score)
     `)
     .eq('user_id', user.id)
     .order('entry_date', { ascending: false })
@@ -274,6 +344,13 @@ async function loadEntries() {
         weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
       }
 
+      const seriesList = Array.isArray(entry.entry_series)
+        ? [...entry.entry_series]
+            .sort((a, b) => a.series_number - b.series_number)
+            .map((series) => `Serie ${series.series_number}: ${series.score}`)
+            .join(' | ')
+        : ''
+
       return `
         <div class="entry-card">
           <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
@@ -283,6 +360,7 @@ async function loadEntries() {
           <div><strong>Ort:</strong> ${entry.location || '-'}</div>
           <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
           <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
+          <div><strong>Serien:</strong> ${seriesList || '-'}</div>
         </div>
       `
     })
@@ -328,6 +406,7 @@ loginBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Login erfolgreich.'
   showLoggedInUI()
   entryDate.value = todayString()
+  renderSeriesInputs()
   await loadFormData()
   await loadEntries()
 })
@@ -348,6 +427,10 @@ entryDiscipline.addEventListener('change', async () => {
   const user = await getCurrentUser()
   if (!user) return
   localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
+})
+
+applySeriesCountBtn.addEventListener('click', () => {
+  renderSeriesInputs()
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
@@ -457,21 +540,47 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
-  const { error } = await supabase.from('entries').insert([
-    {
-      user_id: user.id,
-      entry_date: entryDate.value,
-      entry_type: entryType.value || null,
-      discipline_id: entryDiscipline.value || null,
-      weapon_id: entryWeapon.value || null,
-      location: entryLocation.value.trim() || null,
-      note: entryNote.value.trim() || null,
-    },
-  ])
+  const seriesData = getSeriesData()
+  const totalScore = calculateTotalScore(seriesData)
 
-  if (error) {
-    entryStatus.textContent = `Fehler: ${error.message}`
+  const { data: entryData, error: entryError } = await supabase
+    .from('entries')
+    .insert([
+      {
+        user_id: user.id,
+        entry_date: entryDate.value,
+        entry_type: entryType.value || null,
+        discipline_id: entryDiscipline.value || null,
+        weapon_id: entryWeapon.value || null,
+        location: entryLocation.value.trim() || null,
+        note: entryNote.value.trim() || null,
+        total_score: totalScore,
+      },
+    ])
+    .select('id')
+    .single()
+
+  if (entryError) {
+    entryStatus.textContent = `Fehler: ${entryError.message}`
     return
+  }
+
+  if (seriesData.length > 0) {
+    const seriesRows = seriesData.map((series) => ({
+      entry_id: entryData.id,
+      user_id: user.id,
+      series_number: series.series_number,
+      score: series.score,
+    }))
+
+    const { error: seriesError } = await supabase
+      .from('entry_series')
+      .insert(seriesRows)
+
+    if (seriesError) {
+      entryStatus.textContent = `Fehler bei Serien: ${seriesError.message}`
+      return
+    }
   }
 
   localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
@@ -483,6 +592,8 @@ saveEntryBtn.addEventListener('click', async () => {
   entryType.value = 'training'
   entryLocation.value = ''
   entryNote.value = ''
+  seriesCountInput.value = '5'
+  renderSeriesInputs()
 
   await loadFormData()
   await loadEntries()
@@ -496,6 +607,7 @@ reloadBtn.addEventListener('click', async () => {
 async function init() {
   document.title = 'Shooting Book'
   entryDate.value = todayString()
+  renderSeriesInputs()
 
   const {
     data: { session },
@@ -515,6 +627,7 @@ async function init() {
       authStatus.textContent = `Eingeloggt als ${session.user.email}`
       showLoggedInUI()
       entryDate.value = todayString()
+      renderSeriesInputs()
       await loadFormData()
       await loadEntries()
     } else {
