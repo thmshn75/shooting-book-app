@@ -295,6 +295,44 @@ async function loadWeapons() {
   })
 }
 
+async function deleteEntry(entryId) {
+  const confirmed = window.confirm('Eintrag wirklich löschen?')
+  if (!confirmed) return
+
+  entryStatus.textContent = 'Lösche Eintrag...'
+
+  const user = await getCurrentUser()
+  if (!user) {
+    entryStatus.textContent = 'Nicht eingeloggt.'
+    return
+  }
+
+  const { error: seriesError } = await supabase
+    .from('entry_series')
+    .delete()
+    .eq('entry_id', entryId)
+    .eq('user_id', user.id)
+
+  if (seriesError) {
+    entryStatus.textContent = `Fehler beim Löschen der Serien: ${seriesError.message}`
+    return
+  }
+
+  const { error: entryError } = await supabase
+    .from('entries')
+    .delete()
+    .eq('id', entryId)
+    .eq('user_id', user.id)
+
+  if (entryError) {
+    entryStatus.textContent = `Fehler beim Löschen des Eintrags: ${entryError.message}`
+    return
+  }
+
+  entryStatus.textContent = 'Eintrag gelöscht.'
+  await loadEntries()
+}
+
 async function loadEntries() {
   entriesList.innerHTML = '<p>Lade Einträge...</p>'
 
@@ -361,10 +399,20 @@ async function loadEntries() {
           <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
           <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
           <div><strong>Serien:</strong> ${seriesList || '-'}</div>
+          <div class="row">
+            <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
+          </div>
         </div>
       `
     })
     .join('')
+
+  document.querySelectorAll('.delete-entry-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const entryId = button.dataset.entryId
+      await deleteEntry(entryId)
+    })
+  })
 }
 
 async function loadFormData() {
