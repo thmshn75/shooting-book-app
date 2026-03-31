@@ -128,6 +128,23 @@ document.querySelector('#app').innerHTML = `
             <h2>Statistik</h2>
             <div id="stats-summary" class="stats-grid"></div>
 
+            <div class="stats-charts-grid">
+              <div class="manage-box">
+                <h3>Training vs. Bewerb</h3>
+                <div id="chart-type-breakdown"></div>
+              </div>
+
+              <div class="manage-box">
+                <h3>Einträge pro Monat</h3>
+                <div id="chart-monthly-entries"></div>
+              </div>
+            </div>
+
+            <div class="manage-box">
+              <h3>Score-Entwicklung</h3>
+              <div id="chart-score-trend"></div>
+            </div>
+
             <div class="manage-box">
               <h3>Nach Typ</h3>
               <div id="stats-by-type"></div>
@@ -241,6 +258,9 @@ const statsSummary = document.getElementById('stats-summary')
 const statsByType = document.getElementById('stats-by-type')
 const statsByDiscipline = document.getElementById('stats-by-discipline')
 const statsByWeapon = document.getElementById('stats-by-weapon')
+const chartTypeBreakdown = document.getElementById('chart-type-breakdown')
+const chartMonthlyEntries = document.getElementById('chart-monthly-entries')
+const chartScoreTrend = document.getElementById('chart-score-trend')
 
 const filterType = document.getElementById('filter-type')
 const filterYear = document.getElementById('filter-year')
@@ -331,6 +351,9 @@ function showLoggedOutUI() {
   statsByType.innerHTML = ''
   statsByDiscipline.innerHTML = ''
   statsByWeapon.innerHTML = ''
+  chartTypeBreakdown.innerHTML = ''
+  chartMonthlyEntries.innerHTML = ''
+  chartScoreTrend.innerHTML = ''
 }
 
 function formatDate(dateString) {
@@ -449,12 +472,151 @@ function buildGroupedStats(entries, getGroupName) {
     .sort((a, b) => b.total - a.total)
 }
 
+function renderBarChart(container, items, emptyText) {
+  if (!items.length) {
+    container.innerHTML = `<p>${emptyText}</p>`
+    return
+  }
+
+  const maxValue = Math.max(...items.map((item) => item.value), 1)
+
+  container.innerHTML = `
+    <div class="mini-bar-chart">
+      ${items
+        .map((item) => {
+          const width = (item.value / maxValue) * 100
+          return `
+            <div class="mini-bar-row">
+              <div class="mini-bar-label">${item.label}</div>
+              <div class="mini-bar-track">
+                <div class="mini-bar-fill" style="width:${width}%;"></div>
+              </div>
+              <div class="mini-bar-value">${item.value}</div>
+            </div>
+          `
+        })
+        .join('')}
+    </div>
+  `
+}
+
+function renderLineChart(container, points, emptyText) {
+  if (!points.length) {
+    container.innerHTML = `<p>${emptyText}</p>`
+    return
+  }
+
+  if (points.length === 1) {
+    container.innerHTML = `
+      <div class="single-point-chart">
+        <div class="single-point-value">${formatNumber(points[0].value)}</div>
+        <div class="single-point-label">${points[0].label}</div>
+      </div>
+    `
+    return
+  }
+
+  const width = 760
+  const height = 260
+  const padding = 36
+
+  const maxValue = Math.max(...points.map((p) => p.value), 1)
+  const minValue = Math.min(...points.map((p) => p.value), 0)
+  const valueRange = maxValue - minValue || 1
+
+  const stepX = (width - padding * 2) / (points.length - 1)
+
+  const coordinates = points.map((point, index) => {
+    const x = padding + index * stepX
+    const normalized = (point.value - minValue) / valueRange
+    const y = height - padding - normalized * (height - padding * 2)
+    return { ...point, x, y }
+  })
+
+  const polylinePoints = coordinates.map((point) => `${point.x},${point.y}`).join(' ')
+
+  container.innerHTML = `
+    <div class="svg-chart-wrapper">
+      <svg viewBox="0 0 ${width} ${height}" class="svg-chart" preserveAspectRatio="none" aria-label="Diagramm">
+        <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis"></line>
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis"></line>
+        <polyline fill="none" points="${polylinePoints}" class="chart-line"></polyline>
+        ${coordinates
+          .map(
+            (point) => `
+              <circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>
+            `
+          )
+          .join('')}
+      </svg>
+      <div class="chart-label-row">
+        ${points
+          .map(
+            (point) => `
+              <div class="chart-label-item">
+                <span class="chart-label-text">${point.label}</span>
+                <span class="chart-label-value">${formatNumber(point.value)}</span>
+              </div>
+            `
+          )
+          .join('')}
+      </div>
+    </div>
+  `
+}
+
+function renderCharts(entries) {
+  if (!entries.length) {
+    chartTypeBreakdown.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    chartMonthlyEntries.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    chartScoreTrend.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    return
+  }
+
+  const trainingCount = entries.filter((entry) => entry.entry_type === 'training').length
+  const competitionCount = entries.filter((entry) => entry.entry_type === 'competition').length
+
+  renderBarChart(
+    chartTypeBreakdown,
+    [
+      { label: 'Training', value: trainingCount },
+      { label: 'Bewerb', value: competitionCount },
+    ],
+    'Noch keine Typ-Daten vorhanden.'
+  )
+
+  const monthlyMap = new Map()
+  entries.forEach((entry) => {
+    if (!entry.entry_date) return
+    const date = new Date(entry.entry_date)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1)
+  })
+
+  const monthlyEntries = Array.from(monthlyMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, value]) => ({ label, value }))
+
+  renderBarChart(chartMonthlyEntries, monthlyEntries, 'Noch keine Monatsdaten vorhanden.')
+
+  const sortedByDate = [...entries]
+    .filter((entry) => entry.entry_date)
+    .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
+    .map((entry) => ({
+      label: formatDate(entry.entry_date),
+      value: Number(entry.total_score || 0),
+    }))
+
+  renderLineChart(chartScoreTrend, sortedByDate, 'Noch keine Score-Daten vorhanden.')
+}
+
 function renderStatistics(entries) {
   if (!entries.length) {
     statsSummary.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
     statsByType.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
     statsByDiscipline.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
     statsByWeapon.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    renderCharts([])
     return
   }
 
@@ -496,6 +658,8 @@ function renderStatistics(entries) {
       <div class="stat-value small">${bestEntryText}</div>
     </div>
   `
+
+  renderCharts(entries)
 
   const typeStats = buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type))
   const disciplineStats = buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-')
@@ -1014,6 +1178,7 @@ loginBtn.addEventListener('click', async () => {
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut()
   authStatus.textContent = 'Ausgeloggt.'
+  showLoggedInUI(null)
   showLoggedOutUI()
 })
 
