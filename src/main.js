@@ -6,131 +6,146 @@ const supabaseKey = 'sb_publishable_X0J-88ZYBNSy4HWNHyF56Q_xWCD40ex'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
-  <div class="container">
-    <h1>Shooting Book</h1>
-
-    <div id="auth-box">
-      <h2>Login / Registrierung</h2>
-      <input id="email" type="email" placeholder="E-Mail" />
-      <input id="password" type="password" placeholder="Passwort" />
-      <div class="row">
-        <button id="register-btn">Registrieren</button>
-        <button id="login-btn">Login</button>
-        <button id="logout-btn" style="display:none;">Logout</button>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand-mark">Shooting Book</div>
       </div>
-      <p id="auth-status"></p>
-    </div>
-
-    <hr />
-
-    <div id="entry-box" style="display:none;">
-      <h2 id="form-title">Neuer Eintrag</h2>
-
-      <div class="form-grid">
-        <input id="entry-date" type="date" />
-
-        <select id="entry-type">
-          <option value="training">Training</option>
-          <option value="competition">Bewerb</option>
-        </select>
-
-        <select id="entry-discipline">
-          <option value="">Disziplin auswählen</option>
-        </select>
-
-        <select id="entry-weapon">
-          <option value="">Waffe auswählen</option>
-        </select>
-
-        <input id="entry-location" type="text" placeholder="Ort" />
-        <input id="entry-note" type="text" placeholder="Notiz" />
-
-        <input id="shots-per-series" type="number" min="1" max="50" value="5" placeholder="Schuss pro Serie" />
+      <div class="topbar-right" id="topbar-user-area" style="display:none;">
+        <span id="user-badge" class="user-badge"></span>
+        <button id="logout-btn" class="topbar-logout-btn" style="display:none;">Logout</button>
       </div>
+    </header>
 
-      <div class="manage-box">
-        <h3>Serien</h3>
+    <section id="cover-hero" class="cover-hero">
+      <div class="cover-overlay">
+        <h1>Shooting Book</h1>
+      </div>
+    </section>
+
+    <main class="container">
+      <div id="auth-box">
+        <h2>Login / Registrierung</h2>
+        <input id="email" type="email" placeholder="E-Mail" />
+        <input id="password" type="password" placeholder="Passwort" />
         <div class="row">
-          <label for="series-count">Anzahl Serien</label>
-          <input id="series-count" type="number" min="1" max="20" value="5" />
-          <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
+          <button id="register-btn">Registrieren</button>
+          <button id="login-btn">Login</button>
         </div>
-        <div id="series-inputs"></div>
+        <p id="auth-status"></p>
       </div>
 
-      <div class="collapsible-box">
-        <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
-          + Neue Disziplin anlegen
-        </button>
-        <div id="discipline-panel" class="collapsible-panel" style="display:none;">
-          <div class="manage-box inner-manage-box">
-            <h3>Neue Disziplin anlegen</h3>
-            <div class="row">
-              <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
-              <button id="add-discipline-btn">Disziplin hinzufügen</button>
+      <hr id="auth-divider" />
+
+      <div id="entry-box" style="display:none;">
+        <h2 id="form-title">Neuer Eintrag</h2>
+
+        <div class="form-grid">
+          <input id="entry-date" type="date" />
+
+          <select id="entry-type">
+            <option value="training">Training</option>
+            <option value="competition">Bewerb</option>
+          </select>
+
+          <select id="entry-discipline">
+            <option value="">Disziplin auswählen</option>
+          </select>
+
+          <select id="entry-weapon">
+            <option value="">Waffe auswählen</option>
+          </select>
+
+          <input id="entry-location" type="text" placeholder="Ort" />
+          <input id="entry-note" type="text" placeholder="Notiz" />
+
+          <input id="shots-per-series" type="number" min="1" max="50" value="5" placeholder="Schuss pro Serie" />
+        </div>
+
+        <div class="manage-box">
+          <h3>Serien</h3>
+          <div class="row">
+            <label for="series-count">Anzahl Serien</label>
+            <input id="series-count" type="number" min="1" max="20" value="5" />
+            <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
+          </div>
+          <div id="series-inputs"></div>
+        </div>
+
+        <div class="collapsible-box">
+          <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
+            + Neue Disziplin anlegen
+          </button>
+          <div id="discipline-panel" class="collapsible-panel" style="display:none;">
+            <div class="manage-box inner-manage-box">
+              <h3>Neue Disziplin anlegen</h3>
+              <div class="row">
+                <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
+                <button id="add-discipline-btn">Disziplin hinzufügen</button>
+              </div>
+              <p id="discipline-status"></p>
             </div>
-            <p id="discipline-status"></p>
           </div>
         </div>
+
+        <div class="collapsible-box">
+          <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
+            + Neue Waffe anlegen
+          </button>
+          <div id="weapon-panel" class="collapsible-panel" style="display:none;">
+            <div class="manage-box inner-manage-box">
+              <h3>Neue Waffe anlegen</h3>
+              <div class="form-grid">
+                <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
+                <input id="new-weapon-type" type="text" placeholder="Typ" />
+                <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
+                <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
+              </div>
+              <div class="row">
+                <button id="add-weapon-btn">Waffe hinzufügen</button>
+              </div>
+              <p id="weapon-status"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="save-entry-btn">Eintrag speichern</button>
+          <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
+        </div>
+        <p id="entry-status"></p>
       </div>
 
-      <div class="collapsible-box">
-        <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
-          + Neue Waffe anlegen
-        </button>
-        <div id="weapon-panel" class="collapsible-panel" style="display:none;">
-          <div class="manage-box inner-manage-box">
-            <h3>Neue Waffe anlegen</h3>
-            <div class="form-grid">
-              <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
-              <input id="new-weapon-type" type="text" placeholder="Typ" />
-              <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
-              <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
-            </div>
-            <div class="row">
-              <button id="add-weapon-btn">Waffe hinzufügen</button>
-            </div>
-            <p id="weapon-status"></p>
-          </div>
+      <hr id="main-divider" style="display:none;" />
+
+      <div id="stats-box" style="display:none;">
+        <h2>Statistik</h2>
+        <div id="stats-summary" class="stats-grid"></div>
+
+        <div class="manage-box">
+          <h3>Nach Typ</h3>
+          <div id="stats-by-type"></div>
+        </div>
+
+        <div class="manage-box">
+          <h3>Nach Disziplin</h3>
+          <div id="stats-by-discipline"></div>
+        </div>
+
+        <div class="manage-box">
+          <h3>Nach Waffe</h3>
+          <div id="stats-by-weapon"></div>
         </div>
       </div>
 
-      <div class="row">
-        <button id="save-entry-btn">Eintrag speichern</button>
-        <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
+      <hr id="list-divider" style="display:none;" />
+
+      <div id="list-box" style="display:none;">
+        <h2>Meine Einträge</h2>
+        <button id="reload-btn">Liste aktualisieren</button>
+        <div id="entries-list"></div>
       </div>
-      <p id="entry-status"></p>
-    </div>
-
-    <hr />
-
-    <div id="stats-box" style="display:none;">
-      <h2>Statistik</h2>
-      <div id="stats-summary" class="stats-grid"></div>
-
-      <div class="manage-box">
-        <h3>Nach Typ</h3>
-        <div id="stats-by-type"></div>
-      </div>
-
-      <div class="manage-box">
-        <h3>Nach Disziplin</h3>
-        <div id="stats-by-discipline"></div>
-      </div>
-
-      <div class="manage-box">
-        <h3>Nach Waffe</h3>
-        <div id="stats-by-weapon"></div>
-      </div>
-    </div>
-
-    <hr />
-
-    <div id="list-box" style="display:none;">
-      <h2>Meine Einträge</h2>
-      <button id="reload-btn">Liste aktualisieren</button>
-      <div id="entries-list"></div>
-    </div>
+    </main>
   </div>
 `
 
@@ -140,6 +155,13 @@ const registerBtn = document.getElementById('register-btn')
 const loginBtn = document.getElementById('login-btn')
 const logoutBtn = document.getElementById('logout-btn')
 const authStatus = document.getElementById('auth-status')
+const authBox = document.getElementById('auth-box')
+const authDivider = document.getElementById('auth-divider')
+const mainDivider = document.getElementById('main-divider')
+const listDivider = document.getElementById('list-divider')
+const topbarUserArea = document.getElementById('topbar-user-area')
+const userBadge = document.getElementById('user-badge')
+const coverHero = document.getElementById('cover-hero')
 
 const entryBox = document.getElementById('entry-box')
 const listBox = document.getElementById('list-box')
@@ -184,22 +206,43 @@ const weaponStatus = document.getElementById('weapon-status')
 
 let editingEntryId = null
 
-function showLoggedInUI() {
+function showLoggedInUI(session) {
+  document.body.classList.add('logged-in')
+  authBox.style.display = 'none'
+  authDivider.style.display = 'none'
+  coverHero.classList.add('compact')
+
   entryBox.style.display = 'block'
   listBox.style.display = 'block'
   statsBox.style.display = 'block'
-  logoutBtn.style.display = 'inline-block'
+  mainDivider.style.display = 'block'
+  listDivider.style.display = 'block'
+
+  topbarUserArea.style.display = 'flex'
+  logoutBtn.style.display = 'inline-flex'
   loginBtn.style.display = 'none'
   registerBtn.style.display = 'none'
+
+  userBadge.textContent = session?.user?.email || ''
 }
 
 function showLoggedOutUI() {
+  document.body.classList.remove('logged-in')
+  authBox.style.display = 'block'
+  authDivider.style.display = 'block'
+  coverHero.classList.remove('compact')
+
   entryBox.style.display = 'none'
   listBox.style.display = 'none'
   statsBox.style.display = 'none'
+  mainDivider.style.display = 'none'
+  listDivider.style.display = 'none'
+
+  topbarUserArea.style.display = 'none'
   logoutBtn.style.display = 'none'
-  loginBtn.style.display = 'inline-block'
-  registerBtn.style.display = 'inline-block'
+  loginBtn.style.display = 'inline-flex'
+  registerBtn.style.display = 'inline-flex'
+
   entriesList.innerHTML = ''
   statsSummary.innerHTML = ''
   statsByType.innerHTML = ''
@@ -243,43 +286,19 @@ function setCollapsibleState(button, panel, isOpen, openText, closedText) {
 }
 
 function openDisciplinePanel() {
-  setCollapsibleState(
-    toggleDisciplinePanelBtn,
-    disciplinePanel,
-    true,
-    '− Disziplin schließen',
-    '+ Neue Disziplin anlegen'
-  )
+  setCollapsibleState(toggleDisciplinePanelBtn, disciplinePanel, true, '− Disziplin schließen', '+ Neue Disziplin anlegen')
 }
 
 function closeDisciplinePanel() {
-  setCollapsibleState(
-    toggleDisciplinePanelBtn,
-    disciplinePanel,
-    false,
-    '− Disziplin schließen',
-    '+ Neue Disziplin anlegen'
-  )
+  setCollapsibleState(toggleDisciplinePanelBtn, disciplinePanel, false, '− Disziplin schließen', '+ Neue Disziplin anlegen')
 }
 
 function openWeaponPanel() {
-  setCollapsibleState(
-    toggleWeaponPanelBtn,
-    weaponPanel,
-    true,
-    '− Waffe schließen',
-    '+ Neue Waffe anlegen'
-  )
+  setCollapsibleState(toggleWeaponPanelBtn, weaponPanel, true, '− Waffe schließen', '+ Neue Waffe anlegen')
 }
 
 function closeWeaponPanel() {
-  setCollapsibleState(
-    toggleWeaponPanelBtn,
-    weaponPanel,
-    false,
-    '− Waffe schließen',
-    '+ Neue Waffe anlegen'
-  )
+  setCollapsibleState(toggleWeaponPanelBtn, weaponPanel, false, '− Waffe schließen', '+ Neue Waffe anlegen')
 }
 
 function renderStatsTable(container, rows, emptyText) {
@@ -357,10 +376,7 @@ function renderStatistics(entries) {
   }
 
   const entryCount = entries.length
-  const seriesCount = entries.reduce(
-    (sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0),
-    0
-  )
+  const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
   const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
   const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
   const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
@@ -777,7 +793,7 @@ registerBtn.addEventListener('click', async () => {
 loginBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Login läuft...'
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: emailInput.value,
     password: passwordInput.value,
   })
@@ -788,7 +804,7 @@ loginBtn.addEventListener('click', async () => {
   }
 
   authStatus.textContent = 'Login erfolgreich.'
-  showLoggedInUI()
+  showLoggedInUI(data.session)
   resetForm()
   closeDisciplinePanel()
   closeWeaponPanel()
@@ -1089,7 +1105,7 @@ async function init() {
 
   if (session) {
     authStatus.textContent = `Eingeloggt als ${session.user.email}`
-    showLoggedInUI()
+    showLoggedInUI(session)
     await loadFormData()
     await loadEntries()
   } else {
@@ -1099,7 +1115,7 @@ async function init() {
   supabase.auth.onAuthStateChange(async (_event, session) => {
     if (session) {
       authStatus.textContent = `Eingeloggt als ${session.user.email}`
-      showLoggedInUI()
+      showLoggedInUI(session)
       resetForm()
       closeDisciplinePanel()
       closeWeaponPanel()
