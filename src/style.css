@@ -1,7 +1,7 @@
 :root {
-  --surface: rgba(241, 233, 220, 0.90);
-  --surface-2: rgba(233, 223, 206, 0.92);
-  --surface-3: rgba(223, 210, 188, 0.92);
+  --surface: rgba(241, 233, 220, 0.88);
+  --surface-2: rgba(233, 223, 206, 0.9);
+  --surface-3: rgba(223, 210, 188, 0.9);
   --card: rgba(246, 238, 226, 0.94);
   --text: #2d2418;
   --muted: #6d5d48;
@@ -18,7 +18,7 @@
   --warning-border: #cfb682;
   --warning-text: #644f1f;
   --shadow: 0 14px 32px rgba(40, 28, 15, 0.18);
-  --shadow-soft: 0 6px 16px rgba(40, 28, 15, 0.10);
+  --shadow-soft: 0 6px 16px rgba(40, 28, 15, 0.1);
   --radius: 18px;
 }
 
@@ -28,7 +28,6 @@
 
 html {
   font-size: 16px;
-  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -43,21 +42,18 @@ body {
 
 body.logged-in {
   background:
-    linear-gradient(rgba(223, 208, 183, 0.10), rgba(223, 208, 183, 0.10)),
+    linear-gradient(rgba(223, 208, 183, 0.1), rgba(223, 208, 183, 0.1)),
     url('/cover.png') center center / cover no-repeat fixed;
 }
 
-#app {
-  min-height: 100vh;
-}
-
+#app,
 .app-shell {
   min-height: 100vh;
 }
 
 .topbar {
   width: min(1120px, calc(100% - 20px));
-  margin: 10px auto 0;
+  margin: 8px auto 0;
   padding: 4px 8px;
   display: flex;
   justify-content: space-between;
@@ -82,8 +78,8 @@ body.logged-in {
 .user-badge {
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(240, 232, 218, 0.72);
-  border: 1px solid rgba(173, 148, 110, 0.45);
+  background: rgba(240, 232, 218, 0.68);
+  border: 1px solid rgba(173, 148, 110, 0.4);
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text);
@@ -98,9 +94,9 @@ body.logged-in {
 
 .cover-hero {
   width: min(1120px, calc(100% - 20px));
-  height: 300px;
-  margin: 6px auto 0;
-  border-radius: 26px;
+  height: 320px;
+  margin: 4px auto 0;
+  border-radius: 24px;
   overflow: hidden;
   position: relative;
   background: transparent;
@@ -109,10 +105,7 @@ body.logged-in {
 }
 
 .cover-hero.compact {
-  height: 84px;
-  background: transparent;
-  box-shadow: none;
-  border: 0;
+  height: 48px;
 }
 
 .cover-overlay {
@@ -121,13 +114,12 @@ body.logged-in {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 28px;
-  background: transparent;
+  padding: 22px 24px;
 }
 
 .cover-overlay h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  font-size: clamp(2rem, 5vw, 4rem);
   line-height: 1;
   color: #f7f2e9;
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
@@ -136,17 +128,13 @@ body.logged-in {
 
 .container {
   max-width: 1120px;
-  margin: 18px auto 28px;
+  margin: 14px auto 24px;
   padding: 24px;
   background: var(--surface);
-  border: 1px solid rgba(173, 148, 110, 0.74);
-  border-radius: 26px;
+  border: 1px solid rgba(173, 148, 110, 0.72);
+  border-radius: 24px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(6px);
-}
-
-#auth-box {
-  max-width: 520px;
 }
 
 h2 {
@@ -166,7 +154,7 @@ p {
 }
 
 hr {
-  margin: 30px 0;
+  margin: 26px 0;
   border: 0;
   border-top: 1px solid var(--border);
 }
@@ -186,8 +174,8 @@ button {
 input,
 select {
   width: 100%;
-  min-height: 48px;
-  padding: 11px 14px;
+  min-height: 50px;
+  padding: 12px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 13px;
   background: #f6eee2;
@@ -208,7 +196,7 @@ select:focus {
 }
 
 button {
-  min-height: 44px;
+  min-height: 46px;
   padding: 10px 16px;
   border: 1px solid var(--primary);
   border-radius: 12px;
@@ -246,25 +234,25 @@ button[type='button']:hover {
   align-items: center;
 }
 
-.row > * {
-  flex: 0 0 auto;
-}
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.tabs-bar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.single-mobile-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.main-tabs,
+.sub-tabs {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 18px;
 }
 
 .tab-btn {
-  width: 100%;
   background: #e1d1b5;
   border-color: var(--border-strong);
   color: var(--text);
@@ -610,27 +598,28 @@ button[type='button']:hover {
   .topbar,
   .cover-hero,
   .container {
-    width: calc(100% - 20px);
+    width: calc(100% - 18px);
   }
 
   .container {
-    margin: 16px auto;
-    padding: 18px;
-    border-radius: 20px;
+    margin: 10px auto 18px;
+    padding: 16px;
+    border-radius: 18px;
   }
 
   .cover-hero {
-    height: 220px;
+    height: 240px;
   }
 
   .cover-hero.compact {
-    height: 68px;
+    height: 36px;
   }
 
+  .form-grid,
+  #series-inputs,
   .stats-grid,
   .stats-charts-grid,
-  .form-grid,
-  #series-inputs {
+  .single-mobile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -649,116 +638,56 @@ button[type='button']:hover {
     font-size: 17px;
   }
 
-  body {
-    font-size: 16px;
-  }
-
-  .topbar,
-  .cover-hero,
-  .container {
-    width: calc(100% - 14px);
-  }
-
   .topbar {
-    margin: 8px auto 0;
-    padding: 2px 2px;
-    align-items: flex-start;
+    padding: 4px 4px;
   }
 
   .topbar-right {
-    width: 100%;
-    justify-content: flex-end;
     gap: 6px;
   }
 
   .user-badge {
-    max-width: 150px;
+    max-width: 138px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
+    padding: 4px 8px;
   }
 
   .topbar-logout-btn {
-    min-height: 36px;
-    padding: 6px 10px;
-    font-size: 0.78rem;
+    min-height: 30px;
+    font-size: 0.72rem;
+    padding: 5px 9px;
   }
 
   .cover-hero {
-    height: 150px;
-    margin-top: 2px;
-    border-radius: 18px;
+    height: 200px;
+    border-radius: 16px;
   }
 
   .cover-hero.compact {
-    height: 52px;
+    height: 18px;
   }
 
   .cover-overlay {
-    padding: 10px 10px 0;
-    align-items: flex-start;
-  }
-
-  .cover-overlay h1 {
-    font-size: clamp(1.8rem, 8vw, 2.5rem);
+    padding: 16px;
   }
 
   .container {
     margin: 8px auto 14px;
     padding: 12px;
-    border-radius: 16px;
-  }
-
-  h2 {
-    margin-bottom: 14px;
-    font-size: 1.2rem;
-  }
-
-  h3 {
-    font-size: 1rem;
-  }
-
-  input,
-  select,
-  button {
-    font-size: 16px;
-  }
-
-  input,
-  select {
-    min-height: 52px;
-    padding: 13px 14px;
     border-radius: 14px;
   }
 
-  button {
-    min-height: 48px;
-    padding: 12px 14px;
-    border-radius: 14px;
+  .main-tabs,
+  .sub-tabs {
+    gap: 8px;
   }
 
-  .form-grid,
-  #series-inputs,
-  .stats-grid,
-  .stats-charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tabs-bar {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: rgba(241, 233, 220, 0.92);
-    backdrop-filter: blur(6px);
-    padding-bottom: 6px;
-    margin-bottom: 14px;
-  }
-
-  .tab-btn {
-    min-height: 50px;
-    padding: 10px 8px;
-    font-size: 0.92rem;
+  .main-tabs .tab-btn,
+  .sub-tabs .tab-btn {
+    width: 100%;
   }
 
   .row {
@@ -771,43 +700,21 @@ button[type='button']:hover {
     width: 100%;
   }
 
-  .row > label {
-    padding-top: 4px;
-  }
-
-  .manage-box {
-    margin-top: 14px;
-    padding: 14px;
+  .auth-actions button,
+  .series-actions input,
+  .series-actions button,
+  .filter-actions button,
+  .entry-actions button {
+    width: 100%;
   }
 
   .mini-bar-row {
     grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .mini-bar-track {
-    height: 18px;
-  }
-
-  .svg-chart {
-    height: 220px;
-  }
-
-  .chart-label-row {
-    grid-template-columns: 1fr 1fr;
   }
 
   .entry-card {
     padding: 14px;
     border-radius: 14px;
-  }
-
-  .entry-card .row {
-    gap: 8px;
-  }
-
-  .entry-card .row button {
-    width: 100%;
   }
 
   .manage-box,
@@ -819,75 +726,7 @@ button[type='button']:hover {
     border-radius: 14px;
   }
 
-  .stat-card {
-    padding: 14px;
-  }
-
   .stat-value {
     font-size: 1.25rem;
-  }
-
-  .list-summary {
-    gap: 8px;
-  }
-
-  .summary-chip {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  html {
-    font-size: 18px;
-  }
-
-  .topbar,
-  .cover-hero,
-  .container {
-    width: calc(100% - 10px);
-  }
-
-  .cover-hero {
-    height: 128px;
-    border-radius: 16px;
-  }
-
-  .cover-hero.compact {
-    height: 44px;
-  }
-
-  .cover-overlay {
-    padding: 8px 8px 0;
-  }
-
-  .cover-overlay h1 {
-    font-size: clamp(1.55rem, 9vw, 2.1rem);
-  }
-
-  .container {
-    padding: 10px;
-    margin: 6px auto 10px;
-  }
-
-  input,
-  select {
-    min-height: 54px;
-  }
-
-  button {
-    min-height: 50px;
-  }
-
-  .tabs-bar {
-    gap: 8px;
-  }
-
-  .tab-btn {
-    font-size: 0.86rem;
-    line-height: 1.15;
-  }
-
-  .stats-table {
-    border-radius: 14px;
   }
 }
