@@ -1,8 +1,8 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'DEINE_SUPABASE_URL'
-const supabaseKey = 'DEIN_SUPABASE_ANON_KEY'
+const supabaseUrl = 'https://uvgqbnsexnwrqkxrsxib.supabase.co'
+const supabaseKey = 'sb_publishable_X0J-88ZYBNSy4HWNHyF56Q_xWCD40ex'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
