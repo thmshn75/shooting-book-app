@@ -44,6 +44,8 @@ document.querySelector('#app').innerHTML = `
 
         <input id="entry-location" type="text" placeholder="Ort" />
         <input id="entry-note" type="text" placeholder="Notiz" />
+
+        <input id="shots-per-series" type="number" min="1" max="50" value="5" placeholder="Schuss pro Serie" />
       </div>
 
       <div class="manage-box">
@@ -149,6 +151,7 @@ const entryDiscipline = document.getElementById('entry-discipline')
 const entryWeapon = document.getElementById('entry-weapon')
 const entryLocation = document.getElementById('entry-location')
 const entryNote = document.getElementById('entry-note')
+const shotsPerSeriesInput = document.getElementById('shots-per-series')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
@@ -484,6 +487,7 @@ function resetForm() {
   entryType.value = 'training'
   entryLocation.value = ''
   entryNote.value = ''
+  shotsPerSeriesInput.value = '5'
   seriesCountInput.value = '5'
   renderSeriesInputs()
 }
@@ -614,6 +618,7 @@ async function startEditEntry(entryId) {
       weapon_id,
       location,
       note,
+      shots_per_series,
       entry_series(series_number, score)
     `)
     .eq('id', entryId)
@@ -636,6 +641,7 @@ async function startEditEntry(entryId) {
   entryWeapon.value = data.weapon_id || ''
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
+  shotsPerSeriesInput.value = data.shots_per_series || 5
 
   const sortedSeries = Array.isArray(data.entry_series)
     ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number)
@@ -669,6 +675,7 @@ async function loadEntries() {
       location,
       note,
       total_score,
+      shots_per_series,
       discipline_id,
       weapon_id,
       disciplines(name),
@@ -715,6 +722,7 @@ async function loadEntries() {
           <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
           <div><strong>Disziplin:</strong> ${disciplineName}</div>
           <div><strong>Waffe:</strong> ${weaponText}</div>
+          <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
           <div><strong>Ort:</strong> ${entry.location || '-'}</div>
           <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
           <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
@@ -944,6 +952,13 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
+  const shotsPerSeries = Number(shotsPerSeriesInput.value)
+
+  if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
+    entryStatus.textContent = 'Bitte gültige Schuss pro Serie eingeben.'
+    return
+  }
+
   const seriesData = getSeriesData()
   const totalScore = calculateTotalScore(seriesData)
 
@@ -960,6 +975,7 @@ saveEntryBtn.addEventListener('click', async () => {
           location: entryLocation.value.trim() || null,
           note: entryNote.value.trim() || null,
           total_score: totalScore,
+          shots_per_series: shotsPerSeries,
         },
       ])
       .select('id')
@@ -1008,6 +1024,7 @@ saveEntryBtn.addEventListener('click', async () => {
       location: entryLocation.value.trim() || null,
       note: entryNote.value.trim() || null,
       total_score: totalScore,
+      shots_per_series: shotsPerSeries,
     })
     .eq('id', editingEntryId)
     .eq('user_id', user.id)
