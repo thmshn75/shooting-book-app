@@ -480,20 +480,188 @@ button[type='button']:hover {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(244, 236, 223, 0.96) 0%, rgba(233, 221, 197, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(244, 236, 223, 0.98) 0%, rgba(233, 221, 197, 0.98) 100%);
   box-shadow: var(--shadow-soft);
 }
 
-.entry-card > div {
+.entry-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.entry-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-card-date {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.entry-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.entry-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 1px solid var(--border-strong);
+  background: rgba(228, 213, 188, 0.95);
+}
+
+.entry-type-badge.competition {
+  background: rgba(234, 220, 183, 0.95);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+
+.entry-type-badge.training {
+  background: rgba(228, 213, 188, 0.95);
+  color: var(--text);
+}
+
+.entry-discipline-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.entry-weapon-line {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.entry-score-box {
+  min-width: 92px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: rgba(246, 238, 226, 0.92);
+  text-align: center;
+}
+
+.entry-score-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.entry-score-value {
+  margin-top: 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.entry-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.entry-data-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(246, 238, 226, 0.92);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.entry-data-chip span {
+  color: var(--muted);
+}
+
+.entry-data-chip strong {
+  color: var(--text);
+}
+
+.entry-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.entry-info-block,
+.entry-note-box,
+.entry-series-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(173, 148, 110, 0.35);
+  background: rgba(246, 238, 226, 0.58);
+}
+
+.entry-info-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 800;
   margin-bottom: 6px;
 }
 
-.entry-card > div:last-child {
-  margin-bottom: 0;
+.entry-info-value,
+.entry-note-text {
+  color: var(--text);
+  line-height: 1.45;
 }
 
-.entry-card strong {
+.entry-series-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.series-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.series-pill-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.series-pill-value {
   color: var(--text);
+  font-weight: 800;
+}
+
+.entry-muted-text {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.entry-card-actions {
+  margin-top: 16px;
 }
 
 .stats-grid {
@@ -824,6 +992,29 @@ button[type='button']:hover {
   .entry-card {
     padding: 14px;
     border-radius: 14px;
+  }
+
+  .entry-card-top,
+  .entry-info-grid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .entry-card-top {
+    gap: 12px;
+  }
+
+  .entry-score-box {
+    width: 100%;
+  }
+
+  .entry-chip-row {
+    gap: 8px;
+  }
+
+  .entry-data-chip {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .manage-box,
