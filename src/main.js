@@ -17,7 +17,7 @@ document.querySelector('#app').innerHTML = `
 
     <section id="cover-hero" class="cover-hero">
       <div class="cover-overlay">
-        <h1>Shooting Book</h1>
+        <h1 id="cover-title">Shooting Book</h1>
       </div>
     </section>
 
@@ -46,7 +46,7 @@ document.querySelector('#app').innerHTML = `
           <div id="entry-box">
             <h2 id="form-title">Neuer Eintrag</h2>
 
-            <div class="form-grid">
+            <div class="form-grid mobile-single-grid">
               <input id="entry-date" type="date" />
 
               <select id="entry-type">
@@ -70,7 +70,7 @@ document.querySelector('#app').innerHTML = `
 
             <div class="manage-box">
               <h3>Serien</h3>
-              <div class="row series-actions">
+              <div class="row series-actions vertical-mobile-row">
                 <label for="series-count">Anzahl Serien</label>
                 <input id="series-count" type="number" min="1" max="20" value="5" />
                 <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
@@ -85,7 +85,7 @@ document.querySelector('#app').innerHTML = `
               <div id="discipline-panel" class="collapsible-panel" style="display:none;">
                 <div class="manage-box inner-manage-box">
                   <h3>Neue Disziplin anlegen</h3>
-                  <div class="form-grid single-mobile-grid">
+                  <div class="form-grid mobile-single-grid">
                     <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
                     <button id="add-discipline-btn">Disziplin hinzufügen</button>
                   </div>
@@ -101,13 +101,13 @@ document.querySelector('#app').innerHTML = `
               <div id="weapon-panel" class="collapsible-panel" style="display:none;">
                 <div class="manage-box inner-manage-box">
                   <h3>Neue Waffe anlegen</h3>
-                  <div class="form-grid">
+                  <div class="form-grid mobile-single-grid">
                     <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
                     <input id="new-weapon-type" type="text" placeholder="Typ" />
                     <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
                     <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
                   </div>
-                  <div class="row">
+                  <div class="row vertical-mobile-row">
                     <button id="add-weapon-btn">Waffe hinzufügen</button>
                   </div>
                   <p id="weapon-status"></p>
@@ -115,7 +115,7 @@ document.querySelector('#app').innerHTML = `
               </div>
             </div>
 
-            <div class="row entry-actions">
+            <div class="row entry-actions vertical-mobile-row">
               <button id="save-entry-btn">Eintrag speichern</button>
               <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
             </div>
@@ -181,7 +181,7 @@ document.querySelector('#app').innerHTML = `
 
             <div class="manage-box filter-box">
               <h3>Filter</h3>
-              <div class="form-grid">
+              <div class="form-grid mobile-single-grid">
                 <select id="filter-type">
                   <option value="">Alle Typen</option>
                   <option value="training">Training</option>
@@ -217,7 +217,7 @@ document.querySelector('#app').innerHTML = `
                 </select>
               </div>
 
-              <div class="row filter-actions">
+              <div class="row filter-actions vertical-mobile-row">
                 <button id="apply-filters-btn" type="button">Filter anwenden</button>
                 <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
                 <button id="reload-btn" type="button">Liste aktualisieren</button>
@@ -246,6 +246,7 @@ const mainApp = document.getElementById('main-app')
 const topbarUserArea = document.getElementById('topbar-user-area')
 const userBadge = document.getElementById('user-badge')
 const coverHero = document.getElementById('cover-hero')
+const coverTitle = document.getElementById('cover-title')
 
 const tabEntryBtn = document.getElementById('tab-entry-btn')
 const tabStatsBtn = document.getElementById('tab-stats-btn')
@@ -315,44 +316,38 @@ let editingEntryId = null
 let allEntriesCache = []
 
 function activateTab(tabName) {
-  const buttons = [tabEntryBtn, tabStatsBtn, tabListBtn]
-  const panels = [entryTab, statsTab, listTab]
-
-  buttons.forEach((btn) => btn.classList.remove('active'))
-  panels.forEach((panel) => panel.classList.remove('active'))
-
-  if (tabName === 'entry') {
-    tabEntryBtn.classList.add('active')
-    entryTab.classList.add('active')
-  }
-  if (tabName === 'stats') {
-    tabStatsBtn.classList.add('active')
-    statsTab.classList.add('active')
-  }
-  if (tabName === 'list') {
-    tabListBtn.classList.add('active')
-    listTab.classList.add('active')
-  }
+  ;[
+    [tabEntryBtn, entryTab, 'entry'],
+    [tabStatsBtn, statsTab, 'stats'],
+    [tabListBtn, listTab, 'list'],
+  ].forEach(([btn, panel, name]) => {
+    const active = tabName === name
+    btn.classList.toggle('active', active)
+    panel.classList.toggle('active', active)
+  })
 }
 
 function activateStatsSubTab(tabName) {
-  const buttons = [statsSubSummaryBtn, statsSubChartsBtn, statsSubDetailsBtn]
-  const panels = [statsSubSummary, statsSubCharts, statsSubDetails]
+  ;[
+    [statsSubSummaryBtn, statsSubSummary, 'summary'],
+    [statsSubChartsBtn, statsSubCharts, 'charts'],
+    [statsSubDetailsBtn, statsSubDetails, 'details'],
+  ].forEach(([btn, panel, name]) => {
+    const active = tabName === name
+    btn.classList.toggle('active', active)
+    panel.classList.toggle('active', active)
+  })
+}
 
-  buttons.forEach((btn) => btn.classList.remove('active'))
-  panels.forEach((panel) => panel.classList.remove('active'))
+function isMobile() {
+  return window.innerWidth <= 680
+}
 
-  if (tabName === 'summary') {
-    statsSubSummaryBtn.classList.add('active')
-    statsSubSummary.classList.add('active')
-  }
-  if (tabName === 'charts') {
-    statsSubChartsBtn.classList.add('active')
-    statsSubCharts.classList.add('active')
-  }
-  if (tabName === 'details') {
-    statsSubDetailsBtn.classList.add('active')
-    statsSubDetails.classList.add('active')
+function updateHeroForViewport() {
+  if (document.body.classList.contains('logged-in') && isMobile()) {
+    coverTitle.style.display = 'none'
+  } else {
+    coverTitle.style.display = 'block'
   }
 }
 
@@ -369,6 +364,7 @@ function showLoggedInUI(session) {
   registerBtn.style.display = 'none'
 
   userBadge.textContent = session?.user?.email || ''
+  updateHeroForViewport()
 }
 
 function showLoggedOutUI() {
@@ -393,6 +389,7 @@ function showLoggedOutUI() {
   chartTypeBreakdown.innerHTML = ''
   chartMonthlyEntries.innerHTML = ''
   chartScoreTrend.innerHTML = ''
+  updateHeroForViewport()
 }
 
 function formatDate(dateString) {
@@ -461,19 +458,15 @@ function renderStatsTable(container, rows, emptyText) {
         <div>Gesamt</div>
         <div>Schnitt/Eintrag</div>
       </div>
-      ${rows
-        .map(
-          (row) => `
-            <div class="stats-table-row">
-              <div>${row.name}</div>
-              <div>${row.entries}</div>
-              <div>${row.series}</div>
-              <div>${formatNumber(row.total)}</div>
-              <div>${formatNumber(row.averagePerEntry)}</div>
-            </div>
-          `
-        )
-        .join('')}
+      ${rows.map((row) => `
+        <div class="stats-table-row">
+          <div>${row.name}</div>
+          <div>${row.entries}</div>
+          <div>${row.series}</div>
+          <div>${formatNumber(row.total)}</div>
+          <div>${formatNumber(row.averagePerEntry)}</div>
+        </div>
+      `).join('')}
     </div>
   `
 }
@@ -483,24 +476,14 @@ function buildGroupedStats(entries, getGroupName) {
 
   entries.forEach((entry) => {
     const name = getGroupName(entry) || '-'
-    const key = name
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        name,
-        entries: 0,
-        series: 0,
-        total: 0,
-      })
+    if (!groups.has(name)) {
+      groups.set(name, { name, entries: 0, series: 0, total: 0 })
     }
 
-    const group = groups.get(key)
-    const seriesCount = Array.isArray(entry.entry_series) ? entry.entry_series.length : 0
-    const totalScore = Number(entry.total_score || 0)
-
+    const group = groups.get(name)
     group.entries += 1
-    group.series += seriesCount
-    group.total += totalScore
+    group.series += Array.isArray(entry.entry_series) ? entry.entry_series.length : 0
+    group.total += Number(entry.total_score || 0)
   })
 
   return Array.from(groups.values())
@@ -521,20 +504,18 @@ function renderBarChart(container, items, emptyText) {
 
   container.innerHTML = `
     <div class="mini-bar-chart">
-      ${items
-        .map((item) => {
-          const width = (item.value / maxValue) * 100
-          return `
-            <div class="mini-bar-row">
-              <div class="mini-bar-label">${item.label}</div>
-              <div class="mini-bar-track">
-                <div class="mini-bar-fill" style="width:${width}%;"></div>
-              </div>
-              <div class="mini-bar-value">${item.value}</div>
+      ${items.map((item) => {
+        const width = (item.value / maxValue) * 100
+        return `
+          <div class="mini-bar-row">
+            <div class="mini-bar-label">${item.label}</div>
+            <div class="mini-bar-track">
+              <div class="mini-bar-fill" style="width:${width}%;"></div>
             </div>
-          `
-        })
-        .join('')}
+            <div class="mini-bar-value">${item.value}</div>
+          </div>
+        `
+      }).join('')}
     </div>
   `
 }
@@ -558,7 +539,6 @@ function renderLineChart(container, points, emptyText) {
   const width = 760
   const height = 260
   const padding = 36
-
   const maxValue = Math.max(...points.map((p) => p.value), 1)
   const minValue = Math.min(...points.map((p) => p.value), 0)
   const valueRange = maxValue - minValue || 1
@@ -582,16 +562,12 @@ function renderLineChart(container, points, emptyText) {
         ${coordinates.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>`).join('')}
       </svg>
       <div class="chart-label-row">
-        ${points
-          .map(
-            (point) => `
-              <div class="chart-label-item">
-                <span class="chart-label-text">${point.label}</span>
-                <span class="chart-label-value">${formatNumber(point.value)}</span>
-              </div>
-            `
-          )
-          .join('')}
+        ${points.map((point) => `
+          <div class="chart-label-item">
+            <span class="chart-label-text">${point.label}</span>
+            <span class="chart-label-value">${formatNumber(point.value)}</span>
+          </div>
+        `).join('')}
       </div>
     </div>
   `
@@ -625,11 +601,11 @@ function renderCharts(entries) {
     monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1)
   })
 
-  const monthlyEntries = Array.from(monthlyMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([label, value]) => ({ label, value }))
-
-  renderBarChart(chartMonthlyEntries, monthlyEntries, 'Noch keine Monatsdaten vorhanden.')
+  renderBarChart(
+    chartMonthlyEntries,
+    Array.from(monthlyMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([label, value]) => ({ label, value })),
+    'Noch keine Monatsdaten vorhanden.'
+  )
 
   const sortedByDate = [...entries]
     .filter((entry) => entry.entry_date)
@@ -657,7 +633,6 @@ function renderStatistics(entries) {
   const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
   const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
   const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
-
   const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
   const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
 
@@ -690,23 +665,17 @@ function renderStatistics(entries) {
 
   renderCharts(entries)
 
-  const typeStats = buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type))
-  const disciplineStats = buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-')
-  const weaponStats = buildGroupedStats(entries, (entry) => {
+  renderStatsTable(statsByType, buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)), 'Noch keine Typ-Daten vorhanden.')
+  renderStatsTable(statsByDiscipline, buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-'), 'Noch keine Disziplin-Daten vorhanden.')
+  renderStatsTable(statsByWeapon, buildGroupedStats(entries, (entry) => {
     if (!entry.weapons?.name) return '-'
     const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
     return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-  })
-
-  renderStatsTable(statsByType, typeStats, 'Noch keine Typ-Daten vorhanden.')
-  renderStatsTable(statsByDiscipline, disciplineStats, 'Noch keine Disziplin-Daten vorhanden.')
-  renderStatsTable(statsByWeapon, weaponStats, 'Noch keine Waffen-Daten vorhanden.')
+  }), 'Noch keine Waffen-Daten vorhanden.')
 }
 
 async function getCurrentUser() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   return user
 }
 
@@ -740,9 +709,7 @@ function renderSeriesInputs(scores = []) {
 }
 
 function getSeriesData() {
-  const inputs = Array.from(document.querySelectorAll('.series-score-input'))
-
-  return inputs
+  return Array.from(document.querySelectorAll('.series-score-input'))
     .map((input) => {
       const value = input.value.trim()
       if (value === '') return null
@@ -751,10 +718,7 @@ function getSeriesData() {
       const seriesNumber = Number(input.dataset.seriesNumber)
       if (!Number.isFinite(score)) return null
 
-      return {
-        series_number: seriesNumber,
-        score,
-      }
+      return { series_number: seriesNumber, score }
     })
     .filter(Boolean)
 }
@@ -780,10 +744,7 @@ function resetForm() {
 }
 
 function populateFilterOptions(entries) {
-  const years = [...new Set(entries.map((entry) => {
-    if (!entry.entry_date) return null
-    return new Date(entry.entry_date).getFullYear()
-  }).filter(Boolean))].sort((a, b) => b - a)
+  const years = [...new Set(entries.map((entry) => entry.entry_date ? new Date(entry.entry_date).getFullYear() : null).filter(Boolean))].sort((a, b) => b - a)
 
   const disciplines = [...new Map(
     entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
@@ -792,8 +753,7 @@ function populateFilterOptions(entries) {
   const weapons = [...new Map(
     entries.filter((entry) => entry.weapons?.name).map((entry) => {
       const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-      const label = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-      return [entry.weapon_id, label]
+      return [entry.weapon_id, details ? `${entry.weapons.name} (${details})` : entry.weapons.name]
     })
   ).entries()]
 
@@ -840,6 +800,7 @@ function getFilteredEntries() {
     if (filterMonth.value && entryMonth !== filterMonth.value) return false
     if (filterDiscipline.value && entry.discipline_id !== filterDiscipline.value) return false
     if (filterWeapon.value && entry.weapon_id !== filterWeapon.value) return false
+
     return true
   })
 }
@@ -847,10 +808,9 @@ function getFilteredEntries() {
 function renderListSummary(entries) {
   const trainingCount = entries.filter((entry) => entry.entry_type === 'training').length
   const competitionCount = entries.filter((entry) => entry.entry_type === 'competition').length
-
-  let periodText = 'Zeitraum: alle'
   const dates = entries.map((entry) => entry.entry_date).filter(Boolean).sort()
 
+  let periodText = 'Zeitraum: alle'
   if (dates.length > 0) {
     periodText = `Zeitraum: ${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
   }
@@ -872,42 +832,40 @@ function renderEntriesList(entries) {
 
   renderListSummary(entries)
 
-  entriesList.innerHTML = entries
-    .map((entry) => {
-      const disciplineName = entry.disciplines?.name || '-'
+  entriesList.innerHTML = entries.map((entry) => {
+    const disciplineName = entry.disciplines?.name || '-'
 
-      let weaponText = '-'
-      if (entry.weapons?.name) {
-        const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-        weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-      }
+    let weaponText = '-'
+    if (entry.weapons?.name) {
+      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+      weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+    }
 
-      const seriesList = Array.isArray(entry.entry_series)
-        ? [...entry.entry_series]
-            .sort((a, b) => a.series_number - b.series_number)
-            .map((series) => `Serie ${series.series_number}: ${series.score}`)
-            .join(' | ')
-        : ''
+    const seriesList = Array.isArray(entry.entry_series)
+      ? [...entry.entry_series]
+          .sort((a, b) => a.series_number - b.series_number)
+          .map((series) => `Serie ${series.series_number}: ${series.score}`)
+          .join(' | ')
+      : ''
 
-      return `
-        <div class="entry-card">
-          <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
-          <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
-          <div><strong>Disziplin:</strong> ${disciplineName}</div>
-          <div><strong>Waffe:</strong> ${weaponText}</div>
-          <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
-          <div><strong>Ort:</strong> ${entry.location || '-'}</div>
-          <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
-          <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
-          <div><strong>Serien:</strong> ${seriesList || '-'}</div>
-          <div class="row">
-            <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
-            <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
-          </div>
+    return `
+      <div class="entry-card">
+        <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
+        <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
+        <div><strong>Disziplin:</strong> ${disciplineName}</div>
+        <div><strong>Waffe:</strong> ${weaponText}</div>
+        <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
+        <div><strong>Ort:</strong> ${entry.location || '-'}</div>
+        <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
+        <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
+        <div><strong>Serien:</strong> ${seriesList || '-'}</div>
+        <div class="row vertical-mobile-row">
+          <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
+          <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
         </div>
-      `
-    })
-    .join('')
+      </div>
+    `
+  }).join('')
 
   document.querySelectorAll('.delete-entry-btn').forEach((button) => {
     button.addEventListener('click', async () => {
@@ -939,11 +897,7 @@ async function loadDisciplines() {
   const user = await getCurrentUser()
   if (!user) return
 
-  const { data, error } = await supabase
-    .from('disciplines')
-    .select('id, name')
-    .eq('user_id', user.id)
-    .order('name', { ascending: true })
+  const { data, error } = await supabase.from('disciplines').select('id, name').eq('user_id', user.id).order('name', { ascending: true })
 
   if (error) {
     disciplineStatus.textContent = `Fehler beim Laden der Disziplinen: ${error.message}`
@@ -966,11 +920,7 @@ async function loadWeapons() {
   const user = await getCurrentUser()
   if (!user) return
 
-  const { data, error } = await supabase
-    .from('weapons')
-    .select('id, name, type, caliber')
-    .eq('user_id', user.id)
-    .order('name', { ascending: true })
+  const { data, error } = await supabase.from('weapons').select('id, name, type, caliber').eq('user_id', user.id).order('name', { ascending: true })
 
   if (error) {
     weaponStatus.textContent = `Fehler beim Laden der Waffen: ${error.message}`
@@ -1213,12 +1163,7 @@ addDisciplineBtn.addEventListener('click', async () => {
     return
   }
 
-  const { data, error } = await supabase
-    .from('disciplines')
-    .insert([{ user_id: user.id, name }])
-    .select('id, name')
-    .single()
-
+  const { data, error } = await supabase.from('disciplines').insert([{ user_id: user.id, name }]).select('id, name').single()
   if (error) {
     disciplineStatus.textContent = `Fehler: ${error.message}`
     return
@@ -1407,6 +1352,8 @@ reloadBtn.addEventListener('click', async () => {
   await loadEntries()
 })
 
+window.addEventListener('resize', updateHeroForViewport)
+
 async function init() {
   document.title = 'Shooting Book'
   resetForm()
@@ -1414,10 +1361,9 @@ async function init() {
   closeWeaponPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
+  updateHeroForViewport()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   if (session) {
     authStatus.textContent = `Eingeloggt als ${session.user.email}`
