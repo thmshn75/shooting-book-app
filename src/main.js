@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
   <div class="app-shell">
-    <section id="splash-screen" class="splash-screen">
+    <section id="splash-screen" class="sfunction renderSeriesInputs(scores = []) {plash-screen">
       <div class="splash-inner">
         <button id="start-app-btn" class="start-app-btn">Start</button>
       </div>
@@ -777,7 +777,7 @@ async function getCurrentUser() {
   return user
 }
 
-function renderSeriesInputs(scores = []) {
+function renderSeriesInputs(scores = [], shouldFocusFirst = false) {
   let count = parseInt(seriesCountInput.value, 10)
   if (!Number.isInteger(count) || count < 1) count = 1
   if (count > 20) count = 20
@@ -803,6 +803,25 @@ function renderSeriesInputs(scores = []) {
       />
     `
     seriesInputs.appendChild(row)
+  }
+
+  const inputs = Array.from(document.querySelectorAll('.series-score-input'))
+
+  inputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      const value = input.value.trim()
+      if (value.length >= 2 && index < inputs.length - 1) {
+        inputs[index + 1].focus()
+        inputs[index + 1].select()
+      }
+    })
+  })
+
+  if (shouldFocusFirst && inputs.length > 0) {
+    setTimeout(() => {
+      inputs[0].focus()
+      inputs[0].select()
+    }, 0)
   }
 }
 
