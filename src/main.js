@@ -7,232 +7,238 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
   <div class="app-shell">
-    <header class="topbar">
-      <div class="topbar-left"></div>
-      <div class="topbar-right" id="topbar-user-area" style="display:none;">
-        <span id="user-badge" class="user-badge"></span>
-        <button id="logout-btn" class="topbar-logout-btn" style="display:none;">Logout</button>
-      </div>
-    </header>
-
-    <section id="cover-hero" class="cover-hero">
-      <div class="cover-overlay">
-        <h1 id="cover-title">Shooting Book</h1>
+    <section id="splash-screen" class="splash-screen">
+      <div class="splash-inner">
+        <button id="start-app-btn" class="start-app-btn">Start</button>
       </div>
     </section>
 
-    <main class="container">
-      <div id="auth-box">
-        <h2>Login / Registrierung</h2>
-        <input id="email" type="email" placeholder="E-Mail" />
-        <input id="password" type="password" placeholder="Passwort" />
-        <div class="row auth-actions">
-          <button id="register-btn">Registrieren</button>
-          <button id="login-btn">Login</button>
+    <div id="main-stage" style="display:none;">
+      <header class="topbar">
+        <div class="topbar-left"></div>
+        <div class="topbar-right" id="topbar-user-area" style="display:none;">
+          <span id="user-badge" class="user-badge"></span>
+          <button id="logout-btn" class="topbar-logout-btn" style="display:none;">Logout</button>
         </div>
-        <p id="auth-status"></p>
-      </div>
+      </header>
 
-      <hr id="auth-divider" />
-
-      <div id="main-app" style="display:none;">
-        <div class="tabs-bar main-tabs">
-          <button id="tab-entry-btn" class="tab-btn active" type="button">Neuer Eintrag</button>
-          <button id="tab-stats-btn" class="tab-btn" type="button">Statistik</button>
-          <button id="tab-list-btn" class="tab-btn" type="button">Meine Einträge</button>
+      <main class="container">
+        <div id="auth-box">
+          <h2>Login / Registrierung</h2>
+          <input id="email" type="email" placeholder="E-Mail" />
+          <input id="password" type="password" placeholder="Passwort" />
+          <div class="row auth-actions">
+            <button id="register-btn">Registrieren</button>
+            <button id="login-btn">Login</button>
+          </div>
+          <p id="auth-status"></p>
         </div>
 
-        <section id="entry-tab" class="tab-panel active">
-          <div id="entry-box">
-            <h2 id="form-title">Neuer Eintrag</h2>
+        <hr id="auth-divider" />
 
-            <div class="form-grid mobile-single-grid">
-              <input id="entry-date" type="date" />
-
-              <select id="entry-type">
-                <option value="training">Training</option>
-                <option value="competition">Bewerb</option>
-              </select>
-
-              <select id="entry-discipline">
-                <option value="">Disziplin auswählen</option>
-              </select>
-
-              <select id="entry-weapon">
-                <option value="">Waffe auswählen</option>
-              </select>
-
-              <input id="entry-location" type="text" placeholder="Ort" />
-              <input id="entry-note" type="text" placeholder="Notiz" />
-
-              <input id="shots-per-series" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
-            </div>
-
-            <div class="manage-box">
-              <h3>Serien</h3>
-              <div class="row series-actions vertical-mobile-row">
-                <label for="series-count">Anzahl Serien</label>
-                <input id="series-count" type="number" min="1" max="20" value="5" />
-                <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
-              </div>
-              <div id="series-inputs"></div>
-            </div>
-
-            <div class="collapsible-box">
-              <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
-                + Neue Disziplin anlegen
-              </button>
-              <div id="discipline-panel" class="collapsible-panel" style="display:none;">
-                <div class="manage-box inner-manage-box">
-                  <h3>Neue Disziplin anlegen</h3>
-                  <div class="form-grid mobile-single-grid">
-                    <input id="new-discipline-name" type="text" placeholder="Name der Disziplin" />
-                    <button id="add-discipline-btn">Disziplin hinzufügen</button>
-                  </div>
-                  <p id="discipline-status"></p>
-                </div>
-              </div>
-            </div>
-
-            <div class="collapsible-box">
-              <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
-                + Neue Waffe anlegen
-              </button>
-              <div id="weapon-panel" class="collapsible-panel" style="display:none;">
-                <div class="manage-box inner-manage-box">
-                  <h3>Neue Waffe anlegen</h3>
-                  <div class="form-grid mobile-single-grid">
-                    <input id="new-weapon-name" type="text" placeholder="Name der Waffe" />
-                    <input id="new-weapon-type" type="text" placeholder="Typ" />
-                    <input id="new-weapon-caliber" type="text" placeholder="Kaliber" />
-                    <input id="new-weapon-notes" type="text" placeholder="Notizen zur Waffe" />
-                  </div>
-                  <div class="row vertical-mobile-row">
-                    <button id="add-weapon-btn">Waffe hinzufügen</button>
-                  </div>
-                  <p id="weapon-status"></p>
-                </div>
-              </div>
-            </div>
-
-            <div class="row entry-actions vertical-mobile-row">
-              <button id="save-entry-btn">Eintrag speichern</button>
-              <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
-            </div>
-            <p id="entry-status"></p>
+        <div id="main-app" style="display:none;">
+          <div class="tabs-bar main-tabs">
+            <button id="tab-entry-btn" class="tab-btn active" type="button">Neuer Eintrag</button>
+            <button id="tab-stats-btn" class="tab-btn" type="button">Statistik</button>
+            <button id="tab-list-btn" class="tab-btn" type="button">Meine Einträge</button>
           </div>
-        </section>
 
-        <section id="stats-tab" class="tab-panel">
-          <div id="stats-box">
-            <h2>Statistik</h2>
+          <section id="entry-tab" class="tab-panel active">
+            <div id="entry-box">
+              <h2 id="form-title">Neuer Eintrag</h2>
 
-            <div class="tabs-bar sub-tabs">
-              <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
-              <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
-              <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
-            </div>
-
-            <section id="stats-sub-summary" class="tab-panel active">
-              <div id="stats-summary" class="stats-grid"></div>
-            </section>
-
-            <section id="stats-sub-charts" class="tab-panel">
-              <div class="stats-charts-grid">
-                <div class="manage-box">
-                  <h3>Training vs. Bewerb</h3>
-                  <div id="chart-type-breakdown"></div>
-                </div>
-
-                <div class="manage-box">
-                  <h3>Einträge pro Monat</h3>
-                  <div id="chart-monthly-entries"></div>
-                </div>
-              </div>
-
-              <div class="manage-box">
-                <h3>Score-Entwicklung</h3>
-                <div id="chart-score-trend"></div>
-              </div>
-            </section>
-
-            <section id="stats-sub-details" class="tab-panel">
-              <div class="manage-box">
-                <h3>Nach Typ</h3>
-                <div id="stats-by-type"></div>
-              </div>
-
-              <div class="manage-box">
-                <h3>Nach Disziplin</h3>
-                <div id="stats-by-discipline"></div>
-              </div>
-
-              <div class="manage-box">
-                <h3>Nach Waffe</h3>
-                <div id="stats-by-weapon"></div>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="list-tab" class="tab-panel">
-          <div id="list-box">
-            <h2>Meine Einträge</h2>
-
-            <div class="manage-box filter-box">
-              <h3>Filter</h3>
               <div class="form-grid mobile-single-grid">
-                <select id="filter-type">
-                  <option value="">Alle Typen</option>
+                <input id="entry-date" class="uniform-input" type="date" />
+
+                <select id="entry-type" class="uniform-input">
                   <option value="training">Training</option>
                   <option value="competition">Bewerb</option>
                 </select>
 
-                <select id="filter-year">
-                  <option value="">Alle Jahre</option>
+                <select id="entry-discipline" class="uniform-input">
+                  <option value="">Disziplin auswählen</option>
                 </select>
 
-                <select id="filter-month">
-                  <option value="">Alle Monate</option>
-                  <option value="1">Januar</option>
-                  <option value="2">Februar</option>
-                  <option value="3">März</option>
-                  <option value="4">April</option>
-                  <option value="5">Mai</option>
-                  <option value="6">Juni</option>
-                  <option value="7">Juli</option>
-                  <option value="8">August</option>
-                  <option value="9">September</option>
-                  <option value="10">Oktober</option>
-                  <option value="11">November</option>
-                  <option value="12">Dezember</option>
+                <select id="entry-weapon" class="uniform-input">
+                  <option value="">Waffe auswählen</option>
                 </select>
 
-                <select id="filter-discipline">
-                  <option value="">Alle Disziplinen</option>
-                </select>
+                <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
+                <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
 
-                <select id="filter-weapon">
-                  <option value="">Alle Waffen</option>
-                </select>
+                <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
               </div>
 
-              <div class="row filter-actions vertical-mobile-row">
-                <button id="apply-filters-btn" type="button">Filter anwenden</button>
-                <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
-                <button id="reload-btn" type="button">Liste aktualisieren</button>
+              <div class="manage-box">
+                <h3>Serien</h3>
+                <div class="row series-actions vertical-mobile-row">
+                  <label for="series-count">Anzahl Serien</label>
+                  <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="5" />
+                  <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
+                </div>
+                <div id="series-inputs"></div>
               </div>
 
-              <div id="list-summary" class="list-summary"></div>
+              <div class="collapsible-box">
+                <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
+                  + Neue Disziplin anlegen
+                </button>
+                <div id="discipline-panel" class="collapsible-panel" style="display:none;">
+                  <div class="manage-box inner-manage-box">
+                    <h3>Neue Disziplin anlegen</h3>
+                    <div class="form-grid mobile-single-grid">
+                      <input id="new-discipline-name" class="uniform-input" type="text" placeholder="Name der Disziplin" />
+                      <button id="add-discipline-btn">Disziplin hinzufügen</button>
+                    </div>
+                    <p id="discipline-status"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="collapsible-box">
+                <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
+                  + Neue Waffe anlegen
+                </button>
+                <div id="weapon-panel" class="collapsible-panel" style="display:none;">
+                  <div class="manage-box inner-manage-box">
+                    <h3>Neue Waffe anlegen</h3>
+                    <div class="form-grid mobile-single-grid">
+                      <input id="new-weapon-name" class="uniform-input" type="text" placeholder="Name der Waffe" />
+                      <input id="new-weapon-type" class="uniform-input" type="text" placeholder="Typ" />
+                      <input id="new-weapon-caliber" class="uniform-input" type="text" placeholder="Kaliber" />
+                      <input id="new-weapon-notes" class="uniform-input" type="text" placeholder="Notizen zur Waffe" />
+                    </div>
+                    <div class="row vertical-mobile-row">
+                      <button id="add-weapon-btn">Waffe hinzufügen</button>
+                    </div>
+                    <p id="weapon-status"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row entry-actions vertical-mobile-row">
+                <button id="save-entry-btn">Eintrag speichern</button>
+                <button id="cancel-edit-btn" type="button" style="display:none;">Bearbeiten abbrechen</button>
+              </div>
+              <p id="entry-status"></p>
             </div>
+          </section>
 
-            <div id="entries-list"></div>
-          </div>
-        </section>
-      </div>
-    </main>
+          <section id="stats-tab" class="tab-panel">
+            <div id="stats-box">
+              <h2>Statistik</h2>
+
+              <div class="tabs-bar sub-tabs">
+                <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
+                <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
+                <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
+              </div>
+
+              <section id="stats-sub-summary" class="tab-panel active">
+                <div id="stats-summary" class="stats-grid"></div>
+              </section>
+
+              <section id="stats-sub-charts" class="tab-panel">
+                <div class="stats-charts-grid">
+                  <div class="manage-box">
+                    <h3>Training vs. Bewerb</h3>
+                    <div id="chart-type-breakdown"></div>
+                  </div>
+
+                  <div class="manage-box">
+                    <h3>Einträge pro Monat</h3>
+                    <div id="chart-monthly-entries"></div>
+                  </div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Score-Entwicklung</h3>
+                  <div id="chart-score-trend"></div>
+                </div>
+              </section>
+
+              <section id="stats-sub-details" class="tab-panel">
+                <div class="manage-box">
+                  <h3>Nach Typ</h3>
+                  <div id="stats-by-type"></div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Nach Disziplin</h3>
+                  <div id="stats-by-discipline"></div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Nach Waffe</h3>
+                  <div id="stats-by-weapon"></div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section id="list-tab" class="tab-panel">
+            <div id="list-box">
+              <h2>Meine Einträge</h2>
+
+              <div class="manage-box filter-box">
+                <h3>Filter</h3>
+                <div class="form-grid mobile-single-grid">
+                  <select id="filter-type" class="uniform-input">
+                    <option value="">Alle Typen</option>
+                    <option value="training">Training</option>
+                    <option value="competition">Bewerb</option>
+                  </select>
+
+                  <select id="filter-year" class="uniform-input">
+                    <option value="">Alle Jahre</option>
+                  </select>
+
+                  <select id="filter-month" class="uniform-input">
+                    <option value="">Alle Monate</option>
+                    <option value="1">Januar</option>
+                    <option value="2">Februar</option>
+                    <option value="3">März</option>
+                    <option value="4">April</option>
+                    <option value="5">Mai</option>
+                    <option value="6">Juni</option>
+                    <option value="7">Juli</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Dezember</option>
+                  </select>
+
+                  <select id="filter-discipline" class="uniform-input">
+                    <option value="">Alle Disziplinen</option>
+                  </select>
+
+                  <select id="filter-weapon" class="uniform-input">
+                    <option value="">Alle Waffen</option>
+                  </select>
+                </div>
+
+                <div class="row filter-actions vertical-mobile-row">
+                  <button id="apply-filters-btn" type="button">Filter anwenden</button>
+                  <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
+                  <button id="reload-btn" type="button">Liste aktualisieren</button>
+                </div>
+
+                <div id="list-summary" class="list-summary"></div>
+              </div>
+
+              <div id="entries-list"></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
   </div>
 `
+
+const splashScreen = document.getElementById('splash-screen')
+const startAppBtn = document.getElementById('start-app-btn')
+const mainStage = document.getElementById('main-stage')
 
 const emailInput = document.getElementById('email')
 const passwordInput = document.getElementById('password')
@@ -245,8 +251,6 @@ const authDivider = document.getElementById('auth-divider')
 const mainApp = document.getElementById('main-app')
 const topbarUserArea = document.getElementById('topbar-user-area')
 const userBadge = document.getElementById('user-badge')
-const coverHero = document.getElementById('cover-hero')
-const coverTitle = document.getElementById('cover-title')
 
 const tabEntryBtn = document.getElementById('tab-entry-btn')
 const tabStatsBtn = document.getElementById('tab-stats-btn')
@@ -339,24 +343,22 @@ function activateStatsSubTab(tabName) {
   })
 }
 
-function isMobile() {
-  return window.innerWidth <= 680
+function showSplash() {
+  splashScreen.style.display = 'flex'
+  mainStage.style.display = 'none'
+  document.body.classList.remove('app-mode')
 }
 
-function updateHeroForViewport() {
-  if (document.body.classList.contains('logged-in') && isMobile()) {
-    coverTitle.style.display = 'none'
-  } else {
-    coverTitle.style.display = 'block'
-  }
+function showStage() {
+  splashScreen.style.display = 'none'
+  mainStage.style.display = 'block'
 }
 
 function showLoggedInUI(session) {
-  document.body.classList.add('logged-in')
+  document.body.classList.add('app-mode')
   authBox.style.display = 'none'
   authDivider.style.display = 'none'
   mainApp.style.display = 'block'
-  coverHero.classList.add('compact')
 
   topbarUserArea.style.display = 'flex'
   logoutBtn.style.display = 'inline-flex'
@@ -364,15 +366,13 @@ function showLoggedInUI(session) {
   registerBtn.style.display = 'none'
 
   userBadge.textContent = session?.user?.email || ''
-  updateHeroForViewport()
 }
 
 function showLoggedOutUI() {
-  document.body.classList.remove('logged-in')
+  document.body.classList.remove('app-mode')
   authBox.style.display = 'block'
   authDivider.style.display = 'block'
   mainApp.style.display = 'none'
-  coverHero.classList.remove('compact')
 
   topbarUserArea.style.display = 'none'
   logoutBtn.style.display = 'none'
@@ -389,7 +389,6 @@ function showLoggedOutUI() {
   chartTypeBreakdown.innerHTML = ''
   chartMonthlyEntries.innerHTML = ''
   chartScoreTrend.innerHTML = ''
-  updateHeroForViewport()
 }
 
 function formatDate(dateString) {
@@ -476,9 +475,7 @@ function buildGroupedStats(entries, getGroupName) {
 
   entries.forEach((entry) => {
     const name = getGroupName(entry) || '-'
-    if (!groups.has(name)) {
-      groups.set(name, { name, entries: 0, series: 0, total: 0 })
-    }
+    if (!groups.has(name)) groups.set(name, { name, entries: 0, series: 0, total: 0 })
 
     const group = groups.get(name)
     group.entries += 1
@@ -603,7 +600,9 @@ function renderCharts(entries) {
 
   renderBarChart(
     chartMonthlyEntries,
-    Array.from(monthlyMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([label, value]) => ({ label, value })),
+    Array.from(monthlyMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, value]) => ({ label, value })),
     'Noch keine Monatsdaten vorhanden.'
   )
 
@@ -664,14 +663,17 @@ function renderStatistics(entries) {
   `
 
   renderCharts(entries)
-
   renderStatsTable(statsByType, buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)), 'Noch keine Typ-Daten vorhanden.')
   renderStatsTable(statsByDiscipline, buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-'), 'Noch keine Disziplin-Daten vorhanden.')
-  renderStatsTable(statsByWeapon, buildGroupedStats(entries, (entry) => {
-    if (!entry.weapons?.name) return '-'
-    const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-    return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-  }), 'Noch keine Waffen-Daten vorhanden.')
+  renderStatsTable(
+    statsByWeapon,
+    buildGroupedStats(entries, (entry) => {
+      if (!entry.weapons?.name) return '-'
+      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+      return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+    }),
+    'Noch keine Waffen-Daten vorhanden.'
+  )
 }
 
 async function getCurrentUser() {
@@ -695,7 +697,7 @@ function renderSeriesInputs(scores = []) {
       <label for="series-score-${i}">Serie ${i}</label>
       <input
         id="series-score-${i}"
-        class="series-score-input"
+        class="uniform-input series-score-input"
         type="number"
         min="0"
         step="1"
@@ -744,7 +746,7 @@ function resetForm() {
 }
 
 function populateFilterOptions(entries) {
-  const years = [...new Set(entries.map((entry) => entry.entry_date ? new Date(entry.entry_date).getFullYear() : null).filter(Boolean))].sort((a, b) => b - a)
+  const years = [...new Set(entries.map((entry) => (entry.entry_date ? new Date(entry.entry_date).getFullYear() : null)).filter(Boolean))].sort((a, b) => b - a)
 
   const disciplines = [...new Map(
     entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
@@ -800,7 +802,6 @@ function getFilteredEntries() {
     if (filterMonth.value && entryMonth !== filterMonth.value) return false
     if (filterDiscipline.value && entry.discipline_id !== filterDiscipline.value) return false
     if (filterWeapon.value && entry.weapon_id !== filterWeapon.value) return false
-
     return true
   })
 }
@@ -898,7 +899,6 @@ async function loadDisciplines() {
   if (!user) return
 
   const { data, error } = await supabase.from('disciplines').select('id, name').eq('user_id', user.id).order('name', { ascending: true })
-
   if (error) {
     disciplineStatus.textContent = `Fehler beim Laden der Disziplinen: ${error.message}`
     return
@@ -921,7 +921,6 @@ async function loadWeapons() {
   if (!user) return
 
   const { data, error } = await supabase.from('weapons').select('id, name, type, caliber').eq('user_id', user.id).order('name', { ascending: true })
-
   if (error) {
     weaponStatus.textContent = `Fehler beim Laden der Waffen: ${error.message}`
     return
@@ -1070,16 +1069,23 @@ async function loadFormData() {
   await loadWeapons()
 }
 
+startAppBtn.addEventListener('click', () => {
+  showStage()
+  showLoggedOutUI()
+})
+
 registerBtn.addEventListener('click', async () => {
   authStatus.textContent = 'Registrierung läuft...'
   const { error } = await supabase.auth.signUp({
     email: emailInput.value,
     password: passwordInput.value,
   })
+
   if (error) {
     authStatus.textContent = `Fehler: ${error.message}`
     return
   }
+
   authStatus.textContent = 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.'
 })
 
@@ -1089,6 +1095,7 @@ loginBtn.addEventListener('click', async () => {
     email: emailInput.value,
     password: passwordInput.value,
   })
+
   if (error) {
     authStatus.textContent = `Fehler: ${error.message}`
     return
@@ -1352,8 +1359,6 @@ reloadBtn.addEventListener('click', async () => {
   await loadEntries()
 })
 
-window.addEventListener('resize', updateHeroForViewport)
-
 async function init() {
   document.title = 'Shooting Book'
   resetForm()
@@ -1361,34 +1366,16 @@ async function init() {
   closeWeaponPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
-  updateHeroForViewport()
+  showSplash()
 
   const { data: { session } } = await supabase.auth.getSession()
 
   if (session) {
-    authStatus.textContent = `Eingeloggt als ${session.user.email}`
+    showStage()
     showLoggedInUI(session)
     await loadFormData()
     await loadEntries()
-  } else {
-    showLoggedOutUI()
   }
-
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session) {
-      authStatus.textContent = `Eingeloggt als ${session.user.email}`
-      showLoggedInUI(session)
-      resetForm()
-      closeDisciplinePanel()
-      closeWeaponPanel()
-      activateTab('entry')
-      activateStatsSubTab('summary')
-      await loadFormData()
-      await loadEntries()
-    } else {
-      showLoggedOutUI()
-    }
-  })
 }
 
 init()
