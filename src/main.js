@@ -844,20 +844,40 @@ function calculateTotalScore(seriesData) {
   return seriesData.reduce((sum, item) => sum + item.score, 0)
 }
 
-function resetForm() {
+function resetForm(options = {}) {
+  const {
+    preserveDate = false,
+    preserveType = false,
+    preserveDiscipline = false,
+    preserveWeapon = false,
+    preserveShotsPerSeries = false,
+    preserveSeriesCount = false,
+  } = options
+
+  const nextDate = preserveDate ? entryDate.value || todayString() : todayString()
+  const nextType = preserveType ? entryType.value || 'training' : 'training'
+  const nextDiscipline = preserveDiscipline ? entryDiscipline.value || '' : ''
+  const nextWeapon = preserveWeapon ? entryWeapon.value || '' : ''
+  const nextShotsPerSeries = preserveShotsPerSeries ? shotsPerSeriesInput.value || '' : ''
+  const nextSeriesCount = preserveSeriesCount ? seriesCountInput.value || '5' : '5'
+
   editingEntryId = null
   formTitle.textContent = 'Neuer Eintrag'
   saveEntryBtn.textContent = 'Eintrag speichern'
   cancelEditBtn.style.display = 'none'
   entryStatus.textContent = ''
 
-  entryDate.value = todayString()
-  entryType.value = 'training'
+  entryDate.value = nextDate
+  entryType.value = nextType
   entryLocation.value = ''
   entryNote.value = ''
-  shotsPerSeriesInput.value = ''
-  seriesCountInput.value = '5'
-  renderSeriesInputs()
+  shotsPerSeriesInput.value = nextShotsPerSeries
+  seriesCountInput.value = nextSeriesCount
+
+  renderSeriesInputs([], false)
+
+  entryDiscipline.value = nextDiscipline
+  entryWeapon.value = nextWeapon
 }
 
 function populateAllFilterOptions(entries) {
@@ -1415,7 +1435,14 @@ saveEntryBtn.addEventListener('click', async () => {
     localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
 
     entryStatus.textContent = 'Eintrag gespeichert.'
-    resetForm()
+    resetForm({
+      preserveDate: true,
+      preserveType: true,
+      preserveDiscipline: true,
+      preserveWeapon: true,
+      preserveShotsPerSeries: true,
+      preserveSeriesCount: true,
+    })
     await loadFormData()
     await loadEntries()
     return
