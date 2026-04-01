@@ -993,29 +993,21 @@ function renderEntriesList(entries) {
             <span class="series-pill-value">${series.score}</span>
           </div>
         `).join('')
-      : '<div class="entry-muted-text">Keine Serien erfasst.</div>'
+      : ''
 
     const locationMarkup = entry.location
-      ? `
-        <div class="entry-info-block">
-          <div class="entry-info-label">Ort</div>
-          <div class="entry-info-value">${entry.location}</div>
-        </div>
-      `
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Ort</span><span class="entry-inline-value">${entry.location}</span></div>`
       : ''
 
     const noteMarkup = entry.note
-      ? `
-        <div class="entry-note-box">
-          <div class="entry-info-label">Notiz</div>
-          <div class="entry-note-text">${entry.note}</div>
-        </div>
-      `
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Notiz</span><span class="entry-inline-value">${entry.note}</span></div>`
       : ''
+
+    const optionalInfoMarkup = [locationMarkup, noteMarkup].filter(Boolean).join('')
 
     return `
       <div class="entry-card">
-        <div class="entry-card-top">
+        <div class="entry-card-top compact-entry-top">
           <div class="entry-card-main">
             <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
             <div class="entry-title-row">
@@ -1025,29 +1017,29 @@ function renderEntriesList(entries) {
             <div class="entry-weapon-line">${weaponText}</div>
           </div>
 
-          <div class="entry-score-box">
+          <div class="entry-score-box compact-score-box">
             <div class="entry-score-label">Gesamt</div>
             <div class="entry-score-value">${formatNumber(entry.total_score || 0)}</div>
           </div>
         </div>
 
-        <div class="entry-chip-row">
-          <div class="entry-data-chip"><span>Schuss/Serie</span><strong>${entry.shots_per_series ?? '-'}</strong></div>
-          <div class="entry-data-chip"><span>Serien</span><strong>${sortedSeries.length}</strong></div>
-          <div class="entry-data-chip"><span>ID</span><strong>${entry.id.slice(0, 8)}</strong></div>
+        <div class="entry-chip-row compact-chip-row">
+          <div class="entry-data-chip compact-data-chip"><span>Schuss/Serie</span><strong>${entry.shots_per_series ?? '-'}</strong></div>
+          <div class="entry-data-chip compact-data-chip"><span>Serien</span><strong>${sortedSeries.length}</strong></div>
         </div>
 
-        ${locationMarkup ? `<div class="entry-info-grid">${locationMarkup}</div>` : ''}
-        ${noteMarkup}
+        ${optionalInfoMarkup ? `<div class="entry-inline-info-row">${optionalInfoMarkup}</div>` : ''}
 
-        <div class="entry-series-box">
-          <div class="entry-info-label">Serien</div>
-          <div class="entry-series-list">${seriesMarkup}</div>
-        </div>
+        ${seriesMarkup ? `
+          <div class="entry-series-box compact-series-box">
+            <div class="entry-info-label">Serien</div>
+            <div class="entry-series-list compact-series-list">${seriesMarkup}</div>
+          </div>
+        ` : ''}
 
-        <div class="entry-card-actions row vertical-mobile-row">
-          <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
-          <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
+        <div class="entry-card-actions compact-entry-actions">
+          <button class="edit-entry-btn compact-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
+          <button class="delete-entry-btn compact-action-btn" data-entry-id="${entry.id}">Löschen</button>
         </div>
       </div>
     `
