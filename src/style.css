@@ -1,7 +1,7 @@
 :root {
-  --surface: rgba(241, 233, 220, 0.9);
-  --surface-2: rgba(233, 223, 206, 0.92);
-  --surface-3: rgba(223, 210, 188, 0.92);
+  --surface: rgba(241, 233, 220, 0.94);
+  --surface-2: rgba(233, 223, 206, 0.95);
+  --surface-3: rgba(223, 210, 188, 0.95);
   --text: #2d2418;
   --muted: #6d5d48;
   --border: #c3ad8a;
@@ -18,7 +18,8 @@
   --warning-text: #644f1f;
   --shadow: 0 14px 32px rgba(40, 28, 15, 0.18);
   --shadow-soft: 0 6px 16px rgba(40, 28, 15, 0.1);
-  --radius: 18px;
+  --app-bg: #35393f;
+  --app-bg-2: #2f3338;
 }
 
 * {
@@ -35,14 +36,12 @@ body {
   color: var(--text);
   line-height: 1.4;
   background:
-    linear-gradient(rgba(223, 208, 183, 0.14), rgba(223, 208, 183, 0.14)),
+    linear-gradient(rgba(15, 15, 15, 0.08), rgba(15, 15, 15, 0.08)),
     url('/cover.png') center center / cover no-repeat fixed;
 }
 
-body.logged-in {
-  background:
-    linear-gradient(rgba(223, 208, 183, 0.08), rgba(223, 208, 183, 0.08)),
-    url('/cover.png') center center / cover no-repeat fixed;
+body.app-mode {
+  background: linear-gradient(180deg, var(--app-bg) 0%, var(--app-bg-2) 100%);
 }
 
 #app,
@@ -50,6 +49,40 @@ body.logged-in {
   min-height: 100vh;
 }
 
+/* Splash */
+.splash-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.splash-inner {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-app-btn {
+  min-width: 180px;
+  min-height: 56px;
+  padding: 14px 26px;
+  font-size: 1.05rem;
+  border-radius: 999px;
+  background: rgba(111, 93, 67, 0.92);
+  color: #f8f3ea;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.start-app-btn:hover {
+  background: rgba(93, 77, 56, 0.96);
+}
+
+/* Main stage */
 .topbar {
   width: min(1120px, calc(100% - 20px));
   margin: 8px auto 0;
@@ -76,7 +109,7 @@ body.logged-in {
 .user-badge {
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(240, 232, 218, 0.7);
+  background: rgba(240, 232, 218, 0.72);
   border: 1px solid rgba(173, 148, 110, 0.42);
   font-size: 0.8rem;
   font-weight: 700;
@@ -90,49 +123,21 @@ body.logged-in {
   font-size: 0.8rem;
 }
 
-.cover-hero {
-  width: min(1120px, calc(100% - 20px));
-  height: 280px;
-  margin: 2px auto 0;
-  position: relative;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.cover-hero.compact {
-  height: 20px;
-}
-
-.cover-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 18px 24px;
-  background: transparent;
-}
-
-.cover-overlay h1 {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 1;
-  color: #f7f2e9;
-  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
-  letter-spacing: -0.03em;
-}
-
+/* Login stage has no title text */
 .container {
   max-width: 1120px;
-  margin: 12px auto 22px;
+  margin: 14px auto 24px;
   padding: 22px;
   background: var(--surface);
   border: 1px solid rgba(173, 148, 110, 0.72);
   border-radius: 22px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(6px);
+}
+
+body.app-mode .container {
+  background: rgba(233, 227, 216, 0.98);
+  border-color: rgba(180, 167, 146, 0.45);
 }
 
 h2 {
@@ -172,6 +177,7 @@ button {
 input,
 select {
   width: 100%;
+  min-width: 0;
   min-height: 50px;
   padding: 12px 14px;
   border: 1px solid var(--border-strong);
@@ -179,7 +185,14 @@ select {
   background: #f6eee2;
   color: var(--text);
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.uniform-input {
+  width: 100%;
+  min-width: 0;
 }
 
 input::placeholder {
@@ -230,10 +243,6 @@ button[type='button']:hover {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-}
-
-.vertical-mobile-row > * {
-  flex: 0 0 auto;
 }
 
 .form-grid {
@@ -593,7 +602,6 @@ button[type='button']:hover {
 
 @media (max-width: 900px) {
   .topbar,
-  .cover-hero,
   .container {
     width: calc(100% - 18px);
   }
@@ -602,14 +610,6 @@ button[type='button']:hover {
     margin: 10px auto 18px;
     padding: 16px;
     border-radius: 18px;
-  }
-
-  .cover-hero {
-    height: 220px;
-  }
-
-  .cover-hero.compact {
-    height: 10px;
   }
 
   .form-grid,
@@ -639,6 +639,17 @@ button[type='button']:hover {
     -webkit-text-size-adjust: 100%;
   }
 
+  .splash-screen {
+    padding: 16px;
+  }
+
+  .start-app-btn {
+    width: 100%;
+    max-width: 240px;
+    min-height: 56px;
+    font-size: 1rem;
+  }
+
   .topbar {
     width: calc(100% - 12px);
     margin: 6px auto 0;
@@ -664,25 +675,6 @@ button[type='button']:hover {
     padding: 4px 8px;
   }
 
-  .cover-hero {
-    width: calc(100% - 12px);
-    height: 130px;
-    margin: 0 auto;
-  }
-
-  .cover-hero.compact {
-    height: 2px;
-    min-height: 2px;
-  }
-
-  .cover-overlay {
-    padding: 12px;
-  }
-
-  .cover-overlay h1 {
-    font-size: 2rem;
-  }
-
   .container {
     width: calc(100% - 12px);
     margin: 8px auto 14px;
@@ -690,8 +682,7 @@ button[type='button']:hover {
     border-radius: 14px;
   }
 
-  .main-tabs,
-  .sub-tabs {
+  .tabs-bar {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
