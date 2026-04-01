@@ -1006,7 +1006,7 @@ function renderEntriesList(entries) {
     const optionalInfoMarkup = [locationMarkup, noteMarkup].filter(Boolean).join('')
 
     return `
-      <div class="entry-card">
+      <div class="entry-card compact-list-card">
         <div class="entry-card-top compact-entry-top">
           <div class="entry-card-main">
             <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
@@ -1016,30 +1016,34 @@ function renderEntriesList(entries) {
             </div>
             <div class="entry-weapon-line">${weaponText}</div>
           </div>
+        </div>
 
-          <div class="entry-score-box compact-score-box">
-            <div class="entry-score-label">Gesamt</div>
-            <div class="entry-score-value">${formatNumber(entry.total_score || 0)}</div>
+        <div class="entry-summary-row compact-summary-row">
+          <div class="entry-summary-item entry-summary-total">
+            <span class="entry-summary-label">Gesamt</span>
+            <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
+          </div>
+          <div class="entry-summary-item">
+            <span class="entry-summary-label">Schuss/Serie</span>
+            <strong class="entry-summary-value">${entry.shots_per_series ?? '-'}</strong>
+          </div>
+          <div class="entry-summary-item">
+            <span class="entry-summary-label">Serien</span>
+            <strong class="entry-summary-value">${sortedSeries.length}</strong>
           </div>
         </div>
 
-        <div class="entry-chip-row compact-chip-row">
-          <div class="entry-data-chip compact-data-chip"><span>Schuss/Serie</span><strong>${entry.shots_per_series ?? '-'}</strong></div>
-          <div class="entry-data-chip compact-data-chip"><span>Serien</span><strong>${sortedSeries.length}</strong></div>
-        </div>
-
-        ${optionalInfoMarkup ? `<div class="entry-inline-info-row">${optionalInfoMarkup}</div>` : ''}
+        ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
 
         ${seriesMarkup ? `
-          <div class="entry-series-box compact-series-box">
-            <div class="entry-info-label">Serien</div>
-            <div class="entry-series-list compact-series-list">${seriesMarkup}</div>
+          <div class="entry-series-box compact-series-box minimal-series-box">
+            <div class="entry-series-list compact-series-list compact-mini-series-list">${seriesMarkup}</div>
           </div>
         ` : ''}
 
-        <div class="entry-card-actions compact-entry-actions">
-          <button class="edit-entry-btn compact-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
-          <button class="delete-entry-btn compact-action-btn" data-entry-id="${entry.id}">Löschen</button>
+        <div class="entry-card-actions compact-entry-actions compact-action-row">
+          <button class="edit-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
+          <button class="delete-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Löschen</button>
         </div>
       </div>
     `
