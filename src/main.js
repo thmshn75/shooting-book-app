@@ -47,55 +47,38 @@ document.querySelector('#app').innerHTML = `
             <div id="entry-box">
               <h2 id="form-title">Neuer Eintrag</h2>
 
-              <div class="entry-form-layout">
-                <div class="manage-box form-section primary-fields-box">
-                  <div class="section-eyebrow">Pflichtfelder</div>
-                  <h3>Schneller Eintrag</h3>
-                  <div class="form-grid mobile-single-grid entry-primary-grid">
-                    <input id="entry-date" class="uniform-input" type="date" />
+              <div class="form-grid mobile-single-grid">
+                <input id="entry-date" class="uniform-input" type="date" />
 
-                    <select id="entry-type" class="uniform-input">
-                      <option value="training">Training</option>
-                      <option value="competition">Bewerb</option>
-                    </select>
+                <select id="entry-type" class="uniform-input">
+                  <option value="training">Training</option>
+                  <option value="competition">Bewerb</option>
+                </select>
 
-                    <select id="entry-discipline" class="uniform-input">
-                      <option value="">Disziplin auswählen</option>
-                    </select>
+                <select id="entry-discipline" class="uniform-input">
+                  <option value="">Disziplin auswählen</option>
+                </select>
 
-                    <select id="entry-weapon" class="uniform-input">
-                      <option value="">Waffe auswählen</option>
-                    </select>
+                <select id="entry-weapon" class="uniform-input">
+                  <option value="">Waffe auswählen</option>
+                </select>
 
-                    <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" inputmode="numeric" placeholder="Schuss pro Serie" />
-                  </div>
-                </div>
+                <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
+                <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
 
-                <div class="manage-box series-box">
-                  <div class="section-eyebrow">Hauptbereich</div>
-                  <div class="section-heading-row">
-                    <h3>Serien</h3>
-                    <div class="section-helper">Hier sollte dein Fokus liegen: Anzahl wählen und Scores direkt nacheinander erfassen.</div>
-                  </div>
-                  <div class="row series-actions vertical-mobile-row">
-                    <label for="series-count">Anzahl Serien</label>
-                    <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="5" inputmode="numeric" />
-                    <button id="apply-series-count-btn" type="button">Serienfelder aktualisieren</button>
-                  </div>
-                  <div id="series-inputs"></div>
-                </div>
-
-                <div class="manage-box optional-fields-box">
-                  <div class="section-eyebrow">Optional</div>
-                  <h3>Ort & Notiz</h3>
-                  <div class="form-grid mobile-single-grid optional-fields-grid">
-                    <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
-                    <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
-                  </div>
-                </div>
+                <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
               </div>
 
-              <div class="collapsible-box accessory-box">
+              <div class="manage-box">
+                <h3>Serien</h3>
+                <div class="row series-actions vertical-mobile-row">
+                  <label for="series-count">Anzahl Serien</label>
+                  <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="5" />
+                </div>
+                <div id="series-inputs"></div>
+              </div>
+
+              <div class="collapsible-box">
                 <button id="toggle-discipline-panel-btn" type="button" class="section-toggle-btn">
                   + Neue Disziplin anlegen
                 </button>
@@ -111,7 +94,7 @@ document.querySelector('#app').innerHTML = `
                 </div>
               </div>
 
-              <div class="collapsible-box accessory-box">
+              <div class="collapsible-box">
                 <button id="toggle-weapon-panel-btn" type="button" class="section-toggle-btn">
                   + Neue Waffe anlegen
                 </button>
@@ -369,7 +352,6 @@ const reloadBtn = document.getElementById('reload-btn')
 const listSummary = document.getElementById('list-summary')
 
 const seriesCountInput = document.getElementById('series-count')
-const applySeriesCountBtn = document.getElementById('apply-series-count-btn')
 const seriesInputs = document.getElementById('series-inputs')
 
 const toggleDisciplinePanelBtn = document.getElementById('toggle-discipline-panel-btn')
@@ -853,6 +835,11 @@ function renderSeriesInputs(scores = [], shouldFocusFirst = false) {
   }
 }
 
+function updateSeriesInputsFromCount(shouldFocusFirst = false) {
+  const existingScores = Array.from(document.querySelectorAll('.series-score-input')).map((input) => input.value)
+  renderSeriesInputs(existingScores, shouldFocusFirst)
+}
+
 function getSeriesData() {
   return Array.from(document.querySelectorAll('.series-score-input'))
     .map((input) => {
@@ -1311,39 +1298,17 @@ entryDiscipline.addEventListener('change', async () => {
   if (user) localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
 })
 
-applySeriesCountBtn.addEventListener('click', () => renderSeriesInputs([], true))
-
-const entryFieldFlow = [
-  entryDate,
-  entryType,
-  entryDiscipline,
-  entryWeapon,
-  shotsPerSeriesInput,
-  seriesCountInput,
-  entryLocation,
-  entryNote,
-]
-
-entryFieldFlow.forEach((field, index) => {
-  field.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return
-
+seriesCountInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
     event.preventDefault()
-
-    if (field === seriesCountInput) {
-      renderSeriesInputs([], true)
-      return
-    }
-
-    const nextField = entryFieldFlow[index + 1]
-    if (nextField) {
-      nextField.focus()
-      if (typeof nextField.select === 'function') {
-        nextField.select()
-      }
-    }
-  })
+    updateSeriesInputsFromCount(true)
+  }
 })
+
+seriesCountInput.addEventListener('blur', () => {
+  updateSeriesInputsFromCount(false)
+})
+
 
 cancelEditBtn.addEventListener('click', async () => {
   resetForm()
