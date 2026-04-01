@@ -974,33 +974,78 @@ function renderEntriesList(entries) {
   renderListSummary(entries)
 
   entriesList.innerHTML = entries.map((entry) => {
-    const disciplineName = entry.disciplines?.name || '-'
+    const disciplineName = entry.disciplines?.name || 'Ohne Disziplin'
 
-    let weaponText = '-'
+    let weaponText = 'Keine Waffe hinterlegt'
     if (entry.weapons?.name) {
       const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
       weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
     }
 
-    const seriesList = Array.isArray(entry.entry_series)
-      ? [...entry.entry_series]
-          .sort((a, b) => a.series_number - b.series_number)
-          .map((series) => `Serie ${series.series_number}: ${series.score}`)
-          .join(' | ')
+    const sortedSeries = Array.isArray(entry.entry_series)
+      ? [...entry.entry_series].sort((a, b) => a.series_number - b.series_number)
+      : []
+
+    const seriesMarkup = sortedSeries.length
+      ? sortedSeries.map((series) => `
+          <div class="series-pill">
+            <span class="series-pill-label">S${series.series_number}</span>
+            <span class="series-pill-value">${series.score}</span>
+          </div>
+        `).join('')
+      : '<div class="entry-muted-text">Keine Serien erfasst.</div>'
+
+    const locationMarkup = entry.location
+      ? `
+        <div class="entry-info-block">
+          <div class="entry-info-label">Ort</div>
+          <div class="entry-info-value">${entry.location}</div>
+        </div>
+      `
+      : ''
+
+    const noteMarkup = entry.note
+      ? `
+        <div class="entry-note-box">
+          <div class="entry-info-label">Notiz</div>
+          <div class="entry-note-text">${entry.note}</div>
+        </div>
+      `
       : ''
 
     return `
       <div class="entry-card">
-        <div><strong>Datum:</strong> ${formatDate(entry.entry_date)}</div>
-        <div><strong>Typ:</strong> ${formatEntryType(entry.entry_type)}</div>
-        <div><strong>Disziplin:</strong> ${disciplineName}</div>
-        <div><strong>Waffe:</strong> ${weaponText}</div>
-        <div><strong>Schuss pro Serie:</strong> ${entry.shots_per_series ?? '-'}</div>
-        <div><strong>Ort:</strong> ${entry.location || '-'}</div>
-        <div><strong>Notiz:</strong> ${entry.note || '-'}</div>
-        <div><strong>Gesamt:</strong> ${entry.total_score ?? '-'}</div>
-        <div><strong>Serien:</strong> ${seriesList || '-'}</div>
-        <div class="row vertical-mobile-row">
+        <div class="entry-card-top">
+          <div class="entry-card-main">
+            <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
+            <div class="entry-title-row">
+              <span class="entry-type-badge ${entry.entry_type === 'competition' ? 'competition' : 'training'}">${formatEntryType(entry.entry_type)}</span>
+              <span class="entry-discipline-name">${disciplineName}</span>
+            </div>
+            <div class="entry-weapon-line">${weaponText}</div>
+          </div>
+
+          <div class="entry-score-box">
+            <div class="entry-score-label">Gesamt</div>
+            <div class="entry-score-value">${formatNumber(entry.total_score || 0)}</div>
+          </div>
+        </div>
+
+        <div class="entry-chip-row">
+          <div class="entry-data-chip"><span>Schuss/Serie</span><strong>${entry.shots_per_series ?? '-'}</strong></div>
+          <div class="entry-data-chip"><span>Serien</span><strong>${sortedSeries.length}</strong></div>
+          <div class="entry-data-chip"><span>ID</span><strong>${entry.id.slice(0, 8)}</strong></div>
+        </div>
+
+        ${locationMarkup ? `<div class="entry-info-grid">${locationMarkup}</div>` : ''}
+        ${noteMarkup}
+
+        <div class="entry-series-box">
+          <div class="entry-info-label">Serien</div>
+          <div class="entry-series-list">${seriesMarkup}</div>
+        </div>
+
+        <div class="entry-card-actions row vertical-mobile-row">
           <button class="edit-entry-btn" data-entry-id="${entry.id}">Bearbeiten</button>
           <button class="delete-entry-btn" data-entry-id="${entry.id}">Löschen</button>
         </div>
