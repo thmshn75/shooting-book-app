@@ -49,7 +49,6 @@ document.querySelector('#app').innerHTML = `
 
               <div class="form-grid mobile-single-grid">
                 <input id="entry-date" class="uniform-input" type="date" />
-
                 <select id="entry-type" class="uniform-input">
                   <option value="training">Training</option>
                   <option value="competition">Bewerb</option>
@@ -127,6 +126,52 @@ document.querySelector('#app').innerHTML = `
           <section id="stats-tab" class="tab-panel">
             <div id="stats-box">
               <h2>Statistik</h2>
+
+              <div class="manage-box filter-box">
+                <h3>Statistik-Filter</h3>
+                <div class="form-grid mobile-single-grid">
+                  <select id="stats-filter-year" class="uniform-input">
+                    <option value="">Alle Jahre</option>
+                  </select>
+
+                  <select id="stats-filter-month" class="uniform-input">
+                    <option value="">Alle Monate</option>
+                    <option value="1">Januar</option>
+                    <option value="2">Februar</option>
+                    <option value="3">März</option>
+                    <option value="4">April</option>
+                    <option value="5">Mai</option>
+                    <option value="6">Juni</option>
+                    <option value="7">Juli</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Dezember</option>
+                  </select>
+
+                  <select id="stats-filter-type" class="uniform-input">
+                    <option value="">Alle Typen</option>
+                    <option value="training">Training</option>
+                    <option value="competition">Bewerb</option>
+                  </select>
+
+                  <select id="stats-filter-discipline" class="uniform-input">
+                    <option value="">Alle Disziplinen</option>
+                  </select>
+
+                  <select id="stats-filter-weapon" class="uniform-input">
+                    <option value="">Alle Waffen</option>
+                  </select>
+                </div>
+
+                <div class="row vertical-mobile-row">
+                  <button id="apply-stats-filters-btn" type="button">Statistik-Filter anwenden</button>
+                  <button id="reset-stats-filters-btn" type="button">Statistik-Filter zurücksetzen</button>
+                </div>
+
+                <div id="stats-summary-line" class="list-summary"></div>
+              </div>
 
               <div class="tabs-bar sub-tabs">
                 <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
@@ -286,6 +331,15 @@ const statsByWeapon = document.getElementById('stats-by-weapon')
 const chartTypeBreakdown = document.getElementById('chart-type-breakdown')
 const chartMonthlyEntries = document.getElementById('chart-monthly-entries')
 const chartScoreTrend = document.getElementById('chart-score-trend')
+const statsSummaryLine = document.getElementById('stats-summary-line')
+
+const statsFilterType = document.getElementById('stats-filter-type')
+const statsFilterYear = document.getElementById('stats-filter-year')
+const statsFilterMonth = document.getElementById('stats-filter-month')
+const statsFilterDiscipline = document.getElementById('stats-filter-discipline')
+const statsFilterWeapon = document.getElementById('stats-filter-weapon')
+const applyStatsFiltersBtn = document.getElementById('apply-stats-filters-btn')
+const resetStatsFiltersBtn = document.getElementById('reset-stats-filters-btn')
 
 const filterType = document.getElementById('filter-type')
 const filterYear = document.getElementById('filter-year')
@@ -389,6 +443,7 @@ function showLoggedOutUI() {
   chartTypeBreakdown.innerHTML = ''
   chartMonthlyEntries.innerHTML = ''
   chartScoreTrend.innerHTML = ''
+  statsSummaryLine.innerHTML = ''
 }
 
 function formatDate(dateString) {
@@ -570,6 +625,39 @@ function renderLineChart(container, points, emptyText) {
   `
 }
 
+function getStatisticsFilteredEntries() {
+  return allEntriesCache.filter((entry) => {
+    const entryDateObj = entry.entry_date ? new Date(entry.entry_date) : null
+    const entryYear = entryDateObj ? String(entryDateObj.getFullYear()) : ''
+    const entryMonth = entryDateObj ? String(entryDateObj.getMonth() + 1) : ''
+
+    if (statsFilterType.value && entry.entry_type !== statsFilterType.value) return false
+    if (statsFilterYear.value && entryYear !== statsFilterYear.value) return false
+    if (statsFilterMonth.value && entryMonth !== statsFilterMonth.value) return false
+    if (statsFilterDiscipline.value && entry.discipline_id !== statsFilterDiscipline.value) return false
+    if (statsFilterWeapon.value && entry.weapon_id !== statsFilterWeapon.value) return false
+    return true
+  })
+}
+
+function renderStatisticsSummaryLine(entries) {
+  const trainingCount = entries.filter((entry) => entry.entry_type === 'training').length
+  const competitionCount = entries.filter((entry) => entry.entry_type === 'competition').length
+  const dates = entries.map((entry) => entry.entry_date).filter(Boolean).sort()
+
+  let periodText = 'Zeitraum: alle'
+  if (dates.length > 0) {
+    periodText = `Zeitraum: ${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
+  }
+
+  statsSummaryLine.innerHTML = `
+    <div class="summary-chip"><strong>Gefilterte Einträge:</strong> ${entries.length}</div>
+    <div class="summary-chip"><strong>Training:</strong> ${trainingCount}</div>
+    <div class="summary-chip"><strong>Bewerb:</strong> ${competitionCount}</div>
+    <div class="summary-chip"><strong>${periodText}</strong></div>
+  `
+}
+
 function renderCharts(entries) {
   if (!entries.length) {
     chartTypeBreakdown.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
@@ -618,11 +706,13 @@ function renderCharts(entries) {
 }
 
 function renderStatistics(entries) {
+  renderStatisticsSummaryLine(entries)
+
   if (!entries.length) {
-    statsSummary.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
-    statsByType.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
-    statsByDiscipline.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
-    statsByWeapon.innerHTML = '<p>Noch keine Daten vorhanden.</p>'
+    statsSummary.innerHTML = '<p>Keine Statistik für den aktuellen Filter.</p>'
+    statsByType.innerHTML = '<p>Keine Statistik für den aktuellen Filter.</p>'
+    statsByDiscipline.innerHTML = '<p>Keine Statistik für den aktuellen Filter.</p>'
+    statsByWeapon.innerHTML = '<p>Keine Statistik für den aktuellen Filter.</p>'
     renderCharts([])
     return
   }
@@ -674,6 +764,10 @@ function renderStatistics(entries) {
     }),
     'Noch keine Waffen-Daten vorhanden.'
   )
+}
+
+function applyStatisticsFilters() {
+  renderStatistics(getStatisticsFilteredEntries())
 }
 
 async function getCurrentUser() {
@@ -745,7 +839,7 @@ function resetForm() {
   renderSeriesInputs()
 }
 
-function populateFilterOptions(entries) {
+function populateListFilterOptions(entries) {
   const years = [...new Set(entries.map((entry) => (entry.entry_date ? new Date(entry.entry_date).getFullYear() : null)).filter(Boolean))].sort((a, b) => b - a)
 
   const disciplines = [...new Map(
@@ -788,6 +882,52 @@ function populateFilterOptions(entries) {
     option.textContent = name
     if (id === currentWeapon) option.selected = true
     filterWeapon.appendChild(option)
+  })
+}
+
+function populateStatsFilterOptions(entries) {
+  const years = [...new Set(entries.map((entry) => (entry.entry_date ? new Date(entry.entry_date).getFullYear() : null)).filter(Boolean))].sort((a, b) => b - a)
+
+  const disciplines = [...new Map(
+    entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
+  ).entries()]
+
+  const weapons = [...new Map(
+    entries.filter((entry) => entry.weapons?.name).map((entry) => {
+      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+      return [entry.weapon_id, details ? `${entry.weapons.name} (${details})` : entry.weapons.name]
+    })
+  ).entries()]
+
+  const currentYear = statsFilterYear.value
+  const currentDiscipline = statsFilterDiscipline.value
+  const currentWeapon = statsFilterWeapon.value
+
+  statsFilterYear.innerHTML = '<option value="">Alle Jahre</option>'
+  years.forEach((year) => {
+    const option = document.createElement('option')
+    option.value = String(year)
+    option.textContent = String(year)
+    if (String(year) === currentYear) option.selected = true
+    statsFilterYear.appendChild(option)
+  })
+
+  statsFilterDiscipline.innerHTML = '<option value="">Alle Disziplinen</option>'
+  disciplines.forEach(([id, name]) => {
+    const option = document.createElement('option')
+    option.value = id
+    option.textContent = name
+    if (id === currentDiscipline) option.selected = true
+    statsFilterDiscipline.appendChild(option)
+  })
+
+  statsFilterWeapon.innerHTML = '<option value="">Alle Waffen</option>'
+  weapons.forEach(([id, name]) => {
+    const option = document.createElement('option')
+    option.value = id
+    option.textContent = name
+    if (id === currentWeapon) option.selected = true
+    statsFilterWeapon.appendChild(option)
   })
 }
 
@@ -892,6 +1032,15 @@ function resetFilters() {
   filterDiscipline.value = ''
   filterWeapon.value = ''
   applyEntryFilters()
+}
+
+function resetStatsFilters() {
+  statsFilterType.value = ''
+  statsFilterYear.value = ''
+  statsFilterMonth.value = ''
+  statsFilterDiscipline.value = ''
+  statsFilterWeapon.value = ''
+  applyStatisticsFilters()
 }
 
 async function loadDisciplines() {
@@ -1057,9 +1206,11 @@ async function loadEntries() {
   }
 
   allEntriesCache = data || []
-  renderStatistics(allEntriesCache)
-  populateFilterOptions(allEntriesCache)
+
+  populateListFilterOptions(allEntriesCache)
+  populateStatsFilterOptions(allEntriesCache)
   applyEntryFilters()
+  applyStatisticsFilters()
 }
 
 async function loadFormData() {
@@ -1125,6 +1276,9 @@ tabListBtn.addEventListener('click', () => activateTab('list'))
 statsSubSummaryBtn.addEventListener('click', () => activateStatsSubTab('summary'))
 statsSubChartsBtn.addEventListener('click', () => activateStatsSubTab('charts'))
 statsSubDetailsBtn.addEventListener('click', () => activateStatsSubTab('details'))
+
+applyStatsFiltersBtn.addEventListener('click', applyStatisticsFilters)
+resetStatsFiltersBtn.addEventListener('click', resetStatsFilters)
 
 toggleDisciplinePanelBtn.addEventListener('click', () => {
   if (disciplinePanel.style.display === 'block') closeDisciplinePanel()
