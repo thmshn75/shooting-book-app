@@ -20,6 +20,8 @@
   --shadow-soft: 0 6px 16px rgba(40, 28, 15, 0.1);
   --app-bg: #35393f;
   --app-bg-2: #2f3338;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
@@ -55,12 +57,12 @@ body.app-mode {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
 }
 
 .splash-inner {
   width: 100%;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--safe-top) - var(--safe-bottom));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,8 +87,8 @@ body.app-mode {
 /* Main stage */
 .topbar {
   width: min(1120px, calc(100% - 20px));
-  margin: 8px auto 0;
-  padding: 4px 8px;
+  margin: 0 auto;
+  padding: calc(8px + var(--safe-top)) 8px 4px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -123,7 +125,6 @@ body.app-mode {
   font-size: 0.8rem;
 }
 
-/* Login stage has no title text */
 .container {
   max-width: 1120px;
   margin: 14px auto 24px;
@@ -287,7 +288,7 @@ button[type='button']:hover {
   margin-top: 18px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 18px;
   background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface-3) 100%);
   box-shadow: var(--shadow-soft);
 }
@@ -640,7 +641,7 @@ button[type='button']:hover {
   }
 
   .splash-screen {
-    padding: 16px;
+    padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
   }
 
   .start-app-btn {
@@ -652,8 +653,7 @@ button[type='button']:hover {
 
   .topbar {
     width: calc(100% - 12px);
-    margin: 6px auto 0;
-    padding: 2px 2px;
+    padding: calc(6px + var(--safe-top)) 2px 2px;
   }
 
   .topbar-right {
