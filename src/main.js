@@ -1263,7 +1263,7 @@ entryDiscipline.addEventListener('change', async () => {
   if (user) localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
 })
 
-applySeriesCountBtn.addEventListener('click', () => renderSeriesInputs())
+applySeriesCountBtn.addEventListener('click', () => renderSeriesInputs([], true))
 
 cancelEditBtn.addEventListener('click', async () => {
   resetForm()
