@@ -476,8 +476,8 @@ button[type='button']:hover {
 }
 
 .entry-card {
-  margin-top: 14px;
-  padding: 18px;
+  margin-top: 12px;
+  padding: 14px;
   border: 1px solid var(--border);
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(244, 236, 223, 0.98) 0%, rgba(233, 221, 197, 0.98) 100%);
@@ -488,7 +488,7 @@ button[type='button']:hover {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
 }
 
 .entry-card-main {
@@ -500,7 +500,7 @@ button[type='button']:hover {
   font-size: 0.9rem;
   color: var(--muted);
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .entry-title-row {
@@ -513,7 +513,7 @@ button[type='button']:hover {
 .entry-type-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 800;
@@ -533,16 +533,16 @@ button[type='button']:hover {
 }
 
 .entry-discipline-name {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--text);
 }
 
 .entry-weapon-line {
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.4;
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .entry-score-box {
@@ -594,6 +594,117 @@ button[type='button']:hover {
 
 .entry-data-chip strong {
   color: var(--text);
+}
+
+.compact-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.entry-summary-item {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(173, 148, 110, 0.55);
+  background: rgba(246, 238, 226, 0.82);
+}
+
+.entry-summary-total {
+  background: rgba(239, 229, 211, 0.96);
+}
+
+.entry-summary-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.entry-summary-value {
+  font-size: 1.02rem;
+  line-height: 1.15;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.entry-summary-total .entry-summary-value {
+  font-size: 1.28rem;
+}
+
+.entry-inline-info-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.entry-inline-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(173, 148, 110, 0.4);
+  background: rgba(246, 238, 226, 0.62);
+  font-size: 0.88rem;
+}
+
+.entry-inline-label {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.entry-inline-value {
+  color: var(--text);
+  font-weight: 700;
+  text-align: right;
+}
+
+.minimal-series-box {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(246, 238, 226, 0.46);
+}
+
+.compact-mini-series-list {
+  gap: 6px;
+}
+
+.series-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.series-pill-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.series-pill-value {
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.compact-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.compact-small-action-btn {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
 }
 
 .entry-info-grid {
@@ -661,7 +772,7 @@ button[type='button']:hover {
 }
 
 .entry-card-actions {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .stats-grid {
@@ -1129,7 +1240,7 @@ button[type='button']:hover {
   }
 
   .entry-card {
-    padding: 14px;
+    padding: 12px;
     border-radius: 14px;
   }
 
@@ -1140,20 +1251,65 @@ button[type='button']:hover {
   }
 
   .entry-card-top {
-    gap: 12px;
-  }
-
-  .entry-score-box {
-    width: 100%;
-  }
-
-  .entry-chip-row {
     gap: 8px;
   }
 
-  .entry-data-chip {
-    width: 100%;
-    justify-content: space-between;
+  .compact-summary-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .entry-summary-item {
+    padding: 7px 8px;
+    border-radius: 10px;
+  }
+
+  .entry-summary-label {
+    font-size: 0.66rem;
+  }
+
+  .entry-summary-value {
+    font-size: 0.92rem;
+  }
+
+  .entry-summary-total .entry-summary-value {
+    font-size: 1.12rem;
+  }
+
+  .entry-inline-info {
+    padding: 6px 9px;
+    font-size: 0.84rem;
+  }
+
+  .minimal-series-box {
+    padding: 8px;
+  }
+
+  .compact-mini-series-list {
+    gap: 5px;
+  }
+
+  .series-pill {
+    padding: 5px 8px;
+    border-radius: 9px;
+  }
+
+  .series-pill-label {
+    font-size: 0.72rem;
+  }
+
+  .series-pill-value {
+    font-size: 0.88rem;
+  }
+
+  .compact-action-row {
+    gap: 6px;
+  }
+
+  .compact-small-action-btn {
+    min-height: 40px;
+    font-size: 0.92rem;
+    padding: 8px 10px;
   }
 
   .manage-box,
