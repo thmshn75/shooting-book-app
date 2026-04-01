@@ -601,6 +601,103 @@ button[type='button']:hover {
   border-color: #b89c63;
 }
 
+
+
+.entry-form-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.form-section,
+.series-box,
+.optional-fields-box {
+  margin-top: 0;
+}
+
+.primary-fields-box {
+  border-color: rgba(173, 148, 110, 0.95);
+}
+
+.series-box {
+  border-color: rgba(111, 93, 67, 0.55);
+  box-shadow: 0 10px 24px rgba(40, 28, 15, 0.14);
+}
+
+.optional-fields-box {
+  background: linear-gradient(180deg, rgba(236, 226, 210, 0.92) 0%, rgba(227, 216, 194, 0.92) 100%);
+}
+
+.accessory-box {
+  margin-top: 14px;
+}
+
+.section-eyebrow {
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section-heading-row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-helper {
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.entry-primary-grid {
+  align-items: end;
+}
+
+.optional-fields-grid {
+  margin-top: 4px;
+}
+
+.series-actions {
+  margin-bottom: 10px;
+}
+
+.series-actions label {
+  min-width: 140px;
+}
+
+.entry-actions {
+  margin-top: 18px;
+}
+
+#entry-status {
+  margin-top: 10px;
+}
+
+.series-row label {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 680px) {
+  .entry-form-layout {
+    gap: 14px;
+  }
+
+  .section-eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .section-helper {
+    font-size: 0.88rem;
+  }
+
+  .series-actions label {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .topbar,
   .container {
