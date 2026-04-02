@@ -1194,14 +1194,36 @@ function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-
 }
 
 function exportEntriesCsv(entries) {
+  const maxSeriesCount = Math.max(
+    1,
+    ...entries.map((entry) => (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0))
+  )
+
+  const seriesHeaders = Array.from({ length: maxSeriesCount }, (_, index) => `Serie ${index + 1}`)
   const headers = [
-    'Datum', 'Typ', 'Disziplin', 'Waffe', 'Waffentyp', 'Kaliber', 'Ort', 'Notiz', 'Schuss pro Serie', 'Serienanzahl', 'Gesamtscore', 'Serienwerte'
+    'Datum',
+    'Typ',
+    'Disziplin',
+    'Waffe',
+    'Waffentyp',
+    'Kaliber',
+    'Ort',
+    'Notiz',
+    'Schuss pro Serie',
+    'Serienanzahl',
+    'Gesamtscore',
+    ...seriesHeaders,
   ]
 
   const rows = entries.map((entry) => {
     const sortedSeries = Array.isArray(entry.entry_series)
       ? [...entry.entry_series].sort((a, b) => a.series_number - b.series_number)
       : []
+
+    const seriesValues = Array.from({ length: maxSeriesCount }, (_, index) => {
+      const matchingSeries = sortedSeries.find((series) => Number(series.series_number) === index + 1)
+      return matchingSeries?.score ?? ''
+    })
 
     return [
       entry.entry_date || '',
@@ -1215,7 +1237,7 @@ function exportEntriesCsv(entries) {
       entry.shots_per_series ?? '',
       sortedSeries.length,
       entry.total_score ?? '',
-      sortedSeries.map((series) => `S${series.series_number}:${series.score}`).join(' | '),
+      ...seriesValues,
     ]
   })
 
@@ -1224,7 +1246,7 @@ function exportEntriesCsv(entries) {
     .join('\n')
 
   const stamp = new Date().toISOString().slice(0, 10)
-  downloadTextFile(`shooting-book-export-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
+  downloadTextFile(`shooting-book-meine-eintraege-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
 }
 
 async function deleteDisciplineById(disciplineId) {
