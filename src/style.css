@@ -1277,15 +1277,48 @@ button[type='button']:hover {
     border-radius: 10px;
   }
 
+  #stats-box {
+    gap: 10px;
+  }
+
+  #stats-box .sub-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  #stats-box .sub-tabs .tab-btn {
+    min-height: 34px;
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    border-radius: 9px;
+  }
+
+  .stats-filter-collapsible-box .section-toggle-btn {
+    min-height: 36px;
+    font-size: 0.82rem;
+    padding: 7px 10px;
+    border-radius: 10px;
+  }
+
+  .stats-filter-collapsible-box .list-summary {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .stats-filter-collapsible-box .summary-chip {
+    padding: 6px 8px;
+    font-size: 0.74rem;
+    border-radius: 9px;
+  }
 
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 7px;
   }
 
   .stat-card {
-    padding: 10px;
-    border-radius: 12px;
+    padding: 9px;
+    border-radius: 11px;
   }
 
   .stat-card:last-child {
@@ -1293,26 +1326,26 @@ button[type='button']:hover {
   }
 
   .stat-label {
-    margin-bottom: 4px;
-    font-size: 0.7rem;
+    margin-bottom: 3px;
+    font-size: 0.66rem;
   }
 
   .stat-value {
-    font-size: 1.08rem;
+    font-size: 1rem;
   }
 
   .stat-value.small {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
   }
 
   .stats-charts-grid {
-    gap: 10px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .stats-tab .manage-box,
   #stats-box .manage-box {
-    padding: 12px;
+    padding: 10px;
   }
 
   .svg-chart-wrapper {
@@ -1320,26 +1353,27 @@ button[type='button']:hover {
   }
 
   .svg-chart {
-    height: 200px;
-    border-radius: 12px;
-  }
-
-  .chart-label-row {
-    gap: 6px;
-  }
-
-  .chart-label-item {
-    padding: 6px 8px;
+    height: 180px;
     border-radius: 10px;
   }
 
+  .chart-label-row {
+    gap: 5px;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  }
+
+  .chart-label-item {
+    padding: 5px 7px;
+    border-radius: 9px;
+  }
+
   .chart-label-text {
-    font-size: 0.72rem;
-    margin-bottom: 2px;
+    font-size: 0.68rem;
+    margin-bottom: 1px;
   }
 
   .chart-label-value {
-    font-size: 0.84rem;
+    font-size: 0.78rem;
   }
 
   .stats-table {
@@ -1348,13 +1382,13 @@ button[type='button']:hover {
 
   .stats-table-head,
   .stats-table-row {
-    min-width: 560px;
+    min-width: 540px;
   }
 
   .stats-table-head > div,
   .stats-table-row > div {
-    padding: 8px 10px;
-    font-size: 0.8rem;
+    padding: 7px 8px;
+    font-size: 0.74rem;
   }
 
   #series-inputs {
@@ -1455,4 +1489,31 @@ button[type='button']:hover {
   .stat-value {
     font-size: 1.25rem;
   }
+}
+
+
+#stats-box {
+  display: grid;
+  gap: 14px;
+}
+
+#stats-box > h2 {
+  margin-bottom: 0;
+}
+
+#stats-box .sub-tabs {
+  margin-bottom: 0;
+}
+
+.stats-filter-collapsible-box {
+  margin-top: 2px;
+}
+
+.stats-filter-collapsible-box .list-summary {
+  margin-top: 10px;
+}
+
+.sub-tabs .tab-btn {
+  min-height: 42px;
+  padding: 8px 12px;
 }
