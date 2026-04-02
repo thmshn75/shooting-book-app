@@ -73,7 +73,7 @@ document.querySelector('#app').innerHTML = `
                 <h3>Serien</h3>
                 <div class="row series-actions vertical-mobile-row">
                   <label for="series-count">Anzahl Serien</label>
-                  <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="5" />
+                  <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="1" />
                 </div>
                 <div id="series-inputs"></div>
               </div>
@@ -127,7 +127,53 @@ document.querySelector('#app').innerHTML = `
             <div id="stats-box">
               <h2>Statistik</h2>
 
-              <div class="collapsible-box filter-collapsible-box">
+              <div class="tabs-bar sub-tabs">
+                <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
+                <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
+                <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
+              </div>
+
+              <section id="stats-sub-summary" class="tab-panel active">
+                <div id="stats-summary" class="stats-grid"></div>
+              </section>
+
+              <section id="stats-sub-charts" class="tab-panel">
+                <div class="stats-charts-grid">
+                  <div class="manage-box">
+                    <h3>Training vs. Bewerb</h3>
+                    <div id="chart-type-breakdown"></div>
+                  </div>
+
+                  <div class="manage-box">
+                    <h3>Einträge pro Monat</h3>
+                    <div id="chart-monthly-entries"></div>
+                  </div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Score-Entwicklung</h3>
+                  <div id="chart-score-trend"></div>
+                </div>
+              </section>
+
+              <section id="stats-sub-details" class="tab-panel">
+                <div class="manage-box">
+                  <h3>Nach Typ</h3>
+                  <div id="stats-by-type"></div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Nach Disziplin</h3>
+                  <div id="stats-by-discipline"></div>
+                </div>
+
+                <div class="manage-box">
+                  <h3>Nach Waffe</h3>
+                  <div id="stats-by-weapon"></div>
+                </div>
+              </section>
+
+              <div class="collapsible-box filter-collapsible-box stats-filter-collapsible-box">
                 <button id="toggle-stats-filter-panel-btn" type="button" class="section-toggle-btn">
                   + Statistik-Filter anzeigen
                 </button>
@@ -179,52 +225,6 @@ document.querySelector('#app').innerHTML = `
 
                 <div id="stats-filter-summary" class="list-summary"></div>
               </div>
-
-              <div class="tabs-bar sub-tabs">
-                <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
-                <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
-                <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
-              </div>
-
-              <section id="stats-sub-summary" class="tab-panel active">
-                <div id="stats-summary" class="stats-grid"></div>
-              </section>
-
-              <section id="stats-sub-charts" class="tab-panel">
-                <div class="stats-charts-grid">
-                  <div class="manage-box">
-                    <h3>Training vs. Bewerb</h3>
-                    <div id="chart-type-breakdown"></div>
-                  </div>
-
-                  <div class="manage-box">
-                    <h3>Einträge pro Monat</h3>
-                    <div id="chart-monthly-entries"></div>
-                  </div>
-                </div>
-
-                <div class="manage-box">
-                  <h3>Score-Entwicklung</h3>
-                  <div id="chart-score-trend"></div>
-                </div>
-              </section>
-
-              <section id="stats-sub-details" class="tab-panel">
-                <div class="manage-box">
-                  <h3>Nach Typ</h3>
-                  <div id="stats-by-type"></div>
-                </div>
-
-                <div class="manage-box">
-                  <h3>Nach Disziplin</h3>
-                  <div id="stats-by-discipline"></div>
-                </div>
-
-                <div class="manage-box">
-                  <h3>Nach Waffe</h3>
-                  <div id="stats-by-weapon"></div>
-                </div>
-              </section>
             </div>
           </section>
 
@@ -916,7 +916,7 @@ function resetForm(options = {}) {
   const nextDiscipline = preserveDiscipline ? entryDiscipline.value || '' : ''
   const nextWeapon = preserveWeapon ? entryWeapon.value || '' : ''
   const nextShotsPerSeries = preserveShotsPerSeries ? shotsPerSeriesInput.value || '' : ''
-  const nextSeriesCount = preserveSeriesCount ? seriesCountInput.value || '5' : '5'
+  const nextSeriesCount = preserveSeriesCount ? seriesCountInput.value || '1' : '1'
 
   editingEntryId = null
   formTitle.textContent = 'Neuer Eintrag'
@@ -1355,7 +1355,10 @@ logoutBtn.addEventListener('click', async () => {
 })
 
 tabEntryBtn.addEventListener('click', () => activateTab('entry'))
-tabStatsBtn.addEventListener('click', () => activateTab('stats'))
+tabStatsBtn.addEventListener('click', () => {
+  activateTab('stats')
+  activateStatsSubTab('summary')
+})
 tabListBtn.addEventListener('click', () => activateTab('list'))
 
 statsSubSummaryBtn.addEventListener('click', () => activateStatsSubTab('summary'))
