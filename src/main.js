@@ -1359,8 +1359,7 @@ function exportStatisticsCsv(entries) {
     pushRow(['Keine Daten'])
   }
 
-  const csvContent = lines.join('
-')
+  const csvContent = lines.join('\n')
   const stamp = new Date().toISOString().slice(0, 10)
   downloadTextFile(`shooting-book-statistik-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
 }
