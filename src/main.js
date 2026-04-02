@@ -1299,71 +1299,68 @@ function exportStatisticsCsv(entries) {
   const filterText = getActiveStatsFilterLabel()
   const periodText = getStatsPeriodText(entries)
 
-  const headers = [
-    'Bereich',
-    'Name',
-    'Wert',
-    'Einträge',
-    'Serien',
-    'Gesamt',
-    'Schnitt pro Eintrag',
-    'Zeitraum',
-    'Filter',
-  ]
+  const lines = []
 
-  const overviewRows = [
-    ['Überblick', 'Einträge', entryCount, '', '', '', '', periodText, filterText],
-    ['Überblick', 'Serien', seriesCount, '', '', '', '', periodText, filterText],
-    ['Überblick', 'Gesamtscore', formatNumber(totalScore), '', '', '', '', periodText, filterText],
-    ['Überblick', 'Schnitt pro Eintrag', formatNumber(averagePerEntry), '', '', '', '', periodText, filterText],
-    ['Überblick', 'Schnitt pro Serie', formatNumber(averagePerSeries), '', '', '', '', periodText, filterText],
-    ['Überblick', 'Bester Eintrag', bestEntryText, '', '', '', '', periodText, filterText],
-  ]
+  const pushRow = (row = []) => {
+    lines.push(row.map(escapeCsvValue).join(';'))
+  }
 
-  const groupedRows = [
-    ...buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)).map((row) => [
-      'Nach Typ',
-      row.name,
-      '',
-      row.entries,
-      row.series,
-      formatNumber(row.total),
-      formatNumber(row.averagePerEntry),
-      periodText,
-      filterText,
-    ]),
-    ...buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-').map((row) => [
-      'Nach Disziplin',
-      row.name,
-      '',
-      row.entries,
-      row.series,
-      formatNumber(row.total),
-      formatNumber(row.averagePerEntry),
-      periodText,
-      filterText,
-    ]),
-    ...buildGroupedStats(entries, (entry) => {
-      if (!entry.weapons?.name) return '-'
-      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-      return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-    }).map((row) => [
-      'Nach Waffe',
-      row.name,
-      '',
-      row.entries,
-      row.series,
-      formatNumber(row.total),
-      formatNumber(row.averagePerEntry),
-      periodText,
-      filterText,
-    ]),
-  ]
+  pushRow(['Shooting Book Statistik Export'])
+  pushRow(['Zeitraum', periodText])
+  pushRow(['Filter', filterText])
+  pushRow([])
 
-  const csvContent = [headers, ...overviewRows, ...groupedRows]
-    .map((row) => row.map(escapeCsvValue).join(';'))
-    .join('\n')
+  pushRow(['Überblick'])
+  pushRow(['Kennzahl', 'Wert'])
+  pushRow(['Einträge', entryCount])
+  pushRow(['Serien', seriesCount])
+  pushRow(['Gesamtscore', formatNumber(totalScore)])
+  pushRow(['Schnitt pro Eintrag', formatNumber(averagePerEntry)])
+  pushRow(['Schnitt pro Serie', formatNumber(averagePerSeries)])
+  pushRow(['Bester Eintrag', bestEntryText])
+  pushRow([])
 
+  const typeRows = buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type))
+  pushRow(['Nach Typ'])
+  pushRow(['Typ', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  if (typeRows.length) {
+    typeRows.forEach((row) => {
+      pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
+    })
+  } else {
+    pushRow(['Keine Daten'])
+  }
+  pushRow([])
+
+  const disciplineRows = buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-')
+  pushRow(['Nach Disziplin'])
+  pushRow(['Disziplin', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  if (disciplineRows.length) {
+    disciplineRows.forEach((row) => {
+      pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
+    })
+  } else {
+    pushRow(['Keine Daten'])
+  }
+  pushRow([])
+
+  const weaponRows = buildGroupedStats(entries, (entry) => {
+    if (!entry.weapons?.name) return '-'
+    const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+    return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+  })
+  pushRow(['Nach Waffe'])
+  pushRow(['Waffe', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  if (weaponRows.length) {
+    weaponRows.forEach((row) => {
+      pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
+    })
+  } else {
+    pushRow(['Keine Daten'])
+  }
+
+  const csvContent = lines.join('
+')
   const stamp = new Date().toISOString().slice(0, 10)
   downloadTextFile(`shooting-book-statistik-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
 }
