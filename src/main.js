@@ -305,14 +305,18 @@ document.querySelector('#app').innerHTML = `
                       <button id="apply-filters-btn" type="button">Filter anwenden</button>
                       <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
                       <button id="reload-btn" type="button">Liste aktualisieren</button>
-                      <button id="export-list-filtered-btn" type="button">Gefilterte Einträge exportieren</button>
-                      <button id="export-list-all-btn" type="button">Alle Einträge exportieren</button>
                     </div>
-                    <p id="list-export-status"></p>
                   </div>
                 </div>
 
                 <div id="list-summary" class="list-summary"></div>
+
+                <div class="row filter-actions export-action-row vertical-mobile-row">
+                  <button id="export-list-filtered-btn" type="button">Gefilterte Einträge exportieren</button>
+                  <button id="export-list-all-btn" type="button">Alle Einträge exportieren</button>
+                </div>
+
+                <p id="list-export-status"></p>
               </div>
 
               <div id="entries-list"></div>
