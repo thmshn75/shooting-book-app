@@ -243,6 +243,10 @@ document.querySelector('#app').innerHTML = `
               </div>
 
               <div id="stats-filter-summary" class="list-summary compact-summary-chips"></div>
+              <div class="row stats-export-actions vertical-mobile-row">
+                <button id="export-stats-btn" type="button">Statistik CSV exportieren</button>
+              </div>
+              <p id="stats-export-status"></p>
             </div>
           </section>
 
@@ -373,6 +377,8 @@ const statsFilterWeapon = document.getElementById('stats-filter-weapon')
 const applyStatsFiltersBtn = document.getElementById('apply-stats-filters-btn')
 const resetStatsFiltersBtn = document.getElementById('reset-stats-filters-btn')
 const statsFilterSummary = document.getElementById('stats-filter-summary')
+const exportStatsBtn = document.getElementById('export-stats-btn')
+const statsExportStatus = document.getElementById('stats-export-status')
 
 const filterType = document.getElementById('filter-type')
 const filterYear = document.getElementById('filter-year')
@@ -486,6 +492,7 @@ function showLoggedOutUI() {
   chartMonthlyEntries.innerHTML = ''
   chartScoreTrend.innerHTML = ''
   statsFilterSummary.innerHTML = ''
+  statsExportStatus.textContent = ''
 }
 
 function formatDate(dateString) {
@@ -1181,6 +1188,37 @@ function escapeCsvValue(value) {
   return stringValue
 }
 
+function getActiveStatsFilterLabel() {
+  const parts = []
+
+  if (statsFilterYear.value) parts.push(`Jahr ${statsFilterYear.value}`)
+
+  if (statsFilterMonth.value) {
+    const monthLabel = statsFilterMonth.options[statsFilterMonth.selectedIndex]?.textContent || statsFilterMonth.value
+    parts.push(`Monat ${monthLabel}`)
+  }
+
+  if (statsFilterType.value) parts.push(formatEntryType(statsFilterType.value))
+
+  if (statsFilterDiscipline.value) {
+    const disciplineLabel = statsFilterDiscipline.options[statsFilterDiscipline.selectedIndex]?.textContent || ''
+    if (disciplineLabel) parts.push(`Disziplin ${disciplineLabel}`)
+  }
+
+  if (statsFilterWeapon.value) {
+    const weaponLabel = statsFilterWeapon.options[statsFilterWeapon.selectedIndex]?.textContent || ''
+    if (weaponLabel) parts.push(`Waffe ${weaponLabel}`)
+  }
+
+  return parts.length ? parts.join(' | ') : 'Alle Daten'
+}
+
+function getStatsPeriodText(entries) {
+  const dates = entries.map((entry) => entry.entry_date).filter(Boolean).sort()
+  if (!dates.length) return 'alle'
+  return `${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
+}
+
 function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
@@ -1247,6 +1285,87 @@ function exportEntriesCsv(entries) {
 
   const stamp = new Date().toISOString().slice(0, 10)
   downloadTextFile(`shooting-book-meine-eintraege-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
+}
+
+function exportStatisticsCsv(entries) {
+  const entryCount = entries.length
+  const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
+  const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
+  const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
+  const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
+  const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
+  const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
+
+  const filterText = getActiveStatsFilterLabel()
+  const periodText = getStatsPeriodText(entries)
+
+  const headers = [
+    'Bereich',
+    'Name',
+    'Wert',
+    'Einträge',
+    'Serien',
+    'Gesamt',
+    'Schnitt pro Eintrag',
+    'Zeitraum',
+    'Filter',
+  ]
+
+  const overviewRows = [
+    ['Überblick', 'Einträge', entryCount, '', '', '', '', periodText, filterText],
+    ['Überblick', 'Serien', seriesCount, '', '', '', '', periodText, filterText],
+    ['Überblick', 'Gesamtscore', formatNumber(totalScore), '', '', '', '', periodText, filterText],
+    ['Überblick', 'Schnitt pro Eintrag', formatNumber(averagePerEntry), '', '', '', '', periodText, filterText],
+    ['Überblick', 'Schnitt pro Serie', formatNumber(averagePerSeries), '', '', '', '', periodText, filterText],
+    ['Überblick', 'Bester Eintrag', bestEntryText, '', '', '', '', periodText, filterText],
+  ]
+
+  const groupedRows = [
+    ...buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)).map((row) => [
+      'Nach Typ',
+      row.name,
+      '',
+      row.entries,
+      row.series,
+      formatNumber(row.total),
+      formatNumber(row.averagePerEntry),
+      periodText,
+      filterText,
+    ]),
+    ...buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-').map((row) => [
+      'Nach Disziplin',
+      row.name,
+      '',
+      row.entries,
+      row.series,
+      formatNumber(row.total),
+      formatNumber(row.averagePerEntry),
+      periodText,
+      filterText,
+    ]),
+    ...buildGroupedStats(entries, (entry) => {
+      if (!entry.weapons?.name) return '-'
+      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
+      return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+    }).map((row) => [
+      'Nach Waffe',
+      row.name,
+      '',
+      row.entries,
+      row.series,
+      formatNumber(row.total),
+      formatNumber(row.averagePerEntry),
+      periodText,
+      filterText,
+    ]),
+  ]
+
+  const csvContent = [headers, ...overviewRows, ...groupedRows]
+    .map((row) => row.map(escapeCsvValue).join(';'))
+    .join('\n')
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  downloadTextFile(`shooting-book-statistik-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
 }
 
 async function deleteDisciplineById(disciplineId) {
@@ -1588,6 +1707,17 @@ statsSubDetailsBtn.addEventListener('click', () => activateStatsSubTab('details'
 
 applyStatsFiltersBtn.addEventListener('click', applyStatsFilters)
 resetStatsFiltersBtn.addEventListener('click', resetStatsFilters)
+
+exportStatsBtn.addEventListener('click', () => {
+  const exportEntries = getFilteredStatsEntries()
+  if (!exportEntries.length) {
+    statsExportStatus.textContent = 'Keine Statistik-Daten für den Export vorhanden.'
+    return
+  }
+
+  statsExportStatus.textContent = ''
+  exportStatisticsCsv(exportEntries)
+})
 
 toggleDisciplinePanelBtn.addEventListener('click', () => {
   if (disciplinePanel.style.display === 'block') closeDisciplinePanel()
