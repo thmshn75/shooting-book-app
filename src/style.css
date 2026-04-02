@@ -1563,3 +1563,10 @@ button[type='button']:hover {
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+
+#list-export-status {
+  min-height: 22px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
