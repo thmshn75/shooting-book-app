@@ -1561,17 +1561,25 @@ async function loadDisciplines() {
   }
 
   const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
+  const currentDeleteDisciplineValue = deleteDisciplineSelect?.value || ''
+  const sortedDisciplines = [...(data || [])].sort((a, b) => naturalCompare(a.name, b.name))
+
   entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
 
-  ;(data || [])
-    .sort((a, b) => naturalCompare(a.name, b.name))
-    .forEach((discipline) => {
+  sortedDisciplines.forEach((discipline) => {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
     if (discipline.id === lastDisciplineId && !editingEntryId) option.selected = true
     entryDiscipline.appendChild(option)
   })
+
+  fillSimpleSelect(
+    deleteDisciplineSelect,
+    'Disziplin zum Löschen auswählen',
+    sortedDisciplines.map((discipline) => ({ value: discipline.id, label: discipline.name })),
+    currentDeleteDisciplineValue
+  )
 }
 
 async function loadWeapons() {
@@ -1585,9 +1593,12 @@ async function loadWeapons() {
   }
 
   const lastWeaponId = localStorage.getItem(getLastWeaponKey(user.id)) || ''
+  const currentDeleteWeaponValue = deleteWeaponSelect?.value || ''
+  const weapons = data || []
+
   entryWeapon.innerHTML = '<option value="">Waffe auswählen</option>'
 
-  ;(data || []).forEach((weapon) => {
+  weapons.forEach((weapon) => {
     const option = document.createElement('option')
     option.value = weapon.id
     const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
@@ -1595,6 +1606,19 @@ async function loadWeapons() {
     if (weapon.id === lastWeaponId && !editingEntryId) option.selected = true
     entryWeapon.appendChild(option)
   })
+
+  fillSimpleSelect(
+    deleteWeaponSelect,
+    'Waffe zum Löschen auswählen',
+    weapons.map((weapon) => {
+      const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
+      return {
+        value: weapon.id,
+        label: details ? `${weapon.name} (${details})` : weapon.name,
+      }
+    }),
+    currentDeleteWeaponValue
+  )
 }
 
 async function deleteEntry(entryId) {
@@ -1961,27 +1985,6 @@ addWeaponBtn.addEventListener('click', async () => {
 
   if (!name) {
     weaponStatus.textContent = 'Bitte einen Waffen-Namen eingeben.'
-    return
-  }
-
-  const { data: existingWeapon, error: duplicateError } = await findExistingWeapon(user.id, { name, type, caliber })
-  if (duplicateError) {
-    weaponStatus.textContent = `Fehler bei der Dublettenprüfung: ${duplicateError.message}`
-    return
-  }
-
-  if (existingWeapon) {
-    const existingDetails = [existingWeapon.type, existingWeapon.caliber].filter(Boolean).join(' | ')
-    weaponStatus.textContent = existingDetails
-      ? `Waffe bereits vorhanden: ${existingWeapon.name} (${existingDetails})`
-      : `Waffe bereits vorhanden: ${existingWeapon.name}`
-    entryWeapon.value = existingWeapon.id
-    localStorage.setItem(getLastWeaponKey(user.id), existingWeapon.id)
-    newWeaponName.value = ''
-    newWeaponType.value = ''
-    newWeaponCaliber.value = ''
-    newWeaponNotes.value = ''
-    closeWeaponPanel()
     return
   }
 
