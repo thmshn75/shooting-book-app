@@ -232,7 +232,7 @@ document.querySelector('#app').innerHTML = `
             <div id="list-box">
               <h2>Meine Einträge</h2>
 
-              <div class="collapsible-box filter-collapsible-box">
+              <div class="collapsible-box filter-collapsible-box list-filter-collapsible-box">
                 <button id="toggle-list-filter-panel-btn" type="button" class="section-toggle-btn">
                   + Filter anzeigen
                 </button>
@@ -545,7 +545,7 @@ function renderStatsTable(container, rows, emptyText) {
   }
 
   container.innerHTML = `
-    <div class="stats-table">
+    <div class="stats-table desktop-stats-table">
       <div class="stats-table-head">
         <div>Name</div>
         <div>Einträge</div>
@@ -560,6 +560,32 @@ function renderStatsTable(container, rows, emptyText) {
           <div>${row.series}</div>
           <div>${formatNumber(row.total)}</div>
           <div>${formatNumber(row.averagePerEntry)}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="stats-detail-cards mobile-stats-cards">
+      ${rows.map((row) => `
+        <div class="stats-detail-card">
+          <div class="stats-detail-card-title">${row.name}</div>
+          <div class="stats-detail-card-grid">
+            <div class="stats-detail-item">
+              <span class="stats-detail-label">Einträge</span>
+              <strong class="stats-detail-value">${row.entries}</strong>
+            </div>
+            <div class="stats-detail-item">
+              <span class="stats-detail-label">Serien</span>
+              <strong class="stats-detail-value">${row.series}</strong>
+            </div>
+            <div class="stats-detail-item">
+              <span class="stats-detail-label">Gesamt</span>
+              <strong class="stats-detail-value">${formatNumber(row.total)}</strong>
+            </div>
+            <div class="stats-detail-item">
+              <span class="stats-detail-label">Schnitt/Eintrag</span>
+              <strong class="stats-detail-value">${formatNumber(row.averagePerEntry)}</strong>
+            </div>
+          </div>
         </div>
       `).join('')}
     </div>
