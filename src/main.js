@@ -1221,8 +1221,7 @@ function exportEntriesCsv(entries) {
 
   const csvContent = [headers, ...rows]
     .map((row) => row.map(escapeCsvValue).join(';'))
-    .join('
-')
+    .join('\n')
 
   const stamp = new Date().toISOString().slice(0, 10)
   downloadTextFile(`shooting-book-export-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
