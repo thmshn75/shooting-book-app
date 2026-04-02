@@ -1552,3 +1552,14 @@ button[type='button']:hover {
     line-height: 1.2;
   }
 }
+
+
+.stats-export-actions {
+  margin-top: 12px;
+}
+
+#stats-export-status {
+  min-height: 22px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
