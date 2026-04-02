@@ -1177,8 +1177,7 @@ function fillSimpleSelect(select, firstLabel, items, currentValue = '') {
 
 function escapeCsvValue(value) {
   const stringValue = String(value ?? '')
-  if (/[";
-]/.test(stringValue)) return `"${stringValue.replace(/"/g, '""')}"`
+  if (/[",\n]/.test(stringValue)) return `"${stringValue.replace(/"/g, '""')}"`
   return stringValue
 }
 
