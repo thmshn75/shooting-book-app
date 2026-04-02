@@ -1570,3 +1570,37 @@ button[type='button']:hover {
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+
+.export-action-row {
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.export-action-row > button {
+  min-height: 36px;
+  font-size: 14px;
+  padding: 7px 9px;
+  border-radius: 10px;
+}
+
+#stats-export-status,
+#list-export-status {
+  min-height: 22px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 680px) {
+  .export-action-row {
+    gap: 6px;
+  }
+
+  .export-action-row > button,
+  .export-action-row.vertical-mobile-row > * {
+    min-height: 36px;
+    font-size: 14px;
+    padding: 7px 9px;
+    border-radius: 10px;
+  }
+}
