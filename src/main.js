@@ -89,7 +89,15 @@ document.querySelector('#app').innerHTML = `
                       <input id="new-discipline-name" class="uniform-input" type="text" placeholder="Name der Disziplin" />
                       <button id="add-discipline-btn">Disziplin hinzufügen</button>
                     </div>
-                    <div id="discipline-management-list" class="management-list"></div>
+                    <div class="sub-manage-block">
+                      <h4 class="mini-section-title">Disziplin löschen</h4>
+                      <div class="form-grid mobile-single-grid">
+                        <select id="delete-discipline-select" class="uniform-input">
+                          <option value="">Disziplin auswählen</option>
+                        </select>
+                        <button id="delete-discipline-btn" type="button" class="danger-soft-btn">Disziplin löschen</button>
+                      </div>
+                    </div>
                     <p id="discipline-status"></p>
                   </div>
                 </div>
@@ -111,7 +119,15 @@ document.querySelector('#app').innerHTML = `
                     <div class="row vertical-mobile-row">
                       <button id="add-weapon-btn">Waffe hinzufügen</button>
                     </div>
-                    <div id="weapon-management-list" class="management-list"></div>
+                    <div class="sub-manage-block">
+                      <h4 class="mini-section-title">Waffe löschen</h4>
+                      <div class="form-grid mobile-single-grid">
+                        <select id="delete-weapon-select" class="uniform-input">
+                          <option value="">Waffe auswählen</option>
+                        </select>
+                        <button id="delete-weapon-btn" type="button" class="danger-soft-btn">Waffe löschen</button>
+                      </div>
+                    </div>
                     <p id="weapon-status"></p>
                   </div>
                 </div>
@@ -129,7 +145,7 @@ document.querySelector('#app').innerHTML = `
             <div id="stats-box">
               <h2>Statistik</h2>
 
-              <div class="tabs-bar sub-tabs">
+              <div class="tabs-bar sub-tabs compact-sub-tabs">
                 <button id="stats-sub-summary-btn" class="tab-btn active" type="button">Überblick</button>
                 <button id="stats-sub-charts-btn" class="tab-btn" type="button">Grafiken</button>
                 <button id="stats-sub-details-btn" class="tab-btn" type="button">Auswertung</button>
@@ -224,9 +240,9 @@ document.querySelector('#app').innerHTML = `
                     </div>
                   </div>
                 </div>
-
-                <div id="stats-filter-summary" class="list-summary"></div>
               </div>
+
+              <div id="stats-filter-summary" class="list-summary compact-summary-chips"></div>
             </div>
           </section>
 
@@ -234,7 +250,7 @@ document.querySelector('#app').innerHTML = `
             <div id="list-box">
               <h2>Meine Einträge</h2>
 
-              <div class="collapsible-box filter-collapsible-box list-filter-collapsible-box">
+              <div class="collapsible-box filter-collapsible-box">
                 <button id="toggle-list-filter-panel-btn" type="button" class="section-toggle-btn">
                   + Filter anzeigen
                 </button>
@@ -281,6 +297,7 @@ document.querySelector('#app').innerHTML = `
                       <button id="apply-filters-btn" type="button">Filter anwenden</button>
                       <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
                       <button id="reload-btn" type="button">Liste aktualisieren</button>
+                      <button id="export-list-btn" type="button">Export CSV</button>
                     </div>
                   </div>
                 </div>
@@ -365,6 +382,7 @@ const filterWeapon = document.getElementById('filter-weapon')
 const applyFiltersBtn = document.getElementById('apply-filters-btn')
 const resetFiltersBtn = document.getElementById('reset-filters-btn')
 const reloadBtn = document.getElementById('reload-btn')
+const exportListBtn = document.getElementById('export-list-btn')
 const listSummary = document.getElementById('list-summary')
 
 const seriesCountInput = document.getElementById('series-count')
@@ -374,7 +392,8 @@ const toggleDisciplinePanelBtn = document.getElementById('toggle-discipline-pane
 const disciplinePanel = document.getElementById('discipline-panel')
 const newDisciplineName = document.getElementById('new-discipline-name')
 const addDisciplineBtn = document.getElementById('add-discipline-btn')
-const disciplineManagementList = document.getElementById('discipline-management-list')
+const deleteDisciplineSelect = document.getElementById('delete-discipline-select')
+const deleteDisciplineBtn = document.getElementById('delete-discipline-btn')
 const disciplineStatus = document.getElementById('discipline-status')
 
 const toggleWeaponPanelBtn = document.getElementById('toggle-weapon-panel-btn')
@@ -384,7 +403,8 @@ const newWeaponType = document.getElementById('new-weapon-type')
 const newWeaponCaliber = document.getElementById('new-weapon-caliber')
 const newWeaponNotes = document.getElementById('new-weapon-notes')
 const addWeaponBtn = document.getElementById('add-weapon-btn')
-const weaponManagementList = document.getElementById('weapon-management-list')
+const deleteWeaponSelect = document.getElementById('delete-weapon-select')
+const deleteWeaponBtn = document.getElementById('delete-weapon-btn')
 const weaponStatus = document.getElementById('weapon-status')
 
 const toggleStatsFilterPanelBtn = document.getElementById('toggle-stats-filter-panel-btn')
@@ -567,28 +587,15 @@ function renderStatsTable(container, rows, emptyText) {
         </div>
       `).join('')}
     </div>
-
-    <div class="stats-detail-cards mobile-stats-cards">
+    <div class="stats-mobile-cards">
       ${rows.map((row) => `
-        <div class="stats-detail-card">
-          <div class="stats-detail-card-title">${row.name}</div>
-          <div class="stats-detail-card-grid">
-            <div class="stats-detail-item">
-              <span class="stats-detail-label">Einträge</span>
-              <strong class="stats-detail-value">${row.entries}</strong>
-            </div>
-            <div class="stats-detail-item">
-              <span class="stats-detail-label">Serien</span>
-              <strong class="stats-detail-value">${row.series}</strong>
-            </div>
-            <div class="stats-detail-item">
-              <span class="stats-detail-label">Gesamt</span>
-              <strong class="stats-detail-value">${formatNumber(row.total)}</strong>
-            </div>
-            <div class="stats-detail-item">
-              <span class="stats-detail-label">Schnitt/Eintrag</span>
-              <strong class="stats-detail-value">${formatNumber(row.averagePerEntry)}</strong>
-            </div>
+        <div class="stats-mobile-card">
+          <div class="stats-mobile-card-title">${row.name}</div>
+          <div class="stats-mobile-card-grid">
+            <div><span>Einträge</span><strong>${row.entries}</strong></div>
+            <div><span>Serien</span><strong>${row.series}</strong></div>
+            <div><span>Gesamt</span><strong>${formatNumber(row.total)}</strong></div>
+            <div><span>Schnitt/Eintrag</span><strong>${formatNumber(row.averagePerEntry)}</strong></div>
           </div>
         </div>
       `).join('')}
@@ -1156,188 +1163,167 @@ function resetStatsFilters() {
   applyStatsFilters()
 }
 
-
-function renderDisciplineManagementList(disciplines) {
-  if (!disciplineManagementList) return
-
-  if (!disciplines.length) {
-    disciplineManagementList.innerHTML = '<p class="management-empty-text">Noch keine Disziplinen vorhanden.</p>'
-    return
-  }
-
-  disciplineManagementList.innerHTML = `
-    <div class="management-list-box">
-      <div class="management-list-title">Vorhandene Disziplinen</div>
-      <div class="management-items">
-        ${disciplines.map((discipline) => `
-          <div class="management-item">
-            <div class="management-item-main">
-              <div class="management-item-name">${discipline.name}</div>
-            </div>
-            <button
-              type="button"
-              class="delete-discipline-btn management-delete-btn"
-              data-discipline-id="${discipline.id}"
-              data-discipline-name="${String(discipline.name || '').replace(/"/g, '&quot;')}"
-            >
-              Löschen
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `
-
-  document.querySelectorAll('.delete-discipline-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      await deleteDiscipline(button.dataset.disciplineId, button.dataset.disciplineName)
-    })
+function fillSimpleSelect(select, firstLabel, items, currentValue = '') {
+  if (!select) return
+  select.innerHTML = `<option value="">${firstLabel}</option>`
+  items.forEach(({ value, label }) => {
+    const option = document.createElement('option')
+    option.value = String(value)
+    option.textContent = String(label)
+    if (String(value) === String(currentValue)) option.selected = true
+    select.appendChild(option)
   })
 }
 
-function renderWeaponManagementList(weapons) {
-  if (!weaponManagementList) return
-
-  if (!weapons.length) {
-    weaponManagementList.innerHTML = '<p class="management-empty-text">Noch keine Waffen vorhanden.</p>'
-    return
-  }
-
-  weaponManagementList.innerHTML = `
-    <div class="management-list-box">
-      <div class="management-list-title">Vorhandene Waffen</div>
-      <div class="management-items">
-        ${weapons.map((weapon) => {
-          const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
-          const secondary = details ? `<div class="management-item-meta">${details}</div>` : ''
-
-          return `
-            <div class="management-item">
-              <div class="management-item-main">
-                <div class="management-item-name">${weapon.name}</div>
-                ${secondary}
-              </div>
-              <button
-                type="button"
-                class="delete-weapon-btn management-delete-btn"
-                data-weapon-id="${weapon.id}"
-                data-weapon-name="${String(weapon.name || '').replace(/"/g, '&quot;')}"
-              >
-                Löschen
-              </button>
-            </div>
-          `
-        }).join('')}
-      </div>
-    </div>
-  `
-
-  document.querySelectorAll('.delete-weapon-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      await deleteWeapon(button.dataset.weaponId, button.dataset.weaponName)
-    })
-  })
+function escapeCsvValue(value) {
+  const stringValue = String(value ?? '')
+  if (/[";
+]/.test(stringValue)) return `"${stringValue.replace(/"/g, '""')}"`
+  return stringValue
 }
 
-async function deleteDiscipline(disciplineId, disciplineName) {
+function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+function exportEntriesCsv(entries) {
+  const headers = [
+    'Datum', 'Typ', 'Disziplin', 'Waffe', 'Waffentyp', 'Kaliber', 'Ort', 'Notiz', 'Schuss pro Serie', 'Serienanzahl', 'Gesamtscore', 'Serienwerte'
+  ]
+
+  const rows = entries.map((entry) => {
+    const sortedSeries = Array.isArray(entry.entry_series)
+      ? [...entry.entry_series].sort((a, b) => a.series_number - b.series_number)
+      : []
+
+    return [
+      entry.entry_date || '',
+      formatEntryType(entry.entry_type),
+      entry.disciplines?.name || '',
+      entry.weapons?.name || '',
+      entry.weapons?.type || '',
+      entry.weapons?.caliber || '',
+      entry.location || '',
+      entry.note || '',
+      entry.shots_per_series ?? '',
+      sortedSeries.length,
+      entry.total_score ?? '',
+      sortedSeries.map((series) => `S${series.series_number}:${series.score}`).join(' | '),
+    ]
+  })
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map(escapeCsvValue).join(';'))
+    .join('
+')
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  downloadTextFile(`shooting-book-export-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
+}
+
+async function deleteDisciplineById(disciplineId) {
   disciplineStatus.textContent = 'Prüfe Disziplin...'
   const user = await getCurrentUser()
   if (!user) {
     disciplineStatus.textContent = 'Nicht eingeloggt.'
     return
   }
+  if (!disciplineId) {
+    disciplineStatus.textContent = 'Bitte eine Disziplin auswählen.'
+    return
+  }
 
-  const { count, error: usageError } = await supabase
+  const { count, error: countError } = await supabase
     .from('entries')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('discipline_id', disciplineId)
 
-  if (usageError) {
-    disciplineStatus.textContent = `Fehler bei der Prüfung: ${usageError.message}`
+  if (countError) {
+    disciplineStatus.textContent = `Fehler bei der Prüfung: ${countError.message}`
     return
   }
 
   if ((count || 0) > 0) {
-    disciplineStatus.textContent = 'Disziplin kann nicht gelöscht werden, weil sie bereits in Einträgen verwendet wird.'
+    disciplineStatus.textContent = 'Disziplin wird bereits in Einträgen verwendet und kann nicht gelöscht werden.'
     return
   }
 
-  if (!window.confirm(`Disziplin "${disciplineName}" wirklich löschen?`)) return
+  if (!window.confirm('Disziplin wirklich löschen?')) {
+    disciplineStatus.textContent = ''
+    return
+  }
 
-  const { error } = await supabase
-    .from('disciplines')
-    .delete()
-    .eq('id', disciplineId)
-    .eq('user_id', user.id)
-
+  const { error } = await supabase.from('disciplines').delete().eq('id', disciplineId).eq('user_id', user.id)
   if (error) {
     disciplineStatus.textContent = `Fehler beim Löschen: ${error.message}`
     return
   }
 
   if (entryDiscipline.value === disciplineId) entryDiscipline.value = ''
-  if (statsFilterDiscipline.value === disciplineId) statsFilterDiscipline.value = ''
   if (filterDiscipline.value === disciplineId) filterDiscipline.value = ''
-
-  const lastDisciplineKey = getLastDisciplineKey(user.id)
-  if (localStorage.getItem(lastDisciplineKey) === disciplineId) {
-    localStorage.setItem(lastDisciplineKey, '')
-  }
+  if (statsFilterDiscipline.value === disciplineId) statsFilterDiscipline.value = ''
+  if (localStorage.getItem(getLastDisciplineKey(user.id)) === disciplineId) localStorage.removeItem(getLastDisciplineKey(user.id))
 
   disciplineStatus.textContent = 'Disziplin gelöscht.'
-  await loadDisciplines()
+  await loadFormData()
   await loadEntries()
 }
 
-async function deleteWeapon(weaponId, weaponName) {
+async function deleteWeaponById(weaponId) {
   weaponStatus.textContent = 'Prüfe Waffe...'
   const user = await getCurrentUser()
   if (!user) {
     weaponStatus.textContent = 'Nicht eingeloggt.'
     return
   }
+  if (!weaponId) {
+    weaponStatus.textContent = 'Bitte eine Waffe auswählen.'
+    return
+  }
 
-  const { count, error: usageError } = await supabase
+  const { count, error: countError } = await supabase
     .from('entries')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('weapon_id', weaponId)
 
-  if (usageError) {
-    weaponStatus.textContent = `Fehler bei der Prüfung: ${usageError.message}`
+  if (countError) {
+    weaponStatus.textContent = `Fehler bei der Prüfung: ${countError.message}`
     return
   }
 
   if ((count || 0) > 0) {
-    weaponStatus.textContent = 'Waffe kann nicht gelöscht werden, weil sie bereits in Einträgen verwendet wird.'
+    weaponStatus.textContent = 'Waffe wird bereits in Einträgen verwendet und kann nicht gelöscht werden.'
     return
   }
 
-  if (!window.confirm(`Waffe "${weaponName}" wirklich löschen?`)) return
+  if (!window.confirm('Waffe wirklich löschen?')) {
+    weaponStatus.textContent = ''
+    return
+  }
 
-  const { error } = await supabase
-    .from('weapons')
-    .delete()
-    .eq('id', weaponId)
-    .eq('user_id', user.id)
-
+  const { error } = await supabase.from('weapons').delete().eq('id', weaponId).eq('user_id', user.id)
   if (error) {
     weaponStatus.textContent = `Fehler beim Löschen: ${error.message}`
     return
   }
 
   if (entryWeapon.value === weaponId) entryWeapon.value = ''
-  if (statsFilterWeapon.value === weaponId) statsFilterWeapon.value = ''
   if (filterWeapon.value === weaponId) filterWeapon.value = ''
-
-  const lastWeaponKey = getLastWeaponKey(user.id)
-  if (localStorage.getItem(lastWeaponKey) === weaponId) {
-    localStorage.setItem(lastWeaponKey, '')
-  }
+  if (statsFilterWeapon.value === weaponId) statsFilterWeapon.value = ''
+  if (localStorage.getItem(getLastWeaponKey(user.id)) === weaponId) localStorage.removeItem(getLastWeaponKey(user.id))
 
   weaponStatus.textContent = 'Waffe gelöscht.'
-  await loadWeapons()
+  await loadFormData()
   await loadEntries()
 }
 
@@ -1354,17 +1340,15 @@ async function loadDisciplines() {
   const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
   entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
 
-  const disciplines = (data || []).sort((a, b) => naturalCompare(a.name, b.name))
-
-  disciplines.forEach((discipline) => {
+  ;(data || [])
+    .sort((a, b) => naturalCompare(a.name, b.name))
+    .forEach((discipline) => {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
     if (discipline.id === lastDisciplineId && !editingEntryId) option.selected = true
     entryDiscipline.appendChild(option)
   })
-
-  renderDisciplineManagementList(disciplines)
 }
 
 async function loadWeapons() {
@@ -1380,15 +1364,7 @@ async function loadWeapons() {
   const lastWeaponId = localStorage.getItem(getLastWeaponKey(user.id)) || ''
   entryWeapon.innerHTML = '<option value="">Waffe auswählen</option>'
 
-  const weapons = (data || []).sort((a, b) => {
-    const nameCompare = naturalCompare(a.name, b.name)
-    if (nameCompare !== 0) return nameCompare
-    const typeCompare = naturalCompare(a.type, b.type)
-    if (typeCompare !== 0) return typeCompare
-    return naturalCompare(a.caliber, b.caliber)
-  })
-
-  weapons.forEach((weapon) => {
+  ;(data || []).forEach((weapon) => {
     const option = document.createElement('option')
     option.value = weapon.id
     const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
@@ -1396,8 +1372,6 @@ async function loadWeapons() {
     if (weapon.id === lastWeaponId && !editingEntryId) option.selected = true
     entryWeapon.appendChild(option)
   })
-
-  renderWeaponManagementList(weapons)
 }
 
 async function deleteEntry(entryId) {
@@ -1645,6 +1619,25 @@ cancelEditBtn.addEventListener('click', async () => {
 
 applyFiltersBtn.addEventListener('click', applyEntryFilters)
 resetFiltersBtn.addEventListener('click', resetFilters)
+
+deleteDisciplineBtn.addEventListener('click', async () => {
+  await deleteDisciplineById(deleteDisciplineSelect.value)
+})
+
+deleteWeaponBtn.addEventListener('click', async () => {
+  await deleteWeaponById(deleteWeaponSelect.value)
+})
+
+exportListBtn.addEventListener('click', () => {
+  const exportEntries = getFilteredEntries()
+  if (!exportEntries.length) {
+    entryStatus.textContent = 'Keine Einträge für den Export vorhanden.'
+    return
+  }
+
+  entryStatus.textContent = ''
+  exportEntriesCsv(exportEntries)
+})
 
 addDisciplineBtn.addEventListener('click', async () => {
   disciplineStatus.textContent = 'Disziplin wird angelegt...'
