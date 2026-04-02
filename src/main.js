@@ -243,11 +243,14 @@ document.querySelector('#app').innerHTML = `
               </div>
 
               <div id="stats-filter-summary" class="list-summary compact-summary-chips"></div>
-              <div class="row stats-export-actions vertical-mobile-row">
-                <button id="export-stats-filtered-btn" type="button">Gefilterte Statistik exportieren</button>
-                <button id="export-stats-all-btn" type="button">Gesamtstatistik exportieren</button>
-              </div>
-              <p id="stats-export-status"></p>
+
+                <div class="row filter-actions export-action-row vertical-mobile-row">
+                  <button id="export-filtered-stats-btn" type="button">Gefilterte Statistik exportieren</button>
+                  <button id="export-all-stats-btn" type="button">Gesamtstatistik exportieren</button>
+                </div>
+
+                <p id="stats-export-status"></p>
+
             </div>
           </section>
 
