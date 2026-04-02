@@ -960,6 +960,49 @@ function calculateTotalScore(seriesData) {
   return seriesData.reduce((sum, item) => sum + item.score, 0)
 }
 
+function normalizeDuplicateValue(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('de-AT')
+}
+
+async function findExistingDiscipline(userId, name) {
+  const { data, error } = await supabase
+    .from('disciplines')
+    .select('id, name')
+    .eq('user_id', userId)
+    .order('name', { ascending: true })
+
+  if (error) return { data: null, error }
+
+  const normalizedName = normalizeDuplicateValue(name)
+  const existing = (data || []).find((item) => normalizeDuplicateValue(item.name) === normalizedName) || null
+  return { data: existing, error: null }
+}
+
+async function findExistingWeapon(userId, weaponInput) {
+  const { data, error } = await supabase
+    .from('weapons')
+    .select('id, name, type, caliber')
+    .eq('user_id', userId)
+    .order('name', { ascending: true })
+
+  if (error) return { data: null, error }
+
+  const normalizedName = normalizeDuplicateValue(weaponInput.name)
+  const normalizedType = normalizeDuplicateValue(weaponInput.type)
+  const normalizedCaliber = normalizeDuplicateValue(weaponInput.caliber)
+
+  const existing = (data || []).find((item) =>
+    normalizeDuplicateValue(item.name) === normalizedName &&
+    normalizeDuplicateValue(item.type) === normalizedType &&
+    normalizeDuplicateValue(item.caliber) === normalizedCaliber
+  ) || null
+
+  return { data: existing, error: null }
+}
+
 function resetForm(options = {}) {
   const {
     preserveDate = false,
@@ -1870,6 +1913,21 @@ addDisciplineBtn.addEventListener('click', async () => {
     return
   }
 
+  const { data: existingDiscipline, error: duplicateError } = await findExistingDiscipline(user.id, name)
+  if (duplicateError) {
+    disciplineStatus.textContent = `Fehler bei der Dublettenprüfung: ${duplicateError.message}`
+    return
+  }
+
+  if (existingDiscipline) {
+    disciplineStatus.textContent = `Disziplin bereits vorhanden: ${existingDiscipline.name}`
+    entryDiscipline.value = existingDiscipline.id
+    localStorage.setItem(getLastDisciplineKey(user.id), existingDiscipline.id)
+    newDisciplineName.value = ''
+    closeDisciplinePanel()
+    return
+  }
+
   const { data, error } = await supabase.from('disciplines').insert([{ user_id: user.id, name }]).select('id, name').single()
   if (error) {
     disciplineStatus.textContent = `Fehler: ${error.message}`
@@ -1897,8 +1955,33 @@ addWeaponBtn.addEventListener('click', async () => {
   }
 
   const name = newWeaponName.value.trim()
+  const type = newWeaponType.value.trim()
+  const caliber = newWeaponCaliber.value.trim()
+  const notes = newWeaponNotes.value.trim()
+
   if (!name) {
     weaponStatus.textContent = 'Bitte einen Waffen-Namen eingeben.'
+    return
+  }
+
+  const { data: existingWeapon, error: duplicateError } = await findExistingWeapon(user.id, { name, type, caliber })
+  if (duplicateError) {
+    weaponStatus.textContent = `Fehler bei der Dublettenprüfung: ${duplicateError.message}`
+    return
+  }
+
+  if (existingWeapon) {
+    const existingDetails = [existingWeapon.type, existingWeapon.caliber].filter(Boolean).join(' | ')
+    weaponStatus.textContent = existingDetails
+      ? `Waffe bereits vorhanden: ${existingWeapon.name} (${existingDetails})`
+      : `Waffe bereits vorhanden: ${existingWeapon.name}`
+    entryWeapon.value = existingWeapon.id
+    localStorage.setItem(getLastWeaponKey(user.id), existingWeapon.id)
+    newWeaponName.value = ''
+    newWeaponType.value = ''
+    newWeaponCaliber.value = ''
+    newWeaponNotes.value = ''
+    closeWeaponPanel()
     return
   }
 
@@ -1907,9 +1990,9 @@ addWeaponBtn.addEventListener('click', async () => {
     .insert([{
       user_id: user.id,
       name,
-      type: newWeaponType.value.trim() || null,
-      caliber: newWeaponCaliber.value.trim() || null,
-      notes: newWeaponNotes.value.trim() || null,
+      type: type || null,
+      caliber: caliber || null,
+      notes: notes || null,
     }])
     .select('id, name')
     .single()
