@@ -853,6 +853,60 @@ button[type='button']:hover {
 .stats-table-row:last-child > div {
   border-bottom: 0;
 }
+.mobile-stats-cards {
+  display: none;
+}
+
+.stats-detail-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.stats-detail-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(244, 236, 223, 0.96);
+}
+
+.stats-detail-card-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.stats-detail-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stats-detail-item {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(173, 148, 110, 0.45);
+  background: rgba(246, 238, 226, 0.86);
+}
+
+.stats-detail-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.stats-detail-value {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--text);
+  font-weight: 800;
+}
+
 
 .delete-entry-btn {
   background: var(--danger-bg);
@@ -1211,6 +1265,33 @@ button[type='button']:hover {
     gap: 8px;
   }
 
+  .sub-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .sub-tabs .tab-btn {
+    min-height: 38px;
+    padding: 6px 8px;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .list-filter-collapsible-box {
+    margin-top: 10px;
+    margin-bottom: 12px;
+  }
+
+  .list-filter-collapsible-box .section-toggle-btn,
+  .stats-filter-collapsible-box .section-toggle-btn {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
   .row,
   .vertical-mobile-row {
     align-items: stretch;
@@ -1376,19 +1457,39 @@ button[type='button']:hover {
     font-size: 0.78rem;
   }
 
-  .stats-table {
+  .desktop-stats-table {
+    display: none;
+  }
+
+  .mobile-stats-cards {
+    display: grid;
+  }
+
+  .stats-detail-card {
+    padding: 10px;
     border-radius: 12px;
   }
 
-  .stats-table-head,
-  .stats-table-row {
-    min-width: 540px;
+  .stats-detail-card-title {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
   }
 
-  .stats-table-head > div,
-  .stats-table-row > div {
+  .stats-detail-card-grid {
+    gap: 6px;
+  }
+
+  .stats-detail-item {
     padding: 7px 8px;
-    font-size: 0.74rem;
+    border-radius: 10px;
+  }
+
+  .stats-detail-label {
+    font-size: 0.62rem;
+  }
+
+  .stats-detail-value {
+    font-size: 0.84rem;
   }
 
   #series-inputs {
