@@ -127,47 +127,54 @@ document.querySelector('#app').innerHTML = `
             <div id="stats-box">
               <h2>Statistik</h2>
 
-              <div class="manage-box filter-box">
-                <h3>Statistik-Filter</h3>
-                <div class="form-grid mobile-single-grid">
-                  <select id="stats-filter-year" class="uniform-input">
-                    <option value="">Alle Jahre</option>
-                  </select>
+              <div class="collapsible-box filter-collapsible-box">
+                <button id="toggle-stats-filter-panel-btn" type="button" class="section-toggle-btn">
+                  + Statistik-Filter anzeigen
+                </button>
+                <div id="stats-filter-panel" class="collapsible-panel" style="display:none;">
+                  <div class="manage-box filter-box">
+                    <h3>Statistik-Filter</h3>
+                    <div class="form-grid mobile-single-grid">
+                      <select id="stats-filter-year" class="uniform-input">
+                        <option value="">Alle Jahre</option>
+                      </select>
 
-                  <select id="stats-filter-month" class="uniform-input">
-                    <option value="">Alle Monate</option>
-                    <option value="1">Januar</option>
-                    <option value="2">Februar</option>
-                    <option value="3">März</option>
-                    <option value="4">April</option>
-                    <option value="5">Mai</option>
-                    <option value="6">Juni</option>
-                    <option value="7">Juli</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">Oktober</option>
-                    <option value="11">November</option>
-                    <option value="12">Dezember</option>
-                  </select>
+                      <select id="stats-filter-month" class="uniform-input">
+                        <option value="">Alle Monate</option>
+                        <option value="1">Januar</option>
+                        <option value="2">Februar</option>
+                        <option value="3">März</option>
+                        <option value="4">April</option>
+                        <option value="5">Mai</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Dezember</option>
+                      </select>
 
-                  <select id="stats-filter-type" class="uniform-input">
-                    <option value="">Alle Typen</option>
-                    <option value="training">Training</option>
-                    <option value="competition">Bewerb</option>
-                  </select>
+                      <select id="stats-filter-type" class="uniform-input">
+                        <option value="">Alle Typen</option>
+                        <option value="training">Training</option>
+                        <option value="competition">Bewerb</option>
+                      </select>
 
-                  <select id="stats-filter-discipline" class="uniform-input">
-                    <option value="">Alle Disziplinen</option>
-                  </select>
+                      <select id="stats-filter-discipline" class="uniform-input">
+                        <option value="">Alle Disziplinen</option>
+                      </select>
 
-                  <select id="stats-filter-weapon" class="uniform-input">
-                    <option value="">Alle Waffen</option>
-                  </select>
-                </div>
+                      <select id="stats-filter-weapon" class="uniform-input">
+                        <option value="">Alle Waffen</option>
+                      </select>
+                    </div>
 
-                <div class="row filter-actions vertical-mobile-row">
-                  <button id="apply-stats-filters-btn" type="button">Filter anwenden</button>
-                  <button id="reset-stats-filters-btn" type="button">Filter zurücksetzen</button>
+                    <div class="row filter-actions vertical-mobile-row">
+                      <button id="apply-stats-filters-btn" type="button">Filter anwenden</button>
+                      <button id="reset-stats-filters-btn" type="button">Filter zurücksetzen</button>
+                    </div>
+                  </div>
                 </div>
 
                 <div id="stats-filter-summary" class="list-summary"></div>
@@ -225,48 +232,55 @@ document.querySelector('#app').innerHTML = `
             <div id="list-box">
               <h2>Meine Einträge</h2>
 
-              <div class="manage-box filter-box">
-                <h3>Filter</h3>
-                <div class="form-grid mobile-single-grid">
-                  <select id="filter-type" class="uniform-input">
-                    <option value="">Alle Typen</option>
-                    <option value="training">Training</option>
-                    <option value="competition">Bewerb</option>
-                  </select>
+              <div class="collapsible-box filter-collapsible-box">
+                <button id="toggle-list-filter-panel-btn" type="button" class="section-toggle-btn">
+                  + Filter anzeigen
+                </button>
+                <div id="list-filter-panel" class="collapsible-panel" style="display:none;">
+                  <div class="manage-box filter-box">
+                    <h3>Filter</h3>
+                    <div class="form-grid mobile-single-grid">
+                      <select id="filter-type" class="uniform-input">
+                        <option value="">Alle Typen</option>
+                        <option value="training">Training</option>
+                        <option value="competition">Bewerb</option>
+                      </select>
 
-                  <select id="filter-year" class="uniform-input">
-                    <option value="">Alle Jahre</option>
-                  </select>
+                      <select id="filter-year" class="uniform-input">
+                        <option value="">Alle Jahre</option>
+                      </select>
 
-                  <select id="filter-month" class="uniform-input">
-                    <option value="">Alle Monate</option>
-                    <option value="1">Januar</option>
-                    <option value="2">Februar</option>
-                    <option value="3">März</option>
-                    <option value="4">April</option>
-                    <option value="5">Mai</option>
-                    <option value="6">Juni</option>
-                    <option value="7">Juli</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">Oktober</option>
-                    <option value="11">November</option>
-                    <option value="12">Dezember</option>
-                  </select>
+                      <select id="filter-month" class="uniform-input">
+                        <option value="">Alle Monate</option>
+                        <option value="1">Januar</option>
+                        <option value="2">Februar</option>
+                        <option value="3">März</option>
+                        <option value="4">April</option>
+                        <option value="5">Mai</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Dezember</option>
+                      </select>
 
-                  <select id="filter-discipline" class="uniform-input">
-                    <option value="">Alle Disziplinen</option>
-                  </select>
+                      <select id="filter-discipline" class="uniform-input">
+                        <option value="">Alle Disziplinen</option>
+                      </select>
 
-                  <select id="filter-weapon" class="uniform-input">
-                    <option value="">Alle Waffen</option>
-                  </select>
-                </div>
+                      <select id="filter-weapon" class="uniform-input">
+                        <option value="">Alle Waffen</option>
+                      </select>
+                    </div>
 
-                <div class="row filter-actions vertical-mobile-row">
-                  <button id="apply-filters-btn" type="button">Filter anwenden</button>
-                  <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
-                  <button id="reload-btn" type="button">Liste aktualisieren</button>
+                    <div class="row filter-actions vertical-mobile-row">
+                      <button id="apply-filters-btn" type="button">Filter anwenden</button>
+                      <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
+                      <button id="reload-btn" type="button">Liste aktualisieren</button>
+                    </div>
+                  </div>
                 </div>
 
                 <div id="list-summary" class="list-summary"></div>
@@ -368,6 +382,11 @@ const newWeaponCaliber = document.getElementById('new-weapon-caliber')
 const newWeaponNotes = document.getElementById('new-weapon-notes')
 const addWeaponBtn = document.getElementById('add-weapon-btn')
 const weaponStatus = document.getElementById('weapon-status')
+
+const toggleStatsFilterPanelBtn = document.getElementById('toggle-stats-filter-panel-btn')
+const statsFilterPanel = document.getElementById('stats-filter-panel')
+const toggleListFilterPanelBtn = document.getElementById('toggle-list-filter-panel-btn')
+const listFilterPanel = document.getElementById('list-filter-panel')
 
 let editingEntryId = null
 let allEntriesCache = []
@@ -475,6 +494,13 @@ function formatNumber(value) {
   })
 }
 
+function naturalCompare(a, b) {
+  return String(a || '').localeCompare(String(b || ''), 'de', {
+    numeric: true,
+    sensitivity: 'base',
+  })
+}
+
 function setCollapsibleState(button, panel, isOpen, openText, closedText) {
   panel.style.display = isOpen ? 'block' : 'none'
   button.textContent = isOpen ? openText : closedText
@@ -494,6 +520,22 @@ function openWeaponPanel() {
 
 function closeWeaponPanel() {
   setCollapsibleState(toggleWeaponPanelBtn, weaponPanel, false, '− Waffe schließen', '+ Neue Waffe anlegen')
+}
+
+function openStatsFilterPanel() {
+  setCollapsibleState(toggleStatsFilterPanelBtn, statsFilterPanel, true, '− Statistik-Filter ausblenden', '+ Statistik-Filter anzeigen')
+}
+
+function closeStatsFilterPanel() {
+  setCollapsibleState(toggleStatsFilterPanelBtn, statsFilterPanel, false, '− Statistik-Filter ausblenden', '+ Statistik-Filter anzeigen')
+}
+
+function openListFilterPanel() {
+  setCollapsibleState(toggleListFilterPanelBtn, listFilterPanel, true, '− Filter ausblenden', '+ Filter anzeigen')
+}
+
+function closeListFilterPanel() {
+  setCollapsibleState(toggleListFilterPanelBtn, listFilterPanel, false, '− Filter ausblenden', '+ Filter anzeigen')
 }
 
 function renderStatsTable(container, rows, emptyText) {
@@ -900,7 +942,7 @@ function populateAllFilterOptions(entries) {
 
   const disciplines = [...new Map(
     entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
-  ).entries()]
+  ).entries()].sort((a, b) => naturalCompare(a[1], b[1]))
 
   const weapons = [...new Map(
     entries.filter((entry) => entry.weapons?.name).map((entry) => {
@@ -1088,7 +1130,7 @@ async function loadDisciplines() {
   const user = await getCurrentUser()
   if (!user) return
 
-  const { data, error } = await supabase.from('disciplines').select('id, name').eq('user_id', user.id).order('name', { ascending: true })
+  const { data, error } = await supabase.from('disciplines').select('id, name').eq('user_id', user.id)
   if (error) {
     disciplineStatus.textContent = `Fehler beim Laden der Disziplinen: ${error.message}`
     return
@@ -1097,7 +1139,9 @@ async function loadDisciplines() {
   const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
   entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
 
-  ;(data || []).forEach((discipline) => {
+  ;(data || [])
+    .sort((a, b) => naturalCompare(a.name, b.name))
+    .forEach((discipline) => {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
@@ -1296,6 +1340,8 @@ loginBtn.addEventListener('click', async () => {
   resetForm()
   closeDisciplinePanel()
   closeWeaponPanel()
+  closeStatsFilterPanel()
+  closeListFilterPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
   await loadFormData()
@@ -1327,6 +1373,17 @@ toggleDisciplinePanelBtn.addEventListener('click', () => {
 toggleWeaponPanelBtn.addEventListener('click', () => {
   if (weaponPanel.style.display === 'block') closeWeaponPanel()
   else openWeaponPanel()
+})
+
+
+toggleStatsFilterPanelBtn.addEventListener('click', () => {
+  if (statsFilterPanel.style.display === 'block') closeStatsFilterPanel()
+  else openStatsFilterPanel()
+})
+
+toggleListFilterPanelBtn.addEventListener('click', () => {
+  if (listFilterPanel.style.display === 'block') closeListFilterPanel()
+  else openListFilterPanel()
 })
 
 entryWeapon.addEventListener('change', async () => {
@@ -1574,6 +1631,8 @@ async function init() {
   resetForm()
   closeDisciplinePanel()
   closeWeaponPanel()
+  closeStatsFilterPanel()
+  closeListFilterPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
   showSplash()
