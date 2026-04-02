@@ -244,7 +244,8 @@ document.querySelector('#app').innerHTML = `
 
               <div id="stats-filter-summary" class="list-summary compact-summary-chips"></div>
               <div class="row stats-export-actions vertical-mobile-row">
-                <button id="export-stats-btn" type="button">Statistik CSV exportieren</button>
+                <button id="export-stats-filtered-btn" type="button">Gefilterte Statistik exportieren</button>
+                <button id="export-stats-all-btn" type="button">Gesamtstatistik exportieren</button>
               </div>
               <p id="stats-export-status"></p>
             </div>
@@ -301,8 +302,10 @@ document.querySelector('#app').innerHTML = `
                       <button id="apply-filters-btn" type="button">Filter anwenden</button>
                       <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
                       <button id="reload-btn" type="button">Liste aktualisieren</button>
-                      <button id="export-list-btn" type="button">Export CSV</button>
+                      <button id="export-list-filtered-btn" type="button">Gefilterte Einträge exportieren</button>
+                      <button id="export-list-all-btn" type="button">Alle Einträge exportieren</button>
                     </div>
+                    <p id="list-export-status"></p>
                   </div>
                 </div>
 
@@ -377,7 +380,8 @@ const statsFilterWeapon = document.getElementById('stats-filter-weapon')
 const applyStatsFiltersBtn = document.getElementById('apply-stats-filters-btn')
 const resetStatsFiltersBtn = document.getElementById('reset-stats-filters-btn')
 const statsFilterSummary = document.getElementById('stats-filter-summary')
-const exportStatsBtn = document.getElementById('export-stats-btn')
+const exportStatsFilteredBtn = document.getElementById('export-stats-filtered-btn')
+const exportStatsAllBtn = document.getElementById('export-stats-all-btn')
 const statsExportStatus = document.getElementById('stats-export-status')
 
 const filterType = document.getElementById('filter-type')
@@ -388,7 +392,9 @@ const filterWeapon = document.getElementById('filter-weapon')
 const applyFiltersBtn = document.getElementById('apply-filters-btn')
 const resetFiltersBtn = document.getElementById('reset-filters-btn')
 const reloadBtn = document.getElementById('reload-btn')
-const exportListBtn = document.getElementById('export-list-btn')
+const exportListFilteredBtn = document.getElementById('export-list-filtered-btn')
+const exportListAllBtn = document.getElementById('export-list-all-btn')
+const listExportStatus = document.getElementById('list-export-status')
 const listSummary = document.getElementById('list-summary')
 
 const seriesCountInput = document.getElementById('series-count')
@@ -493,6 +499,7 @@ function showLoggedOutUI() {
   chartScoreTrend.innerHTML = ''
   statsFilterSummary.innerHTML = ''
   statsExportStatus.textContent = ''
+  listExportStatus.textContent = ''
 }
 
 function formatDate(dateString) {
@@ -853,6 +860,7 @@ function renderStatistics(entries) {
 }
 
 function applyStatsFilters() {
+  statsExportStatus.textContent = ''
   renderStatistics(getFilteredStatsEntries())
 }
 
@@ -1149,10 +1157,12 @@ function renderEntriesList(entries) {
 }
 
 function applyEntryFilters() {
+  listExportStatus.textContent = ''
   renderEntriesList(getFilteredEntries())
 }
 
 function resetFilters() {
+  listExportStatus.textContent = ''
   filterType.value = ''
   filterYear.value = ''
   filterMonth.value = ''
@@ -1162,6 +1172,7 @@ function resetFilters() {
 }
 
 function resetStatsFilters() {
+  statsExportStatus.textContent = ''
   statsFilterYear.value = ''
   statsFilterMonth.value = ''
   statsFilterType.value = ''
@@ -1219,6 +1230,30 @@ function getStatsPeriodText(entries) {
   return `${formatDate(dates[0])} bis ${formatDate(dates[dates.length - 1])}`
 }
 
+function getActiveListFilterLabel() {
+  const parts = []
+
+  if (filterType.value) parts.push(formatEntryType(filterType.value))
+  if (filterYear.value) parts.push(`Jahr ${filterYear.value}`)
+
+  if (filterMonth.value) {
+    const monthLabel = filterMonth.options[filterMonth.selectedIndex]?.textContent || filterMonth.value
+    parts.push(`Monat ${monthLabel}`)
+  }
+
+  if (filterDiscipline.value) {
+    const disciplineLabel = filterDiscipline.options[filterDiscipline.selectedIndex]?.textContent || ''
+    if (disciplineLabel) parts.push(`Disziplin ${disciplineLabel}`)
+  }
+
+  if (filterWeapon.value) {
+    const weaponLabel = filterWeapon.options[filterWeapon.selectedIndex]?.textContent || ''
+    if (weaponLabel) parts.push(`Waffe ${weaponLabel}`)
+  }
+
+  return parts.length ? parts.join(' | ') : 'Alle Daten'
+}
+
 function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
@@ -1231,7 +1266,7 @@ function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-
   URL.revokeObjectURL(url)
 }
 
-function exportEntriesCsv(entries) {
+function exportEntriesCsv(entries, filename = null) {
   const maxSeriesCount = Math.max(
     1,
     ...entries.map((entry) => (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0))
@@ -1284,10 +1319,12 @@ function exportEntriesCsv(entries) {
     .join('\n')
 
   const stamp = new Date().toISOString().slice(0, 10)
-  downloadTextFile(`shooting-book-meine-eintraege-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
+  const finalFilename = filename || `shooting-book-meine-eintraege-${stamp}.csv`
+  downloadTextFile(finalFilename, csvContent, 'text/csv;charset=utf-8')
 }
 
-function exportStatisticsCsv(entries) {
+function exportStatisticsCsv(entries, options = {}) {
+  const { filename = null, filterLabel = null } = options
   const entryCount = entries.length
   const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
   const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
@@ -1296,7 +1333,7 @@ function exportStatisticsCsv(entries) {
   const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
   const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
 
-  const filterText = getActiveStatsFilterLabel()
+  const filterText = filterLabel || getActiveStatsFilterLabel()
   const periodText = getStatsPeriodText(entries)
 
   const lines = []
@@ -1361,7 +1398,8 @@ function exportStatisticsCsv(entries) {
 
   const csvContent = lines.join('\n')
   const stamp = new Date().toISOString().slice(0, 10)
-  downloadTextFile(`shooting-book-statistik-${stamp}.csv`, csvContent, 'text/csv;charset=utf-8')
+  const finalFilename = filename || `shooting-book-statistik-${stamp}.csv`
+  downloadTextFile(finalFilename, csvContent, 'text/csv;charset=utf-8')
 }
 
 async function deleteDisciplineById(disciplineId) {
@@ -1704,15 +1742,31 @@ statsSubDetailsBtn.addEventListener('click', () => activateStatsSubTab('details'
 applyStatsFiltersBtn.addEventListener('click', applyStatsFilters)
 resetStatsFiltersBtn.addEventListener('click', resetStatsFilters)
 
-exportStatsBtn.addEventListener('click', () => {
+exportStatsFilteredBtn.addEventListener('click', () => {
   const exportEntries = getFilteredStatsEntries()
   if (!exportEntries.length) {
-    statsExportStatus.textContent = 'Keine Statistik-Daten für den Export vorhanden.'
+    statsExportStatus.textContent = 'Keine gefilterten Statistik-Daten für den Export vorhanden.'
     return
   }
 
-  statsExportStatus.textContent = ''
-  exportStatisticsCsv(exportEntries)
+  statsExportStatus.textContent = 'Export der gefilterten Statistik gestartet.'
+  exportStatisticsCsv(exportEntries, {
+    filename: `shooting-book-statistik-gefiltert-${new Date().toISOString().slice(0, 10)}.csv`,
+    filterLabel: getActiveStatsFilterLabel(),
+  })
+})
+
+exportStatsAllBtn.addEventListener('click', () => {
+  if (!allEntriesCache.length) {
+    statsExportStatus.textContent = 'Keine Daten für die Gesamtstatistik vorhanden.'
+    return
+  }
+
+  statsExportStatus.textContent = 'Export der Gesamtstatistik gestartet.'
+  exportStatisticsCsv(allEntriesCache, {
+    filename: `shooting-book-gesamtstatistik-${new Date().toISOString().slice(0, 10)}.csv`,
+    filterLabel: 'Alle Daten',
+  })
 })
 
 toggleDisciplinePanelBtn.addEventListener('click', () => {
@@ -1774,15 +1828,25 @@ deleteWeaponBtn.addEventListener('click', async () => {
   await deleteWeaponById(deleteWeaponSelect.value)
 })
 
-exportListBtn.addEventListener('click', () => {
+exportListFilteredBtn.addEventListener('click', () => {
   const exportEntries = getFilteredEntries()
   if (!exportEntries.length) {
-    entryStatus.textContent = 'Keine Einträge für den Export vorhanden.'
+    listExportStatus.textContent = 'Keine gefilterten Einträge für den Export vorhanden.'
     return
   }
 
-  entryStatus.textContent = ''
-  exportEntriesCsv(exportEntries)
+  listExportStatus.textContent = `Export der gefilterten Einträge gestartet (${getActiveListFilterLabel()}).`
+  exportEntriesCsv(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.csv`)
+})
+
+exportListAllBtn.addEventListener('click', () => {
+  if (!allEntriesCache.length) {
+    listExportStatus.textContent = 'Keine Einträge für den Export vorhanden.'
+    return
+  }
+
+  listExportStatus.textContent = 'Export aller Einträge gestartet.'
+  exportEntriesCsv(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.csv`)
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
@@ -1991,6 +2055,7 @@ saveEntryBtn.addEventListener('click', async () => {
 })
 
 reloadBtn.addEventListener('click', async () => {
+  listExportStatus.textContent = ''
   await loadFormData()
   await loadEntries()
 })
