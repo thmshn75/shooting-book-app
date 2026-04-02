@@ -778,20 +778,20 @@ button[type='button']:hover {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .stat-card {
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: linear-gradient(180deg, rgba(244, 236, 223, 0.96) 0%, rgba(233, 221, 197, 0.96) 100%);
   box-shadow: var(--shadow-soft);
 }
 
 .stat-label {
-  margin-bottom: 8px;
-  font-size: 0.9rem;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
   color: var(--muted);
   font-weight: 700;
   text-transform: uppercase;
@@ -799,22 +799,22 @@ button[type='button']:hover {
 }
 
 .stat-value {
-  font-size: 1.45rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.12;
   color: var(--text);
 }
 
 .stat-value.small {
-  font-size: 1rem;
-  line-height: 1.35;
+  font-size: 0.95rem;
+  line-height: 1.3;
   font-weight: 700;
 }
 
 .stats-table {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   background: rgba(241, 233, 219, 0.96);
 }
@@ -838,7 +838,7 @@ button[type='button']:hover {
 
 .stats-table-head > div,
 .stats-table-row > div {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1227,40 +1227,126 @@ button[type='button']:hover {
     font-size: 16px;
   }
 
+  .filter-box {
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
   .filter-box .uniform-input,
   .filter-box input,
   .filter-box select {
-    min-height: 42px;
-    font-size: 15px;
-    padding: 10px 12px;
-    border-radius: 11px;
+    min-height: 40px;
+    font-size: 14px;
+    padding: 9px 11px;
+    border-radius: 10px;
   }
 
   .filter-box button,
   .filter-box .row > button,
   .filter-box .vertical-mobile-row > * {
-    min-height: 40px;
-    font-size: 15px;
-    padding: 8px 10px;
-    border-radius: 11px;
+    min-height: 36px;
+    font-size: 14px;
+    padding: 7px 9px;
+    border-radius: 10px;
   }
 
   .filter-box h3 {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    font-size: 0.96rem;
   }
 
   .filter-box .form-grid {
-    gap: 10px;
-  }
-
-  .filter-box .filter-actions {
     gap: 8px;
   }
 
+  .filter-box .filter-actions {
+    gap: 6px;
+  }
+
   .filter-box .summary-chip {
-    padding: 8px 10px;
+    padding: 7px 9px;
+    font-size: 0.78rem;
+    border-radius: 10px;
+  }
+
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-label {
+    margin-bottom: 4px;
+    font-size: 0.7rem;
+  }
+
+  .stat-value {
+    font-size: 1.08rem;
+  }
+
+  .stat-value.small {
+    font-size: 0.88rem;
+  }
+
+  .stats-charts-grid {
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .stats-tab .manage-box,
+  #stats-box .manage-box {
+    padding: 12px;
+  }
+
+  .svg-chart-wrapper {
+    gap: 8px;
+  }
+
+  .svg-chart {
+    height: 200px;
+    border-radius: 12px;
+  }
+
+  .chart-label-row {
+    gap: 6px;
+  }
+
+  .chart-label-item {
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .chart-label-text {
+    font-size: 0.72rem;
+    margin-bottom: 2px;
+  }
+
+  .chart-label-value {
     font-size: 0.84rem;
-    border-radius: 11px;
+  }
+
+  .stats-table {
+    border-radius: 12px;
+  }
+
+  .stats-table-head,
+  .stats-table-row {
+    min-width: 560px;
+  }
+
+  .stats-table-head > div,
+  .stats-table-row > div {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   #series-inputs {
@@ -1343,10 +1429,10 @@ button[type='button']:hover {
   }
 
   .compact-small-action-btn {
-    min-height: 34px;
-    font-size: 0.84rem;
-    padding: 6px 8px;
-    border-radius: 10px;
+    min-height: 28px;
+    font-size: 0.78rem;
+    padding: 4px 7px;
+    border-radius: 9px;
   }
 
   .manage-box,
