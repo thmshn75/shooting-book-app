@@ -89,6 +89,7 @@ document.querySelector('#app').innerHTML = `
                       <input id="new-discipline-name" class="uniform-input" type="text" placeholder="Name der Disziplin" />
                       <button id="add-discipline-btn">Disziplin hinzufügen</button>
                     </div>
+                    <div id="discipline-management-list" class="management-list"></div>
                     <p id="discipline-status"></p>
                   </div>
                 </div>
@@ -110,6 +111,7 @@ document.querySelector('#app').innerHTML = `
                     <div class="row vertical-mobile-row">
                       <button id="add-weapon-btn">Waffe hinzufügen</button>
                     </div>
+                    <div id="weapon-management-list" class="management-list"></div>
                     <p id="weapon-status"></p>
                   </div>
                 </div>
@@ -372,6 +374,7 @@ const toggleDisciplinePanelBtn = document.getElementById('toggle-discipline-pane
 const disciplinePanel = document.getElementById('discipline-panel')
 const newDisciplineName = document.getElementById('new-discipline-name')
 const addDisciplineBtn = document.getElementById('add-discipline-btn')
+const disciplineManagementList = document.getElementById('discipline-management-list')
 const disciplineStatus = document.getElementById('discipline-status')
 
 const toggleWeaponPanelBtn = document.getElementById('toggle-weapon-panel-btn')
@@ -381,6 +384,7 @@ const newWeaponType = document.getElementById('new-weapon-type')
 const newWeaponCaliber = document.getElementById('new-weapon-caliber')
 const newWeaponNotes = document.getElementById('new-weapon-notes')
 const addWeaponBtn = document.getElementById('add-weapon-btn')
+const weaponManagementList = document.getElementById('weapon-management-list')
 const weaponStatus = document.getElementById('weapon-status')
 
 const toggleStatsFilterPanelBtn = document.getElementById('toggle-stats-filter-panel-btn')
@@ -1152,6 +1156,191 @@ function resetStatsFilters() {
   applyStatsFilters()
 }
 
+
+function renderDisciplineManagementList(disciplines) {
+  if (!disciplineManagementList) return
+
+  if (!disciplines.length) {
+    disciplineManagementList.innerHTML = '<p class="management-empty-text">Noch keine Disziplinen vorhanden.</p>'
+    return
+  }
+
+  disciplineManagementList.innerHTML = `
+    <div class="management-list-box">
+      <div class="management-list-title">Vorhandene Disziplinen</div>
+      <div class="management-items">
+        ${disciplines.map((discipline) => `
+          <div class="management-item">
+            <div class="management-item-main">
+              <div class="management-item-name">${discipline.name}</div>
+            </div>
+            <button
+              type="button"
+              class="delete-discipline-btn management-delete-btn"
+              data-discipline-id="${discipline.id}"
+              data-discipline-name="${String(discipline.name || '').replace(/"/g, '&quot;')}"
+            >
+              Löschen
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+
+  document.querySelectorAll('.delete-discipline-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await deleteDiscipline(button.dataset.disciplineId, button.dataset.disciplineName)
+    })
+  })
+}
+
+function renderWeaponManagementList(weapons) {
+  if (!weaponManagementList) return
+
+  if (!weapons.length) {
+    weaponManagementList.innerHTML = '<p class="management-empty-text">Noch keine Waffen vorhanden.</p>'
+    return
+  }
+
+  weaponManagementList.innerHTML = `
+    <div class="management-list-box">
+      <div class="management-list-title">Vorhandene Waffen</div>
+      <div class="management-items">
+        ${weapons.map((weapon) => {
+          const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
+          const secondary = details ? `<div class="management-item-meta">${details}</div>` : ''
+
+          return `
+            <div class="management-item">
+              <div class="management-item-main">
+                <div class="management-item-name">${weapon.name}</div>
+                ${secondary}
+              </div>
+              <button
+                type="button"
+                class="delete-weapon-btn management-delete-btn"
+                data-weapon-id="${weapon.id}"
+                data-weapon-name="${String(weapon.name || '').replace(/"/g, '&quot;')}"
+              >
+                Löschen
+              </button>
+            </div>
+          `
+        }).join('')}
+      </div>
+    </div>
+  `
+
+  document.querySelectorAll('.delete-weapon-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await deleteWeapon(button.dataset.weaponId, button.dataset.weaponName)
+    })
+  })
+}
+
+async function deleteDiscipline(disciplineId, disciplineName) {
+  disciplineStatus.textContent = 'Prüfe Disziplin...'
+  const user = await getCurrentUser()
+  if (!user) {
+    disciplineStatus.textContent = 'Nicht eingeloggt.'
+    return
+  }
+
+  const { count, error: usageError } = await supabase
+    .from('entries')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('discipline_id', disciplineId)
+
+  if (usageError) {
+    disciplineStatus.textContent = `Fehler bei der Prüfung: ${usageError.message}`
+    return
+  }
+
+  if ((count || 0) > 0) {
+    disciplineStatus.textContent = 'Disziplin kann nicht gelöscht werden, weil sie bereits in Einträgen verwendet wird.'
+    return
+  }
+
+  if (!window.confirm(`Disziplin "${disciplineName}" wirklich löschen?`)) return
+
+  const { error } = await supabase
+    .from('disciplines')
+    .delete()
+    .eq('id', disciplineId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    disciplineStatus.textContent = `Fehler beim Löschen: ${error.message}`
+    return
+  }
+
+  if (entryDiscipline.value === disciplineId) entryDiscipline.value = ''
+  if (statsFilterDiscipline.value === disciplineId) statsFilterDiscipline.value = ''
+  if (filterDiscipline.value === disciplineId) filterDiscipline.value = ''
+
+  const lastDisciplineKey = getLastDisciplineKey(user.id)
+  if (localStorage.getItem(lastDisciplineKey) === disciplineId) {
+    localStorage.setItem(lastDisciplineKey, '')
+  }
+
+  disciplineStatus.textContent = 'Disziplin gelöscht.'
+  await loadDisciplines()
+  await loadEntries()
+}
+
+async function deleteWeapon(weaponId, weaponName) {
+  weaponStatus.textContent = 'Prüfe Waffe...'
+  const user = await getCurrentUser()
+  if (!user) {
+    weaponStatus.textContent = 'Nicht eingeloggt.'
+    return
+  }
+
+  const { count, error: usageError } = await supabase
+    .from('entries')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('weapon_id', weaponId)
+
+  if (usageError) {
+    weaponStatus.textContent = `Fehler bei der Prüfung: ${usageError.message}`
+    return
+  }
+
+  if ((count || 0) > 0) {
+    weaponStatus.textContent = 'Waffe kann nicht gelöscht werden, weil sie bereits in Einträgen verwendet wird.'
+    return
+  }
+
+  if (!window.confirm(`Waffe "${weaponName}" wirklich löschen?`)) return
+
+  const { error } = await supabase
+    .from('weapons')
+    .delete()
+    .eq('id', weaponId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    weaponStatus.textContent = `Fehler beim Löschen: ${error.message}`
+    return
+  }
+
+  if (entryWeapon.value === weaponId) entryWeapon.value = ''
+  if (statsFilterWeapon.value === weaponId) statsFilterWeapon.value = ''
+  if (filterWeapon.value === weaponId) filterWeapon.value = ''
+
+  const lastWeaponKey = getLastWeaponKey(user.id)
+  if (localStorage.getItem(lastWeaponKey) === weaponId) {
+    localStorage.setItem(lastWeaponKey, '')
+  }
+
+  weaponStatus.textContent = 'Waffe gelöscht.'
+  await loadWeapons()
+  await loadEntries()
+}
+
 async function loadDisciplines() {
   const user = await getCurrentUser()
   if (!user) return
@@ -1165,15 +1354,17 @@ async function loadDisciplines() {
   const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
   entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
 
-  ;(data || [])
-    .sort((a, b) => naturalCompare(a.name, b.name))
-    .forEach((discipline) => {
+  const disciplines = (data || []).sort((a, b) => naturalCompare(a.name, b.name))
+
+  disciplines.forEach((discipline) => {
     const option = document.createElement('option')
     option.value = discipline.id
     option.textContent = discipline.name
     if (discipline.id === lastDisciplineId && !editingEntryId) option.selected = true
     entryDiscipline.appendChild(option)
   })
+
+  renderDisciplineManagementList(disciplines)
 }
 
 async function loadWeapons() {
@@ -1189,7 +1380,15 @@ async function loadWeapons() {
   const lastWeaponId = localStorage.getItem(getLastWeaponKey(user.id)) || ''
   entryWeapon.innerHTML = '<option value="">Waffe auswählen</option>'
 
-  ;(data || []).forEach((weapon) => {
+  const weapons = (data || []).sort((a, b) => {
+    const nameCompare = naturalCompare(a.name, b.name)
+    if (nameCompare !== 0) return nameCompare
+    const typeCompare = naturalCompare(a.type, b.type)
+    if (typeCompare !== 0) return typeCompare
+    return naturalCompare(a.caliber, b.caliber)
+  })
+
+  weapons.forEach((weapon) => {
     const option = document.createElement('option')
     option.value = weapon.id
     const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
@@ -1197,6 +1396,8 @@ async function loadWeapons() {
     if (weapon.id === lastWeaponId && !editingEntryId) option.selected = true
     entryWeapon.appendChild(option)
   })
+
+  renderWeaponManagementList(weapons)
 }
 
 async function deleteEntry(entryId) {
