@@ -984,6 +984,18 @@ button[type='button']:hover {
   margin-bottom: 10px;
 }
 
+.series-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.series-config-item {
+  display: grid;
+  gap: 6px;
+}
+
 .series-actions label {
   min-width: 140px;
 }
@@ -1011,6 +1023,12 @@ button[type='button']:hover {
 
   .section-helper {
     font-size: 0.88rem;
+  }
+
+  .series-config-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
   .series-actions label {
