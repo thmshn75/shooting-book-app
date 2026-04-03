@@ -467,6 +467,39 @@ button[type='button']:hover {
   font-size: 0.95rem;
 }
 
+#auth-status[data-status='success'],
+#entry-status[data-status='success'],
+#discipline-status[data-status='success'],
+#weapon-status[data-status='success'],
+#stats-export-status[data-status='success'],
+#list-export-status[data-status='success'] {
+  color: #2f5f35;
+}
+
+#auth-status[data-status='error'],
+#entry-status[data-status='error'],
+#discipline-status[data-status='error'],
+#weapon-status[data-status='error'],
+#stats-export-status[data-status='error'],
+#list-export-status[data-status='error'] {
+  color: var(--danger);
+}
+
+#auth-status[data-status='info'],
+#entry-status[data-status='info'],
+#discipline-status[data-status='info'],
+#weapon-status[data-status='info'],
+#stats-export-status[data-status='info'],
+#list-export-status[data-status='info'] {
+  color: var(--muted);
+}
+
+#stats-export-status,
+#list-export-status {
+  min-height: 22px;
+  font-size: 0.95rem;
+}
+
 #series-inputs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
