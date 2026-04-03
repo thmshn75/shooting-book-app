@@ -65,15 +65,19 @@ document.querySelector('#app').innerHTML = `
 
                 <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
                 <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
-
-                <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
               </div>
 
               <div class="manage-box">
                 <h3>Serien</h3>
-                <div class="row series-actions vertical-mobile-row">
-                  <label for="series-count">Anzahl Serien</label>
-                  <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="1" />
+                <div class="series-config-grid">
+                  <div class="series-config-item">
+                    <label for="shots-per-series">Schuss pro Serie</label>
+                    <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
+                  </div>
+                  <div class="series-config-item">
+                    <label for="series-count">Anzahl Serien</label>
+                    <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="1" />
+                  </div>
                 </div>
                 <div id="series-inputs"></div>
               </div>
@@ -304,7 +308,6 @@ document.querySelector('#app').innerHTML = `
                     <div class="row filter-actions vertical-mobile-row">
                       <button id="apply-filters-btn" type="button">Filter anwenden</button>
                       <button id="reset-filters-btn" type="button">Filter zurücksetzen</button>
-                      <button id="reload-btn" type="button">Liste aktualisieren</button>
                     </div>
                   </div>
                 </div>
@@ -398,7 +401,6 @@ const filterDiscipline = document.getElementById('filter-discipline')
 const filterWeapon = document.getElementById('filter-weapon')
 const applyFiltersBtn = document.getElementById('apply-filters-btn')
 const resetFiltersBtn = document.getElementById('reset-filters-btn')
-const reloadBtn = document.getElementById('reload-btn')
 const exportListFilteredBtn = document.getElementById('export-list-filtered-btn')
 const exportListAllBtn = document.getElementById('export-list-all-btn')
 const listExportStatus = document.getElementById('list-export-status')
@@ -1252,6 +1254,11 @@ function applyEntryFilters() {
   renderEntriesList(getFilteredEntries())
 }
 
+async function applyEntryFiltersAndReload() {
+  clearStatus(listExportStatus)
+  await loadEntries()
+}
+
 function resetFilters() {
   clearStatus(listExportStatus)
   filterType.value = ''
@@ -1934,7 +1941,7 @@ cancelEditBtn.addEventListener('click', async () => {
   await loadFormData()
 })
 
-applyFiltersBtn.addEventListener('click', applyEntryFilters)
+applyFiltersBtn.addEventListener('click', applyEntryFiltersAndReload)
 resetFiltersBtn.addEventListener('click', resetFilters)
 
 ;[filterType, filterYear, filterMonth, filterDiscipline, filterWeapon].forEach((element) => {
@@ -2202,12 +2209,6 @@ saveEntryBtn.addEventListener('click', async () => {
   await loadEntries()
 })
 
-reloadBtn.addEventListener('click', async () => {
-  clearStatus(listExportStatus)
-  await loadFormData()
-  await loadEntries()
-  setStatus(listExportStatus, 'Liste aktualisiert.', 'success', { autoClear: true })
-})
 
 async function init() {
   document.title = 'Shooting Book'
