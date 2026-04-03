@@ -434,6 +434,47 @@ const listFilterPanel = document.getElementById('list-filter-panel')
 let editingEntryId = null
 let allEntriesCache = []
 
+const statusResetTimers = new WeakMap()
+
+function clearStatus(element) {
+  if (!element) return
+  const existingTimer = statusResetTimers.get(element)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+    statusResetTimers.delete(element)
+  }
+  element.textContent = ''
+  element.dataset.status = ''
+}
+
+function setStatus(element, message, type = 'info', options = {}) {
+  if (!element) return
+
+  const { autoClear = false, delay = 3200 } = options
+  const existingTimer = statusResetTimers.get(element)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+    statusResetTimers.delete(element)
+  }
+
+  element.textContent = message || ''
+  element.dataset.status = message ? type : ''
+
+  if (message && autoClear) {
+    const timer = window.setTimeout(() => {
+      element.textContent = ''
+      element.dataset.status = ''
+      statusResetTimers.delete(element)
+    }, delay)
+    statusResetTimers.set(element, timer)
+  }
+}
+
+function clearExportStatuses() {
+  clearStatus(statsExportStatus)
+  clearStatus(listExportStatus)
+}
+
 function activateTab(tabName) {
   ;[
     [tabEntryBtn, entryTab, 'entry'],
@@ -505,8 +546,8 @@ function showLoggedOutUI() {
   chartMonthlyEntries.innerHTML = ''
   chartScoreTrend.innerHTML = ''
   statsFilterSummary.innerHTML = ''
-  statsExportStatus.textContent = ''
-  listExportStatus.textContent = ''
+  clearStatus(statsExportStatus)
+  clearStatus(listExportStatus)
 }
 
 function formatDate(dateString) {
@@ -867,7 +908,7 @@ function renderStatistics(entries) {
 }
 
 function applyStatsFilters() {
-  statsExportStatus.textContent = ''
+  clearStatus(statsExportStatus)
   renderStatistics(getFilteredStatsEntries())
 }
 
@@ -1024,7 +1065,7 @@ function resetForm(options = {}) {
   formTitle.textContent = 'Neuer Eintrag'
   saveEntryBtn.textContent = 'Eintrag speichern'
   cancelEditBtn.style.display = 'none'
-  entryStatus.textContent = ''
+  clearStatus(entryStatus)
 
   entryDate.value = nextDate
   entryType.value = nextType
@@ -1207,12 +1248,12 @@ function renderEntriesList(entries) {
 }
 
 function applyEntryFilters() {
-  listExportStatus.textContent = ''
+  clearStatus(listExportStatus)
   renderEntriesList(getFilteredEntries())
 }
 
 function resetFilters() {
-  listExportStatus.textContent = ''
+  clearStatus(listExportStatus)
   filterType.value = ''
   filterYear.value = ''
   filterMonth.value = ''
@@ -1222,7 +1263,7 @@ function resetFilters() {
 }
 
 function resetStatsFilters() {
-  statsExportStatus.textContent = ''
+  clearStatus(statsExportStatus)
   statsFilterYear.value = ''
   statsFilterMonth.value = ''
   statsFilterType.value = ''
@@ -1453,14 +1494,14 @@ function exportStatisticsCsv(entries, options = {}) {
 }
 
 async function deleteDisciplineById(disciplineId) {
-  disciplineStatus.textContent = 'Prüfe Disziplin...'
+  setStatus(disciplineStatus, 'Prüfe Disziplin...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    disciplineStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(disciplineStatus, 'Nicht eingeloggt.', 'error')
     return
   }
   if (!disciplineId) {
-    disciplineStatus.textContent = 'Bitte eine Disziplin auswählen.'
+    setStatus(disciplineStatus, 'Bitte eine Disziplin auswählen.', 'error')
     return
   }
 
@@ -1471,23 +1512,23 @@ async function deleteDisciplineById(disciplineId) {
     .eq('discipline_id', disciplineId)
 
   if (countError) {
-    disciplineStatus.textContent = `Fehler bei der Prüfung: ${countError.message}`
+    setStatus(disciplineStatus, `Fehler bei der Prüfung: ${countError.message}`, 'error')
     return
   }
 
   if ((count || 0) > 0) {
-    disciplineStatus.textContent = 'Disziplin wird bereits in Einträgen verwendet und kann nicht gelöscht werden.'
+    setStatus(disciplineStatus, 'Disziplin wird bereits in Einträgen verwendet und kann nicht gelöscht werden.', 'error')
     return
   }
 
   if (!window.confirm('Disziplin wirklich löschen?')) {
-    disciplineStatus.textContent = ''
+    clearStatus(disciplineStatus)
     return
   }
 
   const { error } = await supabase.from('disciplines').delete().eq('id', disciplineId).eq('user_id', user.id)
   if (error) {
-    disciplineStatus.textContent = `Fehler beim Löschen: ${error.message}`
+    setStatus(disciplineStatus, `Fehler beim Löschen: ${error.message}`, 'error')
     return
   }
 
@@ -1496,20 +1537,20 @@ async function deleteDisciplineById(disciplineId) {
   if (statsFilterDiscipline.value === disciplineId) statsFilterDiscipline.value = ''
   if (localStorage.getItem(getLastDisciplineKey(user.id)) === disciplineId) localStorage.removeItem(getLastDisciplineKey(user.id))
 
-  disciplineStatus.textContent = 'Disziplin gelöscht.'
+  setStatus(disciplineStatus, 'Disziplin gelöscht.', 'success', { autoClear: true })
   await loadFormData()
   await loadEntries()
 }
 
 async function deleteWeaponById(weaponId) {
-  weaponStatus.textContent = 'Prüfe Waffe...'
+  setStatus(weaponStatus, 'Prüfe Waffe...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    weaponStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(weaponStatus, 'Nicht eingeloggt.', 'error')
     return
   }
   if (!weaponId) {
-    weaponStatus.textContent = 'Bitte eine Waffe auswählen.'
+    setStatus(weaponStatus, 'Bitte eine Waffe auswählen.', 'error')
     return
   }
 
@@ -1520,23 +1561,23 @@ async function deleteWeaponById(weaponId) {
     .eq('weapon_id', weaponId)
 
   if (countError) {
-    weaponStatus.textContent = `Fehler bei der Prüfung: ${countError.message}`
+    setStatus(weaponStatus, `Fehler bei der Prüfung: ${countError.message}`, 'error')
     return
   }
 
   if ((count || 0) > 0) {
-    weaponStatus.textContent = 'Waffe wird bereits in Einträgen verwendet und kann nicht gelöscht werden.'
+    setStatus(weaponStatus, 'Waffe wird bereits in Einträgen verwendet und kann nicht gelöscht werden.', 'error')
     return
   }
 
   if (!window.confirm('Waffe wirklich löschen?')) {
-    weaponStatus.textContent = ''
+    clearStatus(weaponStatus)
     return
   }
 
   const { error } = await supabase.from('weapons').delete().eq('id', weaponId).eq('user_id', user.id)
   if (error) {
-    weaponStatus.textContent = `Fehler beim Löschen: ${error.message}`
+    setStatus(weaponStatus, `Fehler beim Löschen: ${error.message}`, 'error')
     return
   }
 
@@ -1545,7 +1586,7 @@ async function deleteWeaponById(weaponId) {
   if (statsFilterWeapon.value === weaponId) statsFilterWeapon.value = ''
   if (localStorage.getItem(getLastWeaponKey(user.id)) === weaponId) localStorage.removeItem(getLastWeaponKey(user.id))
 
-  weaponStatus.textContent = 'Waffe gelöscht.'
+  setStatus(weaponStatus, 'Waffe gelöscht.', 'success', { autoClear: true })
   await loadFormData()
   await loadEntries()
 }
@@ -1556,7 +1597,7 @@ async function loadDisciplines() {
 
   const { data, error } = await supabase.from('disciplines').select('id, name').eq('user_id', user.id)
   if (error) {
-    disciplineStatus.textContent = `Fehler beim Laden der Disziplinen: ${error.message}`
+    setStatus(disciplineStatus, `Fehler beim Laden der Disziplinen: ${error.message}`, 'error')
     return
   }
 
@@ -1588,7 +1629,7 @@ async function loadWeapons() {
 
   const { data, error } = await supabase.from('weapons').select('id, name, type, caliber').eq('user_id', user.id).order('name', { ascending: true })
   if (error) {
-    weaponStatus.textContent = `Fehler beim Laden der Waffen: ${error.message}`
+    setStatus(weaponStatus, `Fehler beim Laden der Waffen: ${error.message}`, 'error')
     return
   }
 
@@ -1624,22 +1665,22 @@ async function loadWeapons() {
 async function deleteEntry(entryId) {
   if (!window.confirm('Eintrag wirklich löschen?')) return
 
-  entryStatus.textContent = 'Lösche Eintrag...'
+  setStatus(entryStatus, 'Lösche Eintrag...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    entryStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(entryStatus, 'Nicht eingeloggt.', 'error')
     return
   }
 
   const { error: seriesError } = await supabase.from('entry_series').delete().eq('entry_id', entryId).eq('user_id', user.id)
   if (seriesError) {
-    entryStatus.textContent = `Fehler beim Löschen der Serien: ${seriesError.message}`
+    setStatus(entryStatus, `Fehler beim Löschen der Serien: ${seriesError.message}`, 'error')
     return
   }
 
   const { error: entryError } = await supabase.from('entries').delete().eq('id', entryId).eq('user_id', user.id)
   if (entryError) {
-    entryStatus.textContent = `Fehler beim Löschen des Eintrags: ${entryError.message}`
+    setStatus(entryStatus, `Fehler beim Löschen des Eintrags: ${entryError.message}`, 'error')
     return
   }
 
@@ -1648,15 +1689,15 @@ async function deleteEntry(entryId) {
     await loadFormData()
   }
 
-  entryStatus.textContent = 'Eintrag gelöscht.'
+  setStatus(entryStatus, 'Eintrag gelöscht.', 'success', { autoClear: true })
   await loadEntries()
 }
 
 async function startEditEntry(entryId) {
-  entryStatus.textContent = 'Lade Eintrag zur Bearbeitung...'
+  setStatus(entryStatus, 'Lade Eintrag zur Bearbeitung...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    entryStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(entryStatus, 'Nicht eingeloggt.', 'error')
     return
   }
 
@@ -1678,7 +1719,7 @@ async function startEditEntry(entryId) {
     .single()
 
   if (error) {
-    entryStatus.textContent = `Fehler beim Laden des Eintrags: ${error.message}`
+    setStatus(entryStatus, `Fehler beim Laden des Eintrags: ${error.message}`, 'error')
     return
   }
 
@@ -1701,7 +1742,7 @@ async function startEditEntry(entryId) {
   renderSeriesInputs(scores)
 
   activateTab('entry')
-  entryStatus.textContent = 'Bearbeitungsmodus aktiv.'
+  setStatus(entryStatus, 'Bearbeitungsmodus aktiv.', 'success', { autoClear: true })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -1745,8 +1786,8 @@ async function loadEntries() {
 }
 
 async function loadFormData() {
-  disciplineStatus.textContent = ''
-  weaponStatus.textContent = ''
+  clearStatus(disciplineStatus)
+  clearStatus(weaponStatus)
   await loadDisciplines()
   await loadWeapons()
 }
@@ -1757,33 +1798,33 @@ startAppBtn.addEventListener('click', () => {
 })
 
 registerBtn.addEventListener('click', async () => {
-  authStatus.textContent = 'Registrierung läuft...'
+  setStatus(authStatus, 'Registrierung läuft...', 'info')
   const { error } = await supabase.auth.signUp({
     email: emailInput.value,
     password: passwordInput.value,
   })
 
   if (error) {
-    authStatus.textContent = `Fehler: ${error.message}`
+    setStatus(authStatus, `Fehler: ${error.message}`, 'error')
     return
   }
 
-  authStatus.textContent = 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.'
+  setStatus(authStatus, 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.', 'success')
 })
 
 loginBtn.addEventListener('click', async () => {
-  authStatus.textContent = 'Login läuft...'
+  setStatus(authStatus, 'Login läuft...', 'info')
   const { data, error } = await supabase.auth.signInWithPassword({
     email: emailInput.value,
     password: passwordInput.value,
   })
 
   if (error) {
-    authStatus.textContent = `Fehler: ${error.message}`
+    setStatus(authStatus, `Fehler: ${error.message}`, 'error')
     return
   }
 
-  authStatus.textContent = 'Login erfolgreich.'
+  setStatus(authStatus, 'Login erfolgreich.', 'success', { autoClear: true })
   showLoggedInUI(data.session)
   resetForm()
   closeDisciplinePanel()
@@ -1798,7 +1839,7 @@ loginBtn.addEventListener('click', async () => {
 
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut()
-  authStatus.textContent = 'Ausgeloggt.'
+  setStatus(authStatus, 'Ausgeloggt.', 'success', { autoClear: true })
   showLoggedOutUI()
 })
 
@@ -1819,11 +1860,11 @@ resetStatsFiltersBtn.addEventListener('click', resetStatsFilters)
 exportStatsFilteredBtn.addEventListener('click', () => {
   const exportEntries = getFilteredStatsEntries()
   if (!exportEntries.length) {
-    statsExportStatus.textContent = 'Keine gefilterten Statistik-Daten für den Export vorhanden.'
+    setStatus(statsExportStatus, 'Keine gefilterten Statistik-Daten für den Export vorhanden.', 'error')
     return
   }
 
-  statsExportStatus.textContent = 'Export der gefilterten Statistik gestartet.'
+  setStatus(statsExportStatus, `Export der gefilterten Statistik gestartet (${getActiveStatsFilterLabel()}).`, 'success', { autoClear: true })
   exportStatisticsCsv(exportEntries, {
     filename: `shooting-book-statistik-gefiltert-${new Date().toISOString().slice(0, 10)}.csv`,
     filterLabel: getActiveStatsFilterLabel(),
@@ -1832,11 +1873,11 @@ exportStatsFilteredBtn.addEventListener('click', () => {
 
 exportStatsAllBtn.addEventListener('click', () => {
   if (!allEntriesCache.length) {
-    statsExportStatus.textContent = 'Keine Daten für die Gesamtstatistik vorhanden.'
+    setStatus(statsExportStatus, 'Keine Daten für die Gesamtstatistik vorhanden.', 'error')
     return
   }
 
-  statsExportStatus.textContent = 'Export der Gesamtstatistik gestartet.'
+  setStatus(statsExportStatus, 'Export der Gesamtstatistik gestartet.', 'success', { autoClear: true })
   exportStatisticsCsv(allEntriesCache, {
     filename: `shooting-book-gesamtstatistik-${new Date().toISOString().slice(0, 10)}.csv`,
     filterLabel: 'Alle Daten',
@@ -1844,11 +1885,13 @@ exportStatsAllBtn.addEventListener('click', () => {
 })
 
 toggleDisciplinePanelBtn.addEventListener('click', () => {
+  clearStatus(disciplineStatus)
   if (disciplinePanel.style.display === 'block') closeDisciplinePanel()
   else openDisciplinePanel()
 })
 
 toggleWeaponPanelBtn.addEventListener('click', () => {
+  clearStatus(weaponStatus)
   if (weaponPanel.style.display === 'block') closeWeaponPanel()
   else openWeaponPanel()
 })
@@ -1894,6 +1937,18 @@ cancelEditBtn.addEventListener('click', async () => {
 applyFiltersBtn.addEventListener('click', applyEntryFilters)
 resetFiltersBtn.addEventListener('click', resetFilters)
 
+;[filterType, filterYear, filterMonth, filterDiscipline, filterWeapon].forEach((element) => {
+  element.addEventListener('change', () => {
+    clearStatus(listExportStatus)
+  })
+})
+
+;[statsFilterYear, statsFilterMonth, statsFilterType, statsFilterDiscipline, statsFilterWeapon].forEach((element) => {
+  element.addEventListener('change', () => {
+    clearStatus(statsExportStatus)
+  })
+})
+
 deleteDisciplineBtn.addEventListener('click', async () => {
   await deleteDisciplineById(deleteDisciplineSelect.value)
 })
@@ -1905,46 +1960,46 @@ deleteWeaponBtn.addEventListener('click', async () => {
 exportListFilteredBtn.addEventListener('click', () => {
   const exportEntries = getFilteredEntries()
   if (!exportEntries.length) {
-    listExportStatus.textContent = 'Keine gefilterten Einträge für den Export vorhanden.'
+    setStatus(listExportStatus, 'Keine gefilterten Einträge für den Export vorhanden.', 'error')
     return
   }
 
-  listExportStatus.textContent = `Export der gefilterten Einträge gestartet (${getActiveListFilterLabel()}).`
+  setStatus(listExportStatus, `Export der gefilterten Einträge gestartet (${getActiveListFilterLabel()}).`, 'success', { autoClear: true })
   exportEntriesCsv(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.csv`)
 })
 
 exportListAllBtn.addEventListener('click', () => {
   if (!allEntriesCache.length) {
-    listExportStatus.textContent = 'Keine Einträge für den Export vorhanden.'
+    setStatus(listExportStatus, 'Keine Einträge für den Export vorhanden.', 'error')
     return
   }
 
-  listExportStatus.textContent = 'Export aller Einträge gestartet.'
+  setStatus(listExportStatus, 'Export aller Einträge gestartet.', 'success', { autoClear: true })
   exportEntriesCsv(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.csv`)
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
-  disciplineStatus.textContent = 'Disziplin wird angelegt...'
+  setStatus(disciplineStatus, 'Disziplin wird angelegt...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    disciplineStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(disciplineStatus, 'Nicht eingeloggt.', 'error')
     return
   }
 
   const name = newDisciplineName.value.trim()
   if (!name) {
-    disciplineStatus.textContent = 'Bitte einen Disziplin-Namen eingeben.'
+    setStatus(disciplineStatus, 'Bitte einen Disziplin-Namen eingeben.', 'error')
     return
   }
 
   const { data: existingDiscipline, error: duplicateError } = await findExistingDiscipline(user.id, name)
   if (duplicateError) {
-    disciplineStatus.textContent = `Fehler bei der Dublettenprüfung: ${duplicateError.message}`
+    setStatus(disciplineStatus, `Fehler bei der Dublettenprüfung: ${duplicateError.message}`, 'error')
     return
   }
 
   if (existingDiscipline) {
-    disciplineStatus.textContent = `Disziplin bereits vorhanden: ${existingDiscipline.name}`
+    setStatus(disciplineStatus, `Disziplin bereits vorhanden: ${existingDiscipline.name}`, 'info', { autoClear: true })
     entryDiscipline.value = existingDiscipline.id
     localStorage.setItem(getLastDisciplineKey(user.id), existingDiscipline.id)
     newDisciplineName.value = ''
@@ -1954,11 +2009,11 @@ addDisciplineBtn.addEventListener('click', async () => {
 
   const { data, error } = await supabase.from('disciplines').insert([{ user_id: user.id, name }]).select('id, name').single()
   if (error) {
-    disciplineStatus.textContent = `Fehler: ${error.message}`
+    setStatus(disciplineStatus, `Fehler: ${error.message}`, 'error')
     return
   }
 
-  disciplineStatus.textContent = 'Disziplin gespeichert.'
+  setStatus(disciplineStatus, 'Disziplin gespeichert.', 'success', { autoClear: true })
   newDisciplineName.value = ''
   await loadDisciplines()
 
@@ -1971,10 +2026,10 @@ addDisciplineBtn.addEventListener('click', async () => {
 })
 
 addWeaponBtn.addEventListener('click', async () => {
-  weaponStatus.textContent = 'Waffe wird angelegt...'
+  setStatus(weaponStatus, 'Waffe wird angelegt...', 'info')
   const user = await getCurrentUser()
   if (!user) {
-    weaponStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(weaponStatus, 'Nicht eingeloggt.', 'error')
     return
   }
 
@@ -1984,7 +2039,7 @@ addWeaponBtn.addEventListener('click', async () => {
   const notes = newWeaponNotes.value.trim()
 
   if (!name) {
-    weaponStatus.textContent = 'Bitte einen Waffen-Namen eingeben.'
+    setStatus(weaponStatus, 'Bitte einen Waffen-Namen eingeben.', 'error')
     return
   }
 
@@ -2001,11 +2056,11 @@ addWeaponBtn.addEventListener('click', async () => {
     .single()
 
   if (error) {
-    weaponStatus.textContent = `Fehler: ${error.message}`
+    setStatus(weaponStatus, `Fehler: ${error.message}`, 'error')
     return
   }
 
-  weaponStatus.textContent = 'Waffe gespeichert.'
+  setStatus(weaponStatus, 'Waffe gespeichert.', 'success', { autoClear: true })
   newWeaponName.value = ''
   newWeaponType.value = ''
   newWeaponCaliber.value = ''
@@ -2022,21 +2077,21 @@ addWeaponBtn.addEventListener('click', async () => {
 })
 
 saveEntryBtn.addEventListener('click', async () => {
-  entryStatus.textContent = editingEntryId ? 'Speichere Änderungen...' : 'Speichere Eintrag...'
+  setStatus(entryStatus, editingEntryId ? 'Speichere Änderungen...' : 'Speichere Eintrag...', 'info')
   const user = await getCurrentUser()
 
   if (!user) {
-    entryStatus.textContent = 'Nicht eingeloggt.'
+    setStatus(entryStatus, 'Nicht eingeloggt.', 'error')
     return
   }
   if (!entryDate.value) {
-    entryStatus.textContent = 'Bitte ein Datum wählen.'
+    setStatus(entryStatus, 'Bitte ein Datum wählen.', 'error')
     return
   }
 
   const shotsPerSeries = Number(shotsPerSeriesInput.value)
   if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
-    entryStatus.textContent = 'Bitte gültige Schuss pro Serie eingeben.'
+    setStatus(entryStatus, 'Bitte gültige Schuss pro Serie eingeben.', 'error')
     return
   }
 
@@ -2061,7 +2116,7 @@ saveEntryBtn.addEventListener('click', async () => {
       .single()
 
     if (entryError) {
-      entryStatus.textContent = `Fehler: ${entryError.message}`
+      setStatus(entryStatus, `Fehler: ${entryError.message}`, 'error')
       return
     }
 
@@ -2075,7 +2130,7 @@ saveEntryBtn.addEventListener('click', async () => {
 
       const { error: seriesError } = await supabase.from('entry_series').insert(seriesRows)
       if (seriesError) {
-        entryStatus.textContent = `Fehler bei Serien: ${seriesError.message}`
+        setStatus(entryStatus, `Fehler bei Serien: ${seriesError.message}`, 'error')
         return
       }
     }
@@ -2083,7 +2138,7 @@ saveEntryBtn.addEventListener('click', async () => {
     localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
     localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
 
-    entryStatus.textContent = 'Eintrag gespeichert.'
+    setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
     resetForm({
       preserveDate: true,
       preserveType: true,
@@ -2113,13 +2168,13 @@ saveEntryBtn.addEventListener('click', async () => {
     .eq('user_id', user.id)
 
   if (updateError) {
-    entryStatus.textContent = `Fehler beim Aktualisieren: ${updateError.message}`
+    setStatus(entryStatus, `Fehler beim Aktualisieren: ${updateError.message}`, 'error')
     return
   }
 
   const { error: deleteSeriesError } = await supabase.from('entry_series').delete().eq('entry_id', editingEntryId).eq('user_id', user.id)
   if (deleteSeriesError) {
-    entryStatus.textContent = `Fehler beim Aktualisieren der Serien: ${deleteSeriesError.message}`
+    setStatus(entryStatus, `Fehler beim Aktualisieren der Serien: ${deleteSeriesError.message}`, 'error')
     return
   }
 
@@ -2133,7 +2188,7 @@ saveEntryBtn.addEventListener('click', async () => {
 
     const { error: insertSeriesError } = await supabase.from('entry_series').insert(seriesRows)
     if (insertSeriesError) {
-      entryStatus.textContent = `Fehler beim Speichern der Serien: ${insertSeriesError.message}`
+      setStatus(entryStatus, `Fehler beim Speichern der Serien: ${insertSeriesError.message}`, 'error')
       return
     }
   }
@@ -2141,16 +2196,17 @@ saveEntryBtn.addEventListener('click', async () => {
   localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
   localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
 
-  entryStatus.textContent = 'Eintrag aktualisiert.'
+  setStatus(entryStatus, 'Eintrag aktualisiert.', 'success', { autoClear: true })
   resetForm()
   await loadFormData()
   await loadEntries()
 })
 
 reloadBtn.addEventListener('click', async () => {
-  listExportStatus.textContent = ''
+  clearStatus(listExportStatus)
   await loadFormData()
   await loadEntries()
+  setStatus(listExportStatus, 'Liste aktualisiert.', 'success', { autoClear: true })
 })
 
 async function init() {
