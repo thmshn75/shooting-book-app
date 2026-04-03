@@ -55,6 +55,11 @@ document.querySelector('#app').innerHTML = `
                   <option value="competition">Bewerb</option>
                 </select>
 
+                <div id="training-duration-wrap" class="training-duration-wrap">
+                  <label for="training-duration">Trainingsdauer (Minuten)</label>
+                  <input id="training-duration" class="uniform-input" type="number" min="1" max="1440" inputmode="numeric" placeholder="Dauer in Minuten" />
+                </div>
+
                 <select id="entry-discipline" class="uniform-input">
                   <option value="">Disziplin auswählen</option>
                 </select>
@@ -63,7 +68,10 @@ document.querySelector('#app').innerHTML = `
                   <option value="">Waffe auswählen</option>
                 </select>
 
-                <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
+                <div class="location-input-group">
+                  <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
+                  <button id="detect-location-btn" type="button" class="location-action-btn">Standort übernehmen</button>
+                </div>
                 <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
               </div>
 
@@ -366,7 +374,10 @@ const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
 const entryDiscipline = document.getElementById('entry-discipline')
 const entryWeapon = document.getElementById('entry-weapon')
+const trainingDurationWrap = document.getElementById('training-duration-wrap')
+const trainingDurationInput = document.getElementById('training-duration')
 const entryLocation = document.getElementById('entry-location')
+const detectLocationBtn = document.getElementById('detect-location-btn')
 const entryNote = document.getElementById('entry-note')
 const shotsPerSeriesInput = document.getElementById('shots-per-series')
 const saveEntryBtn = document.getElementById('save-entry-btn')
@@ -592,6 +603,65 @@ function naturalCompare(a, b) {
 function setCollapsibleState(button, panel, isOpen, openText, closedText) {
   panel.style.display = isOpen ? 'block' : 'none'
   button.textContent = isOpen ? openText : closedText
+}
+
+function updateEntryTypeDependentFields() {
+  const isTraining = entryType.value === 'training'
+  trainingDurationWrap.style.display = isTraining ? 'grid' : 'none'
+  if (!isTraining) trainingDurationInput.value = ''
+}
+
+async function reverseGeocode(latitude, longitude) {
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1`, {
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+
+  if (!response.ok) throw new Error('Ort konnte nicht aufgelöst werden.')
+
+  const data = await response.json()
+  const address = data.address || {}
+  const locality = address.city || address.town || address.village || address.hamlet || address.municipality || address.suburb || ''
+  const road = address.road || address.pedestrian || address.footway || address.path || ''
+  const houseNumber = address.house_number || ''
+  const displayName = [road && houseNumber ? `${road} ${houseNumber}` : road, locality].filter(Boolean).join(', ')
+
+  return displayName || data.display_name || `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
+}
+
+async function detectCurrentLocation() {
+  if (!navigator.geolocation) {
+    setStatus(entryStatus, 'Standortermittlung wird auf diesem Gerät nicht unterstützt.', 'error')
+    return
+  }
+
+  setStatus(entryStatus, 'Standort wird ermittelt...', 'info')
+  detectLocationBtn.disabled = true
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 120000,
+      })
+    })
+
+    const { latitude, longitude } = position.coords
+
+    try {
+      entryLocation.value = await reverseGeocode(latitude, longitude)
+      setStatus(entryStatus, 'Standort übernommen.', 'success', { autoClear: true })
+    } catch (error) {
+      entryLocation.value = `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
+      setStatus(entryStatus, 'Standort als Koordinaten übernommen.', 'success', { autoClear: true })
+    }
+  } catch (error) {
+    setStatus(entryStatus, 'Standort konnte nicht ermittelt werden oder wurde nicht freigegeben.', 'error')
+  } finally {
+    detectLocationBtn.disabled = false
+  }
 }
 
 function openDisciplinePanel() {
@@ -1060,6 +1130,7 @@ function resetForm(options = {}) {
   const nextType = preserveType ? entryType.value || 'training' : 'training'
   const nextDiscipline = preserveDiscipline ? entryDiscipline.value || '' : ''
   const nextWeapon = preserveWeapon ? entryWeapon.value || '' : ''
+  const nextTrainingDuration = preserveType && nextType === 'training' ? trainingDurationInput.value || '' : ''
   const nextShotsPerSeries = preserveShotsPerSeries ? shotsPerSeriesInput.value || '' : ''
   const nextSeriesCount = preserveSeriesCount ? seriesCountInput.value || '1' : '1'
 
@@ -1073,6 +1144,7 @@ function resetForm(options = {}) {
   entryType.value = nextType
   entryLocation.value = ''
   entryNote.value = ''
+  trainingDurationInput.value = nextTrainingDuration
   shotsPerSeriesInput.value = nextShotsPerSeries
   seriesCountInput.value = nextSeriesCount
 
@@ -1080,6 +1152,7 @@ function resetForm(options = {}) {
 
   entryDiscipline.value = nextDiscipline
   entryWeapon.value = nextWeapon
+  updateEntryTypeDependentFields()
 }
 
 function populateAllFilterOptions(entries) {
@@ -1190,7 +1263,11 @@ function renderEntriesList(entries) {
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Notiz</span><span class="entry-inline-value">${entry.note}</span></div>`
       : ''
 
-    const optionalInfoMarkup = [locationMarkup, noteMarkup].filter(Boolean).join('')
+    const durationMarkup = entry.entry_type === 'training' && entry.training_duration_minutes
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Dauer</span><span class="entry-inline-value">${entry.training_duration_minutes} Min.</span></div>`
+      : ''
+
+    const optionalInfoMarkup = [locationMarkup, durationMarkup, noteMarkup].filter(Boolean).join('')
 
     return `
       <div class="entry-card compact-list-card">
@@ -1375,6 +1452,7 @@ function exportEntriesCsv(entries, filename = null) {
     'Datum',
     'Typ',
     'Disziplin',
+    'Trainingsdauer (Minuten)',
     'Waffe',
     'Waffentyp',
     'Kaliber',
@@ -1400,6 +1478,7 @@ function exportEntriesCsv(entries, filename = null) {
       entry.entry_date || '',
       formatEntryType(entry.entry_type),
       entry.disciplines?.name || '',
+      entry.entry_type === 'training' ? (entry.training_duration_minutes ?? '') : '',
       entry.weapons?.name || '',
       entry.weapons?.type || '',
       entry.weapons?.caliber || '',
@@ -1718,6 +1797,7 @@ async function startEditEntry(entryId) {
       weapon_id,
       location,
       note,
+      training_duration_minutes,
       shots_per_series,
       entry_series(series_number, score)
     `)
@@ -1741,7 +1821,9 @@ async function startEditEntry(entryId) {
   entryWeapon.value = data.weapon_id || ''
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
+  trainingDurationInput.value = data.training_duration_minutes || ''
   shotsPerSeriesInput.value = data.shots_per_series || ''
+  updateEntryTypeDependentFields()
 
   const sortedSeries = Array.isArray(data.entry_series) ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number) : []
   const scores = sortedSeries.map((item) => item.score)
@@ -1770,6 +1852,7 @@ async function loadEntries() {
       location,
       note,
       total_score,
+      training_duration_minutes,
       shots_per_series,
       discipline_id,
       weapon_id,
@@ -1907,6 +1990,14 @@ toggleWeaponPanelBtn.addEventListener('click', () => {
 toggleStatsFilterPanelBtn.addEventListener('click', () => {
   if (statsFilterPanel.style.display === 'block') closeStatsFilterPanel()
   else openStatsFilterPanel()
+})
+
+entryType.addEventListener('change', () => {
+  updateEntryTypeDependentFields()
+})
+
+detectLocationBtn.addEventListener('click', async () => {
+  await detectCurrentLocation()
 })
 
 toggleListFilterPanelBtn.addEventListener('click', () => {
@@ -2096,6 +2187,15 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
+  const trainingDurationMinutes = entryType.value === 'training'
+    ? Number(trainingDurationInput.value)
+    : null
+
+  if (entryType.value === 'training' && (!Number.isInteger(trainingDurationMinutes) || trainingDurationMinutes < 1)) {
+    setStatus(entryStatus, 'Bitte eine gültige Trainingsdauer in Minuten eingeben.', 'error')
+    return
+  }
+
   const shotsPerSeries = Number(shotsPerSeriesInput.value)
   if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
     setStatus(entryStatus, 'Bitte gültige Schuss pro Serie eingeben.', 'error')
@@ -2116,6 +2216,7 @@ saveEntryBtn.addEventListener('click', async () => {
         weapon_id: entryWeapon.value || null,
         location: entryLocation.value.trim() || null,
         note: entryNote.value.trim() || null,
+        training_duration_minutes: entryType.value === 'training' ? trainingDurationMinutes : null,
         total_score: totalScore,
         shots_per_series: shotsPerSeries,
       }])
@@ -2168,6 +2269,7 @@ saveEntryBtn.addEventListener('click', async () => {
       weapon_id: entryWeapon.value || null,
       location: entryLocation.value.trim() || null,
       note: entryNote.value.trim() || null,
+      training_duration_minutes: entryType.value === 'training' ? trainingDurationMinutes : null,
       total_score: totalScore,
       shots_per_series: shotsPerSeries,
     })
@@ -2219,6 +2321,7 @@ async function init() {
   closeListFilterPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
+  updateEntryTypeDependentFields()
   showSplash()
 
   const { data: { session } } = await supabase.auth.getSession()
