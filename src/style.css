@@ -1655,3 +1655,26 @@ button[type='button']:hover {
     border-radius: 10px;
   }
 }
+
+
+.training-duration-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.location-input-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.location-action-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .location-input-group {
+    grid-template-columns: 1fr;
+  }
+}
