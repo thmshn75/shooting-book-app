@@ -80,7 +80,11 @@ document.querySelector('#app').innerHTML = `
                     <h3>Blöcke & Serien</h3>
                     <p class="entry-muted-text">Jeder Block kann eigene Waffe, Disziplin, Schuss pro Serie und Serien haben.</p>
                   </div>
-                  <button id="add-block-btn" type="button">Weiteren Block hinzufügen</button>
+                  <div class="entry-blocks-actions">
+                    <button id="expand-all-blocks-btn" type="button">Alle aufklappen</button>
+                    <button id="collapse-all-blocks-btn" type="button">Alle einklappen</button>
+                    <button id="add-block-btn" type="button">Weiteren Block hinzufügen</button>
+                  </div>
                 </div>
                 <div id="entry-blocks"></div>
               </div>
@@ -374,6 +378,8 @@ const trainingDurationWrap = document.getElementById('training-duration-wrap')
 const trainingDurationMinutesInput = document.getElementById('training-duration-minutes')
 const entryBlocks = document.getElementById('entry-blocks')
 const addBlockBtn = document.getElementById('add-block-btn')
+const expandAllBlocksBtn = document.getElementById('expand-all-blocks-btn')
+const collapseAllBlocksBtn = document.getElementById('collapse-all-blocks-btn')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
@@ -1048,7 +1054,7 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
     const summaryWeapon = getWeaponNameById(block.weapon_id)
 
     return `
-      <div class="entry-block-card ${isCollapsed ? 'is-collapsed' : 'is-expanded is-active'}" data-block-index="${index}" data-collapsed="${isCollapsed ? '1' : '0'}">
+      <div class="entry-block-card ${isCollapsed ? 'is-collapsed' : 'is-expanded is-active'}" data-block-index="${index}" data-collapsed="${isCollapsed ? '1' : '0'}" data-active="${isCollapsed ? '0' : '1'}">
         <div class="entry-block-top">
           <button type="button" class="block-toggle-btn" data-block-index="${index}" aria-expanded="${isCollapsed ? 'false' : 'true'}">
             <div class="entry-block-heading-row">
@@ -1058,7 +1064,7 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
             <div class="entry-block-summary-chips">
               <span class="entry-block-chip">${seriesCount} Serien</span>
               <span class="entry-block-chip">${totalScore} Punkte</span>
-              <span class="entry-block-chip">${isCollapsed ? 'Aufklappen' : 'Einklappen'}</span>
+              <span class="entry-block-chip">${isCollapsed ? 'Geschlossen' : 'Offen'}</span>
             </div>
           </button>
           ${canDelete ? `<button type="button" class="danger-soft-btn delete-block-btn" data-block-index="${index}">Block löschen</button>` : ''}
@@ -1116,9 +1122,9 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
     button.addEventListener('click', () => {
       const blockIndex = Number(button.dataset.blockIndex)
       const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
-      currentBlocks.forEach((block, index) => {
-        block.is_collapsed = index === blockIndex ? !Boolean(block.is_collapsed) : Boolean(block.is_collapsed)
-      })
+      const targetBlock = currentBlocks[blockIndex] || getEmptyBlockData()
+      targetBlock.is_collapsed = !Boolean(targetBlock.is_collapsed)
+      currentBlocks[blockIndex] = targetBlock
       renderEntryBlocks(currentBlocks)
     })
   })
@@ -1467,44 +1473,68 @@ function renderEntriesList(entries) {
       : ''
 
     const optionalInfoMarkup = [durationMarkup, locationMarkup, noteMarkup].filter(Boolean).join('')
+    const blockCount = (entry.entry_blocks || []).length
+    const seriesCount = (entry.entry_blocks || []).reduce((sum, block) => sum + (block.entry_series || []).length, 0)
 
     return `
-      <div class="entry-card compact-list-card">
-        <div class="entry-card-top compact-entry-top">
-          <div class="entry-card-main">
-            <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
-            <div class="entry-title-row">
-              <span class="entry-type-badge ${entry.entry_type === 'competition' ? 'competition' : 'training'}">${formatEntryType(entry.entry_type)}</span>
-              <span class="entry-discipline-name">${(entry.entry_blocks || []).length} Block${(entry.entry_blocks || []).length === 1 ? '' : 'e'}</span>
+      <div class="entry-card compact-list-card is-collapsed" data-entry-id="${entry.id}" data-collapsed="1">
+        <button type="button" class="entry-card-toggle-btn" data-entry-id="${entry.id}" aria-expanded="false">
+          <div class="entry-card-top compact-entry-top">
+            <div class="entry-card-main">
+              <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
+              <div class="entry-title-row">
+                <span class="entry-type-badge ${entry.entry_type === 'competition' ? 'competition' : 'training'}">${formatEntryType(entry.entry_type)}</span>
+                <span class="entry-discipline-name">${blockCount} Block${blockCount === 1 ? '' : 'e'}</span>
+              </div>
+            </div>
+            <div class="entry-collapse-hint">Details anzeigen</div>
+          </div>
+
+          <div class="entry-summary-row compact-summary-row">
+            <div class="entry-summary-item entry-summary-total">
+              <span class="entry-summary-label">Gesamt</span>
+              <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
+            </div>
+            <div class="entry-summary-item">
+              <span class="entry-summary-label">Blöcke</span>
+              <strong class="entry-summary-value">${blockCount}</strong>
+            </div>
+            <div class="entry-summary-item">
+              <span class="entry-summary-label">Serien</span>
+              <strong class="entry-summary-value">${seriesCount}</strong>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div class="entry-summary-row compact-summary-row">
-          <div class="entry-summary-item entry-summary-total">
-            <span class="entry-summary-label">Gesamt</span>
-            <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
-          </div>
-          <div class="entry-summary-item">
-            <span class="entry-summary-label">Blöcke</span>
-            <strong class="entry-summary-value">${(entry.entry_blocks || []).length}</strong>
-          </div>
-          <div class="entry-summary-item">
-            <span class="entry-summary-label">Serien</span>
-            <strong class="entry-summary-value">${(entry.entry_blocks || []).reduce((sum, block) => sum + (block.entry_series || []).length, 0)}</strong>
-          </div>
-        </div>
+        <div class="entry-card-panel" style="display:none;">
+          ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
+          <div class="entry-block-summary-list">${blocksMarkup}</div>
 
-        ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
-        <div class="entry-block-summary-list">${blocksMarkup}</div>
-
-        <div class="entry-card-actions compact-entry-actions compact-action-row">
-          <button class="edit-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
-          <button class="delete-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Löschen</button>
+          <div class="entry-card-actions compact-entry-actions compact-action-row">
+            <button class="edit-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
+            <button class="delete-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Löschen</button>
+          </div>
         </div>
       </div>
     `
   }).join('')
+
+  document.querySelectorAll('.entry-card-toggle-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      const entryId = button.dataset.entryId
+      const card = entriesList.querySelector(`.entry-card[data-entry-id="${entryId}"]`)
+      const panel = card?.querySelector('.entry-card-panel')
+      if (!card || !panel) return
+      const isCollapsed = card.dataset.collapsed === '1'
+      card.dataset.collapsed = isCollapsed ? '0' : '1'
+      card.classList.toggle('is-collapsed', !isCollapsed)
+      card.classList.toggle('is-expanded', isCollapsed)
+      panel.style.display = isCollapsed ? 'block' : 'none'
+      button.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false')
+      const hint = button.querySelector('.entry-collapse-hint')
+      if (hint) hint.textContent = isCollapsed ? 'Details ausblenden' : 'Details anzeigen'
+    })
+  })
 
   document.querySelectorAll('.delete-entry-btn').forEach((button) => {
     button.addEventListener('click', async () => {
@@ -2357,6 +2387,22 @@ addBlockBtn.addEventListener('click', () => {
   })
   currentBlocks.push(getNextBlockDefaults(previousBlock))
   renderEntryBlocks(currentBlocks, { focusLastBlock: true })
+})
+
+expandAllBlocksBtn.addEventListener('click', () => {
+  const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+  currentBlocks.forEach((block) => {
+    block.is_collapsed = false
+  })
+  renderEntryBlocks(currentBlocks)
+})
+
+collapseAllBlocksBtn.addEventListener('click', () => {
+  const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+  currentBlocks.forEach((block) => {
+    block.is_collapsed = true
+  })
+  renderEntryBlocks(currentBlocks)
 })
 
 useLocationBtn.addEventListener('click', async () => {
