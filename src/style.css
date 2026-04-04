@@ -1850,12 +1850,17 @@ button[type='button']:hover {
 }
 
 .entry-block-card.is-active {
-  border-color: rgba(111, 93, 67, 0.78);
-  box-shadow: 0 0 0 3px rgba(111, 93, 67, 0.08);
+  border-color: rgba(111, 93, 67, 0.95);
+  background: rgba(255, 248, 236, 0.98);
+  box-shadow: 0 0 0 4px rgba(111, 93, 67, 0.18), 0 14px 28px rgba(40, 28, 15, 0.16);
 }
 
 .entry-block-card.is-collapsed {
   background: rgba(240, 231, 216, 0.72);
+}
+
+.entry-block-card.is-collapsed .entry-block-panel {
+  display: none;
 }
 
 .entry-block-panel {
