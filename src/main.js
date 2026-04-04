@@ -357,6 +357,7 @@ const userBadge = document.getElementById('user-badge')
 const tabEntryBtn = document.getElementById('tab-entry-btn')
 const tabStatsBtn = document.getElementById('tab-stats-btn')
 const tabListBtn = document.getElementById('tab-list-btn')
+const mainTabs = document.querySelector('.main-tabs')
 const entryTab = document.getElementById('entry-tab')
 const statsTab = document.getElementById('stats-tab')
 const listTab = document.getElementById('list-tab')
@@ -493,11 +494,16 @@ function clearExportStatuses() {
 
 function updateEditingUiState() {
   const isEditing = Boolean(editingEntryId)
+  const fromList = isEditing && editingOriginTab === 'list'
 
   document.body.classList.toggle('editing-mode', isEditing)
+  mainTabs?.classList.toggle('is-editing', isEditing)
+  entryTab?.classList.toggle('is-editing', isEditing)
+  listTab?.classList.toggle('is-editing-origin', fromList)
   entryBox?.classList.toggle('is-editing', isEditing)
   tabEntryBtn?.classList.toggle('is-editing', isEditing)
-  tabListBtn?.classList.toggle('is-editing-origin', isEditing && editingOriginTab === 'list')
+  tabEntryBtn?.classList.toggle('is-editing-focus', isEditing)
+  tabListBtn?.classList.toggle('is-editing-origin', fromList)
   saveEntryBtn?.classList.toggle('is-editing', isEditing)
   cancelEditBtn?.classList.toggle('is-editing', isEditing)
 }
