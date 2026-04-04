@@ -369,6 +369,7 @@ const statsSubCharts = document.getElementById('stats-sub-charts')
 const statsSubDetails = document.getElementById('stats-sub-details')
 
 const formTitle = document.getElementById('form-title')
+const entryBox = document.getElementById('entry-box')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
 const entryLocation = document.getElementById('entry-location')
@@ -487,6 +488,18 @@ function setStatus(element, message, type = 'info', options = {}) {
 function clearExportStatuses() {
   clearStatus(statsExportStatus)
   clearStatus(listExportStatus)
+  updateEditingUiState()
+}
+
+function updateEditingUiState() {
+  const isEditing = Boolean(editingEntryId)
+
+  document.body.classList.toggle('editing-mode', isEditing)
+  entryBox?.classList.toggle('is-editing', isEditing)
+  tabEntryBtn?.classList.toggle('is-editing', isEditing)
+  tabListBtn?.classList.toggle('is-editing-origin', isEditing && editingOriginTab === 'list')
+  saveEntryBtn?.classList.toggle('is-editing', isEditing)
+  cancelEditBtn?.classList.toggle('is-editing', isEditing)
 }
 
 function activateTab(tabName) {
@@ -1410,6 +1423,7 @@ function resetForm(options = {}) {
 
   updateTrainingDurationVisibility()
   renderEntryBlocks(nextBlocks, { focusLastBlock: false })
+  updateEditingUiState()
 }
 
 function populateAllFilterOptions(entries) {
@@ -2117,6 +2131,7 @@ async function startEditEntry(entryId) {
     }))
 
   renderEntryBlocks(blocks.length ? blocks : [getEmptyBlockData()])
+  updateEditingUiState()
 
   activateTab('entry')
   setStatus(entryStatus, 'Bearbeitungsmodus aktiv.', 'success', { autoClear: true })
