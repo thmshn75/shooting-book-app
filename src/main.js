@@ -443,6 +443,7 @@ const toggleListFilterPanelBtn = document.getElementById('toggle-list-filter-pan
 const listFilterPanel = document.getElementById('list-filter-panel')
 
 let editingEntryId = null
+let editingOriginTab = 'entry'
 let allEntriesCache = []
 let disciplinesCache = []
 let weaponsCache = []
@@ -1395,6 +1396,7 @@ function resetForm(options = {}) {
   const nextBlocks = preserveBlocks ? getBlockDataFromForm({ allowIncomplete: true }) : [getEmptyBlockData()]
 
   editingEntryId = null
+  editingOriginTab = 'entry'
   formTitle.textContent = 'Neuer Eintrag'
   saveEntryBtn.textContent = 'Eintrag speichern'
   cancelEditBtn.style.display = 'none'
@@ -1868,8 +1870,7 @@ function exportStatisticsCsv(entries, options = {}) {
     pushRow(['Keine Daten'])
   }
 
-  const csvContent = lines.join('
-')
+  const csvContent = lines.join('\n')
   const stamp = new Date().toISOString().slice(0, 10)
   const finalFilename = filename || `shooting-book-statistik-${stamp}.csv`
   downloadTextFile(finalFilename, csvContent, 'text/csv;charset=utf-8')
@@ -2052,6 +2053,7 @@ async function deleteEntry(entryId) {
 }
 
 async function startEditEntry(entryId) {
+  editingOriginTab = listTab.classList.contains('active') ? 'list' : 'entry'
   setStatus(entryStatus, 'Lade Eintrag zur Bearbeitung...', 'info')
   const user = await getCurrentUser()
   if (!user) {
@@ -2292,8 +2294,10 @@ toggleListFilterPanelBtn.addEventListener('click', () => {
 
 
 cancelEditBtn.addEventListener('click', async () => {
+  const returnTab = editingEntryId && editingOriginTab === 'list' ? 'list' : 'entry'
   resetForm()
   await loadFormData()
+  activateTab(returnTab)
 })
 
 applyFiltersBtn.addEventListener('click', applyEntryFiltersAndReload)
@@ -2669,6 +2673,8 @@ saveEntryBtn.addEventListener('click', async () => {
     }
   }
 
+  const returnTab = wasEditing && editingOriginTab === 'list' ? 'list' : 'entry'
+
   if (!wasEditing) {
     setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
     resetForm()
@@ -2679,10 +2685,7 @@ saveEntryBtn.addEventListener('click', async () => {
 
   await loadFormData()
   await loadEntries()
-
-  if (wasEditing) {
-    activateTab('list')
-  }
+  activateTab(returnTab)
 })
 
 
