@@ -2310,7 +2310,8 @@ useLocationBtn.addEventListener('click', async () => {
 })
 
 saveEntryBtn.addEventListener('click', async () => {
-  setStatus(entryStatus, editingEntryId ? 'Speichere Änderungen...' : 'Speichere Eintrag...', 'info')
+  const wasEditing = Boolean(editingEntryId)
+  setStatus(entryStatus, wasEditing ? 'Speichere Änderungen...' : 'Speichere Eintrag...', 'info')
   const user = await getCurrentUser()
 
   if (!user) {
@@ -2478,14 +2479,9 @@ saveEntryBtn.addEventListener('click', async () => {
     }
   }
 
-  if (!editingEntryId) {
+  if (!wasEditing) {
     setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
-    resetForm({
-      preserveDate: true,
-      preserveType: true,
-      preserveDuration: true,
-      preserveBlocks: true,
-    })
+    resetForm()
   } else {
     setStatus(entryStatus, 'Eintrag aktualisiert.', 'success', { autoClear: true })
     resetForm()
@@ -2493,6 +2489,10 @@ saveEntryBtn.addEventListener('click', async () => {
 
   await loadFormData()
   await loadEntries()
+
+  if (wasEditing) {
+    activateTab('list')
+  }
 })
 
 
