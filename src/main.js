@@ -55,39 +55,28 @@ document.querySelector('#app').innerHTML = `
                   <option value="competition">Bewerb</option>
                 </select>
 
-                <div id="training-duration-wrap" class="training-duration-wrap">
-                  <label for="training-duration">Trainingsdauer (Minuten)</label>
-                  <input id="training-duration" class="uniform-input" type="number" min="1" max="1440" inputmode="numeric" placeholder="Dauer in Minuten" />
+                <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
+                  <label for="training-duration-minutes">Trainingsdauer (Minuten)</label>
+                  <input id="training-duration-minutes" class="uniform-input" type="number" min="1" max="1440" placeholder="Dauer in Minuten" />
                 </div>
 
-                <select id="entry-discipline" class="uniform-input">
-                  <option value="">Disziplin auswählen</option>
-                </select>
-
-                <select id="entry-weapon" class="uniform-input">
-                  <option value="">Waffe auswählen</option>
-                </select>
-
-                <div class="location-input-group">
+                <div class="location-input-row">
                   <input id="entry-location" class="uniform-input" type="text" placeholder="Ort" />
-                  <button id="detect-location-btn" type="button" class="location-action-btn">Standort übernehmen</button>
+                  <button id="use-location-btn" type="button" class="location-btn">Standort übernehmen</button>
                 </div>
+
                 <input id="entry-note" class="uniform-input" type="text" placeholder="Notiz" />
               </div>
 
               <div class="manage-box">
-                <h3>Serien</h3>
-                <div class="series-config-grid">
-                  <div class="series-config-item">
-                    <label for="shots-per-series">Schuss pro Serie</label>
-                    <input id="shots-per-series" class="uniform-input" type="number" min="1" max="50" placeholder="Schuss pro Serie eingeben" />
+                <div class="entry-blocks-header">
+                  <div>
+                    <h3>Blöcke & Serien</h3>
+                    <p class="entry-muted-text">Jeder Block kann eigene Waffe, Disziplin, Schuss pro Serie und Serien haben.</p>
                   </div>
-                  <div class="series-config-item">
-                    <label for="series-count">Anzahl Serien</label>
-                    <input id="series-count" class="uniform-input" type="number" min="1" max="20" value="1" />
-                  </div>
+                  <button id="add-block-btn" type="button">Weiteren Block hinzufügen</button>
                 </div>
-                <div id="series-inputs"></div>
+                <div id="entry-blocks"></div>
               </div>
 
               <div class="collapsible-box">
@@ -372,14 +361,13 @@ const statsSubDetails = document.getElementById('stats-sub-details')
 const formTitle = document.getElementById('form-title')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
-const entryDiscipline = document.getElementById('entry-discipline')
-const entryWeapon = document.getElementById('entry-weapon')
-const trainingDurationWrap = document.getElementById('training-duration-wrap')
-const trainingDurationInput = document.getElementById('training-duration')
 const entryLocation = document.getElementById('entry-location')
-const detectLocationBtn = document.getElementById('detect-location-btn')
+const useLocationBtn = document.getElementById('use-location-btn')
 const entryNote = document.getElementById('entry-note')
-const shotsPerSeriesInput = document.getElementById('shots-per-series')
+const trainingDurationWrap = document.getElementById('training-duration-wrap')
+const trainingDurationMinutesInput = document.getElementById('training-duration-minutes')
+const entryBlocks = document.getElementById('entry-blocks')
+const addBlockBtn = document.getElementById('add-block-btn')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
@@ -417,8 +405,6 @@ const exportListAllBtn = document.getElementById('export-list-all-btn')
 const listExportStatus = document.getElementById('list-export-status')
 const listSummary = document.getElementById('list-summary')
 
-const seriesCountInput = document.getElementById('series-count')
-const seriesInputs = document.getElementById('series-inputs')
 
 const toggleDisciplinePanelBtn = document.getElementById('toggle-discipline-panel-btn')
 const disciplinePanel = document.getElementById('discipline-panel')
@@ -446,6 +432,8 @@ const listFilterPanel = document.getElementById('list-filter-panel')
 
 let editingEntryId = null
 let allEntriesCache = []
+let disciplinesCache = []
+let weaponsCache = []
 
 const statusResetTimers = new WeakMap()
 
@@ -603,65 +591,6 @@ function naturalCompare(a, b) {
 function setCollapsibleState(button, panel, isOpen, openText, closedText) {
   panel.style.display = isOpen ? 'block' : 'none'
   button.textContent = isOpen ? openText : closedText
-}
-
-function updateEntryTypeDependentFields() {
-  const isTraining = entryType.value === 'training'
-  trainingDurationWrap.style.display = isTraining ? 'grid' : 'none'
-  if (!isTraining) trainingDurationInput.value = ''
-}
-
-async function reverseGeocode(latitude, longitude) {
-  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1`, {
-    headers: {
-      Accept: 'application/json',
-    },
-  })
-
-  if (!response.ok) throw new Error('Ort konnte nicht aufgelöst werden.')
-
-  const data = await response.json()
-  const address = data.address || {}
-  const locality = address.city || address.town || address.village || address.hamlet || address.municipality || address.suburb || ''
-  const road = address.road || address.pedestrian || address.footway || address.path || ''
-  const houseNumber = address.house_number || ''
-  const displayName = [road && houseNumber ? `${road} ${houseNumber}` : road, locality].filter(Boolean).join(', ')
-
-  return displayName || data.display_name || `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
-}
-
-async function detectCurrentLocation() {
-  if (!navigator.geolocation) {
-    setStatus(entryStatus, 'Standortermittlung wird auf diesem Gerät nicht unterstützt.', 'error')
-    return
-  }
-
-  setStatus(entryStatus, 'Standort wird ermittelt...', 'info')
-  detectLocationBtn.disabled = true
-
-  try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 120000,
-      })
-    })
-
-    const { latitude, longitude } = position.coords
-
-    try {
-      entryLocation.value = await reverseGeocode(latitude, longitude)
-      setStatus(entryStatus, 'Standort übernommen.', 'success', { autoClear: true })
-    } catch (error) {
-      entryLocation.value = `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
-      setStatus(entryStatus, 'Standort als Koordinaten übernommen.', 'success', { autoClear: true })
-    }
-  } catch (error) {
-    setStatus(entryStatus, 'Standort konnte nicht ermittelt werden oder wurde nicht freigegeben.', 'error')
-  } finally {
-    detectLocationBtn.disabled = false
-  }
 }
 
 function openDisciplinePanel() {
@@ -846,8 +775,8 @@ function getFilteredStatsEntries() {
     if (statsFilterYear.value && entryYear !== statsFilterYear.value) return false
     if (statsFilterMonth.value && entryMonth !== statsFilterMonth.value) return false
     if (statsFilterType.value && entry.entry_type !== statsFilterType.value) return false
-    if (statsFilterDiscipline.value && entry.discipline_id !== statsFilterDiscipline.value) return false
-    if (statsFilterWeapon.value && entry.weapon_id !== statsFilterWeapon.value) return false
+    if (!entryMatchesDiscipline(entry, statsFilterDiscipline.value)) return false
+    if (!entryMatchesWeapon(entry, statsFilterWeapon.value)) return false
 
     return true
   })
@@ -989,90 +918,286 @@ async function getCurrentUser() {
   return user
 }
 
-function renderSeriesInputs(scores = [], shouldFocusFirst = false) {
-  let count = parseInt(seriesCountInput.value, 10)
-  if (!Number.isInteger(count) || count < 1) count = 1
-  if (count > 20) count = 20
 
-  seriesCountInput.value = count
-  seriesInputs.innerHTML = ''
+function getWeaponDisplayName(weapon) {
+  if (!weapon?.name) return ''
+  const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
+  return details ? `${weapon.name} (${details})` : weapon.name
+}
 
-  for (let i = 1; i <= count; i += 1) {
+function getEmptyBlockData() {
+  return {
+    discipline_id: '',
+    weapon_id: '',
+    shots_per_series: '',
+    note: '',
+    series_count: 1,
+    series_scores: [''],
+  }
+}
+
+function updateTrainingDurationVisibility() {
+  const isTraining = entryType.value === 'training'
+  trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
+  if (!isTraining) trainingDurationMinutesInput.value = ''
+}
+
+function getBlockDisciplineOptions(selectedValue = '') {
+  return [
+    '<option value="">Disziplin auswählen</option>',
+    ...disciplinesCache.map((discipline) => {
+      const selected = String(discipline.id) === String(selectedValue) ? ' selected' : ''
+      return `<option value="${discipline.id}"${selected}>${discipline.name}</option>`
+    }),
+  ].join('')
+}
+
+function getBlockWeaponOptions(selectedValue = '') {
+  return [
+    '<option value="">Waffe auswählen</option>',
+    ...weaponsCache.map((weapon) => {
+      const selected = String(weapon.id) === String(selectedValue) ? ' selected' : ''
+      return `<option value="${weapon.id}"${selected}>${getWeaponDisplayName(weapon)}</option>`
+    }),
+  ].join('')
+}
+
+function buildSeriesInputsMarkup(scores, count, blockIndex) {
+  const items = []
+  const safeCount = Math.min(Math.max(Number(count) || 1, 1), 20)
+
+  for (let i = 1; i <= safeCount; i += 1) {
     const value = scores[i - 1] ?? ''
-    const row = document.createElement('div')
-    row.className = 'series-row'
-    row.innerHTML = `
-      <label for="series-score-${i}">Serie ${i}</label>
-      <input
-        id="series-score-${i}"
-        class="uniform-input series-score-input"
-        type="number"
-        min="0"
-        step="1"
-        inputmode="numeric"
-        placeholder="Score"
-        data-series-number="${i}"
-        value="${value}"
-      />
-    `
-    seriesInputs.appendChild(row)
+    items.push(`
+      <div class="series-row">
+        <label for="block-${blockIndex}-series-${i}">Serie ${i}</label>
+        <input
+          id="block-${blockIndex}-series-${i}"
+          class="uniform-input block-series-score-input"
+          type="number"
+          min="0"
+          step="1"
+          inputmode="numeric"
+          placeholder="Score"
+          data-block-index="${blockIndex}"
+          data-series-number="${i}"
+          value="${value}"
+        />
+      </div>
+    `)
   }
 
-  const inputs = Array.from(document.querySelectorAll('.series-score-input'))
+  return items.join('')
+}
 
-  inputs.forEach((input, index) => {
-    input.addEventListener('input', () => {
-      const value = input.value.trim()
-      if (value.length >= 2 && index < inputs.length - 1) {
-        inputs[index + 1].focus()
-        inputs[index + 1].select()
-      }
-    })
+function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
+  const { focusLastBlock = false } = options
+  const normalizedBlocks = Array.isArray(blocks) && blocks.length ? blocks : [getEmptyBlockData()]
+  const allowMultipleBlocks = entryType.value === 'training'
+
+  entryBlocks.innerHTML = normalizedBlocks.map((block, index) => {
+    const blockNumber = index + 1
+    const seriesCount = Math.min(Math.max(Number(block.series_count) || Number(block.series_scores?.length) || 1, 1), 20)
+    const seriesScores = Array.from({ length: seriesCount }, (_, scoreIndex) => block.series_scores?.[scoreIndex] ?? '')
+    const canDelete = allowMultipleBlocks && normalizedBlocks.length > 1
+
+    return `
+      <div class="entry-block-card" data-block-index="${index}">
+        <div class="entry-block-top">
+          <div class="entry-block-title">Block ${blockNumber}</div>
+          ${canDelete ? `<button type="button" class="danger-soft-btn delete-block-btn" data-block-index="${index}">Block löschen</button>` : ''}
+        </div>
+
+        <div class="form-grid mobile-single-grid">
+          <select class="uniform-input block-discipline-select" data-block-index="${index}">
+            ${getBlockDisciplineOptions(block.discipline_id)}
+          </select>
+
+          <select class="uniform-input block-weapon-select" data-block-index="${index}">
+            ${getBlockWeaponOptions(block.weapon_id)}
+          </select>
+
+          <input
+            class="uniform-input block-shots-input"
+            data-block-index="${index}"
+            type="number"
+            min="1"
+            max="50"
+            placeholder="Schuss pro Serie"
+            value="${block.shots_per_series ?? ''}"
+          />
+
+          <input
+            class="uniform-input block-series-count-input"
+            data-block-index="${index}"
+            type="number"
+            min="1"
+            max="20"
+            value="${seriesCount}"
+          />
+
+          <input
+            class="uniform-input block-note-input"
+            data-block-index="${index}"
+            type="text"
+            placeholder="Block-Notiz"
+            value="${block.note ?? ''}"
+          />
+        </div>
+
+        <div class="block-series-inputs" data-block-index="${index}">
+          ${buildSeriesInputsMarkup(seriesScores, seriesCount, index)}
+        </div>
+      </div>
+    `
+  }).join('')
+
+  addBlockBtn.style.display = allowMultipleBlocks ? 'inline-flex' : 'none'
+
+  document.querySelectorAll('.block-series-count-input').forEach((input) => {
+    const rerenderBlock = () => {
+      const blockIndex = Number(input.dataset.blockIndex)
+      const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+      const block = currentBlocks[blockIndex] || getEmptyBlockData()
+      let count = Number(input.value)
+      if (!Number.isInteger(count) || count < 1) count = 1
+      if (count > 20) count = 20
+      block.series_count = count
+      block.series_scores = Array.from({ length: count }, (_, idx) => block.series_scores?.[idx] ?? '')
+      currentBlocks[blockIndex] = block
+      renderEntryBlocks(currentBlocks)
+    }
 
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault()
+        rerenderBlock()
+      }
+    })
+    input.addEventListener('blur', rerenderBlock)
+  })
 
-        if (index < inputs.length - 1) {
-          inputs[index + 1].focus()
-          inputs[index + 1].select()
-        }
+  document.querySelectorAll('.delete-block-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      const blockIndex = Number(button.dataset.blockIndex)
+      const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+      currentBlocks.splice(blockIndex, 1)
+      renderEntryBlocks(currentBlocks.length ? currentBlocks : [getEmptyBlockData()])
+    })
+  })
+
+  document.querySelectorAll('.block-series-score-input').forEach((input) => {
+    input.addEventListener('input', () => {
+      const blockIndex = Number(input.dataset.blockIndex)
+      const blockInputs = Array.from(document.querySelectorAll(`.block-series-score-input[data-block-index="${blockIndex}"]`))
+      const index = blockInputs.indexOf(input)
+      if (input.value.trim().length >= 2 && index >= 0 && index < blockInputs.length - 1) {
+        blockInputs[index + 1].focus()
+        blockInputs[index + 1].select()
       }
     })
   })
 
-  if (shouldFocusFirst && inputs.length > 0) {
-    setTimeout(() => {
-      inputs[0].focus()
-      inputs[0].select()
-    }, 0)
+  if (focusLastBlock) {
+    const lastBlock = entryBlocks.querySelector('.entry-block-card:last-child .block-discipline-select')
+    if (lastBlock) {
+      setTimeout(() => lastBlock.focus(), 0)
+    }
   }
 }
 
-function updateSeriesInputsFromCount(shouldFocusFirst = false) {
-  const existingScores = Array.from(document.querySelectorAll('.series-score-input')).map((input) => input.value)
-  renderSeriesInputs(existingScores, shouldFocusFirst)
-}
+function getBlockDataFromForm(options = {}) {
+  const { allowIncomplete = false } = options
+  const blocks = []
 
-function getSeriesData() {
-  return Array.from(document.querySelectorAll('.series-score-input'))
-    .map((input) => {
-      const value = input.value.trim()
-      if (value === '') return null
+  document.querySelectorAll('.entry-block-card').forEach((card) => {
+    const blockIndex = Number(card.dataset.blockIndex)
+    const disciplineId = card.querySelector('.block-discipline-select')?.value || ''
+    const weaponId = card.querySelector('.block-weapon-select')?.value || ''
+    const shotsValue = card.querySelector('.block-shots-input')?.value || ''
+    const note = card.querySelector('.block-note-input')?.value?.trim() || ''
+    const seriesCountValue = card.querySelector('.block-series-count-input')?.value || '1'
+    const seriesInputs = Array.from(card.querySelectorAll('.block-series-score-input'))
+    const series = seriesInputs
+      .map((input) => {
+        const value = input.value.trim()
+        if (value === '') return null
+        const score = Number(value)
+        if (!Number.isFinite(score)) return null
+        return {
+          series_number: Number(input.dataset.seriesNumber),
+          score,
+        }
+      })
+      .filter(Boolean)
 
-      const score = Number(value)
-      const seriesNumber = Number(input.dataset.seriesNumber)
-      if (!Number.isFinite(score)) return null
+    const shotsPerSeries = shotsValue === '' ? null : Number(shotsValue)
+    const seriesCount = Math.min(Math.max(Number(seriesCountValue) || 1, 1), 20)
 
-      return { series_number: seriesNumber, score }
+    if (!allowIncomplete) {
+      if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
+        throw new Error(`Bitte gültige Schuss pro Serie in Block ${blockIndex + 1} eingeben.`)
+      }
+    }
+
+    blocks.push({
+      block_order: blockIndex + 1,
+      discipline_id: disciplineId || null,
+      weapon_id: weaponId || null,
+      shots_per_series: shotsPerSeries,
+      note: note || null,
+      series_count: seriesCount,
+      series_scores: Array.from({ length: seriesCount }, (_, idx) => seriesInputs[idx]?.value ?? ''),
+      series,
+      total_score: calculateTotalScore(series),
     })
-    .filter(Boolean)
+  })
+
+  return blocks
 }
 
 function calculateTotalScore(seriesData) {
-  return seriesData.reduce((sum, item) => sum + item.score, 0)
+  return (seriesData || []).reduce((sum, item) => sum + Number(item.score || 0), 0)
 }
 
+function calculateSessionTotalScore(blocks = []) {
+  return blocks.reduce((sum, block) => sum + Number(block.total_score || 0), 0)
+}
+
+function normalizeEntryForUi(entry) {
+  const blocks = Array.isArray(entry.entry_blocks) ? [...entry.entry_blocks] : []
+  blocks.sort((a, b) => Number(a.block_order || 0) - Number(b.block_order || 0))
+
+  blocks.forEach((block) => {
+    block.entry_series = Array.isArray(block.entry_series) ? [...block.entry_series].sort((a, b) => a.series_number - b.series_number) : []
+    block.total_score = Number(block.total_score || calculateTotalScore(block.entry_series))
+  })
+
+  const sessionTotal = calculateSessionTotalScore(blocks)
+  const firstBlock = blocks[0] || null
+
+  return {
+    ...entry,
+    entry_blocks: blocks,
+    total_score: sessionTotal,
+    discipline_id: firstBlock?.discipline_id || null,
+    weapon_id: firstBlock?.weapon_id || null,
+    disciplines: firstBlock?.disciplines || null,
+    weapons: firstBlock?.weapons || null,
+    shots_per_series: firstBlock?.shots_per_series || null,
+    entry_series: blocks.flatMap((block) => block.entry_series || []),
+  }
+}
+
+function entryMatchesDiscipline(entry, disciplineId) {
+  if (!disciplineId) return true
+  return (entry.entry_blocks || []).some((block) => String(block.discipline_id || '') === String(disciplineId))
+}
+
+function entryMatchesWeapon(entry, weaponId) {
+  if (!weaponId) return true
+  return (entry.entry_blocks || []).some((block) => String(block.weapon_id || '') === String(weaponId))
+}
 function normalizeDuplicateValue(value) {
   return String(value || '')
     .trim()
@@ -1120,19 +1245,14 @@ function resetForm(options = {}) {
   const {
     preserveDate = false,
     preserveType = false,
-    preserveDiscipline = false,
-    preserveWeapon = false,
-    preserveShotsPerSeries = false,
-    preserveSeriesCount = false,
+    preserveDuration = false,
+    preserveBlocks = false,
   } = options
 
   const nextDate = preserveDate ? entryDate.value || todayString() : todayString()
   const nextType = preserveType ? entryType.value || 'training' : 'training'
-  const nextDiscipline = preserveDiscipline ? entryDiscipline.value || '' : ''
-  const nextWeapon = preserveWeapon ? entryWeapon.value || '' : ''
-  const nextTrainingDuration = preserveType && nextType === 'training' ? trainingDurationInput.value || '' : ''
-  const nextShotsPerSeries = preserveShotsPerSeries ? shotsPerSeriesInput.value || '' : ''
-  const nextSeriesCount = preserveSeriesCount ? seriesCountInput.value || '1' : '1'
+  const nextDuration = preserveDuration ? trainingDurationMinutesInput.value || '' : ''
+  const nextBlocks = preserveBlocks ? getBlockDataFromForm({ allowIncomplete: true }) : [getEmptyBlockData()]
 
   editingEntryId = null
   formTitle.textContent = 'Neuer Eintrag'
@@ -1144,30 +1264,27 @@ function resetForm(options = {}) {
   entryType.value = nextType
   entryLocation.value = ''
   entryNote.value = ''
-  trainingDurationInput.value = nextTrainingDuration
-  shotsPerSeriesInput.value = nextShotsPerSeries
-  seriesCountInput.value = nextSeriesCount
+  trainingDurationMinutesInput.value = nextDuration
 
-  renderSeriesInputs([], false)
-
-  entryDiscipline.value = nextDiscipline
-  entryWeapon.value = nextWeapon
-  updateEntryTypeDependentFields()
+  updateTrainingDurationVisibility()
+  renderEntryBlocks(nextBlocks, { focusLastBlock: false })
 }
 
 function populateAllFilterOptions(entries) {
   const years = [...new Set(entries.map((entry) => (entry.entry_date ? new Date(entry.entry_date).getFullYear() : null)).filter(Boolean))].sort((a, b) => b - a)
 
-  const disciplines = [...new Map(
-    entries.filter((entry) => entry.disciplines?.name).map((entry) => [entry.discipline_id, entry.disciplines.name])
-  ).entries()].sort((a, b) => naturalCompare(a[1], b[1]))
+  const disciplineMap = new Map()
+  const weaponMap = new Map()
 
-  const weapons = [...new Map(
-    entries.filter((entry) => entry.weapons?.name).map((entry) => {
-      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-      return [entry.weapon_id, details ? `${entry.weapons.name} (${details})` : entry.weapons.name]
+  entries.forEach((entry) => {
+    ;(entry.entry_blocks || []).forEach((block) => {
+      if (block.discipline_id && block.disciplines?.name) disciplineMap.set(block.discipline_id, block.disciplines.name)
+      if (block.weapon_id && block.weapons?.name) weaponMap.set(block.weapon_id, getWeaponDisplayName(block.weapons))
     })
-  ).entries()]
+  })
+
+  const disciplines = [...disciplineMap.entries()].sort((a, b) => naturalCompare(a[1], b[1]))
+  const weapons = [...weaponMap.entries()].sort((a, b) => naturalCompare(a[1], b[1]))
 
   const fillSelect = (select, firstLabel, items, currentValue) => {
     select.innerHTML = `<option value="">${firstLabel}</option>`
@@ -1199,8 +1316,8 @@ function getFilteredEntries() {
     if (filterType.value && entry.entry_type !== filterType.value) return false
     if (filterYear.value && entryYear !== filterYear.value) return false
     if (filterMonth.value && entryMonth !== filterMonth.value) return false
-    if (filterDiscipline.value && entry.discipline_id !== filterDiscipline.value) return false
-    if (filterWeapon.value && entry.weapon_id !== filterWeapon.value) return false
+    if (!entryMatchesDiscipline(entry, filterDiscipline.value)) return false
+    if (!entryMatchesWeapon(entry, filterWeapon.value)) return false
 
     return true
   })
@@ -1234,25 +1351,33 @@ function renderEntriesList(entries) {
   renderListSummary(entries)
 
   entriesList.innerHTML = entries.map((entry) => {
-    const disciplineName = entry.disciplines?.name || 'Ohne Disziplin'
+    const blocksMarkup = (entry.entry_blocks || []).map((block) => {
+      const seriesMarkup = (block.entry_series || []).map((series) => `
+        <div class="series-pill">
+          <span class="series-pill-label">S${series.series_number}</span>
+          <span class="series-pill-value">${series.score}</span>
+        </div>
+      `).join('')
 
-    let weaponText = 'Keine Waffe hinterlegt'
-    if (entry.weapons?.name) {
-      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-      weaponText = details ? `${entry.weapons.name} (${details})` : entry.weapons.name
-    }
-
-    const sortedSeries = Array.isArray(entry.entry_series)
-      ? [...entry.entry_series].sort((a, b) => a.series_number - b.series_number)
-      : []
-
-    const seriesMarkup = sortedSeries.length
-      ? sortedSeries.map((series) => `
-          <div class="series-pill">
-            <span class="series-pill-label">S${series.series_number}</span>
-            <span class="series-pill-value">${series.score}</span>
+      return `
+        <div class="entry-block-summary">
+          <div class="entry-block-summary-top">
+            <strong>Block ${block.block_order}</strong>
+            <span>${formatNumber(block.total_score || 0)}</span>
           </div>
-        `).join('')
+          <div class="entry-block-summary-meta">
+            <span>${block.disciplines?.name || 'Ohne Disziplin'}</span>
+            <span>${block.weapons?.name ? getWeaponDisplayName(block.weapons) : 'Keine Waffe'}</span>
+            <span>${block.shots_per_series || '-'} Schuss/Serie</span>
+          </div>
+          ${block.note ? `<div class="entry-block-note">${block.note}</div>` : ''}
+          ${seriesMarkup ? `<div class="entry-series-list compact-series-list compact-mini-series-list">${seriesMarkup}</div>` : ''}
+        </div>
+      `
+    }).join('')
+
+    const durationMarkup = entry.entry_type === 'training' && entry.training_duration_minutes
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Dauer</span><span class="entry-inline-value">${entry.training_duration_minutes} Min.</span></div>`
       : ''
 
     const locationMarkup = entry.location
@@ -1263,11 +1388,7 @@ function renderEntriesList(entries) {
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Notiz</span><span class="entry-inline-value">${entry.note}</span></div>`
       : ''
 
-    const durationMarkup = entry.entry_type === 'training' && entry.training_duration_minutes
-      ? `<div class="entry-inline-info"><span class="entry-inline-label">Dauer</span><span class="entry-inline-value">${entry.training_duration_minutes} Min.</span></div>`
-      : ''
-
-    const optionalInfoMarkup = [locationMarkup, durationMarkup, noteMarkup].filter(Boolean).join('')
+    const optionalInfoMarkup = [durationMarkup, locationMarkup, noteMarkup].filter(Boolean).join('')
 
     return `
       <div class="entry-card compact-list-card">
@@ -1276,9 +1397,8 @@ function renderEntriesList(entries) {
             <div class="entry-card-date">${formatDate(entry.entry_date)}</div>
             <div class="entry-title-row">
               <span class="entry-type-badge ${entry.entry_type === 'competition' ? 'competition' : 'training'}">${formatEntryType(entry.entry_type)}</span>
-              <span class="entry-discipline-name">${disciplineName}</span>
+              <span class="entry-discipline-name">${(entry.entry_blocks || []).length} Block${(entry.entry_blocks || []).length === 1 ? '' : 'e'}</span>
             </div>
-            <div class="entry-weapon-line">${weaponText}</div>
           </div>
         </div>
 
@@ -1288,22 +1408,17 @@ function renderEntriesList(entries) {
             <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
           </div>
           <div class="entry-summary-item">
-            <span class="entry-summary-label">Schuss/Serie</span>
-            <strong class="entry-summary-value">${entry.shots_per_series ?? '-'}</strong>
+            <span class="entry-summary-label">Blöcke</span>
+            <strong class="entry-summary-value">${(entry.entry_blocks || []).length}</strong>
           </div>
           <div class="entry-summary-item">
             <span class="entry-summary-label">Serien</span>
-            <strong class="entry-summary-value">${sortedSeries.length}</strong>
+            <strong class="entry-summary-value">${(entry.entry_blocks || []).reduce((sum, block) => sum + (block.entry_series || []).length, 0)}</strong>
           </div>
         </div>
 
         ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
-
-        ${seriesMarkup ? `
-          <div class="entry-series-box compact-series-box minimal-series-box">
-            <div class="entry-series-list compact-series-list compact-mini-series-list">${seriesMarkup}</div>
-          </div>
-        ` : ''}
+        <div class="entry-block-summary-list">${blocksMarkup}</div>
 
         <div class="entry-card-actions compact-entry-actions compact-action-row">
           <button class="edit-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
@@ -1442,53 +1557,65 @@ function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-
 }
 
 function exportEntriesCsv(entries, filename = null) {
+  const maxBlockCount = Math.max(1, ...entries.map((entry) => (entry.entry_blocks || []).length))
   const maxSeriesCount = Math.max(
     1,
-    ...entries.map((entry) => (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0))
+    ...entries.flatMap((entry) => (entry.entry_blocks || []).map((block) => (block.entry_series || []).length))
   )
 
-  const seriesHeaders = Array.from({ length: maxSeriesCount }, (_, index) => `Serie ${index + 1}`)
   const headers = [
     'Datum',
     'Typ',
-    'Disziplin',
     'Trainingsdauer (Minuten)',
-    'Waffe',
-    'Waffentyp',
-    'Kaliber',
     'Ort',
     'Notiz',
-    'Schuss pro Serie',
-    'Serienanzahl',
+    'Blockanzahl',
     'Gesamtscore',
-    ...seriesHeaders,
   ]
 
+  for (let blockIndex = 1; blockIndex <= maxBlockCount; blockIndex += 1) {
+    headers.push(
+      `Block ${blockIndex} Disziplin`,
+      `Block ${blockIndex} Waffe`,
+      `Block ${blockIndex} Waffentyp`,
+      `Block ${blockIndex} Kaliber`,
+      `Block ${blockIndex} Schuss pro Serie`,
+      `Block ${blockIndex} Block-Notiz`,
+      `Block ${blockIndex} Block-Score`,
+    )
+    for (let seriesIndex = 1; seriesIndex <= maxSeriesCount; seriesIndex += 1) {
+      headers.push(`Block ${blockIndex} Serie ${seriesIndex}`)
+    }
+  }
+
   const rows = entries.map((entry) => {
-    const sortedSeries = Array.isArray(entry.entry_series)
-      ? [...entry.entry_series].sort((a, b) => a.series_number - b.series_number)
-      : []
-
-    const seriesValues = Array.from({ length: maxSeriesCount }, (_, index) => {
-      const matchingSeries = sortedSeries.find((series) => Number(series.series_number) === index + 1)
-      return matchingSeries?.score ?? ''
-    })
-
-    return [
+    const row = [
       entry.entry_date || '',
       formatEntryType(entry.entry_type),
-      entry.disciplines?.name || '',
-      entry.entry_type === 'training' ? (entry.training_duration_minutes ?? '') : '',
-      entry.weapons?.name || '',
-      entry.weapons?.type || '',
-      entry.weapons?.caliber || '',
+      entry.training_duration_minutes ?? '',
       entry.location || '',
       entry.note || '',
-      entry.shots_per_series ?? '',
-      sortedSeries.length,
+      (entry.entry_blocks || []).length,
       entry.total_score ?? '',
-      ...seriesValues,
     ]
+
+    for (let blockIndex = 0; blockIndex < maxBlockCount; blockIndex += 1) {
+      const block = entry.entry_blocks?.[blockIndex]
+      row.push(
+        block?.disciplines?.name || '',
+        block?.weapons?.name || '',
+        block?.weapons?.type || '',
+        block?.weapons?.caliber || '',
+        block?.shots_per_series ?? '',
+        block?.note || '',
+        block?.total_score ?? '',
+      )
+      for (let seriesIndex = 0; seriesIndex < maxSeriesCount; seriesIndex += 1) {
+        row.push(block?.entry_series?.[seriesIndex]?.score ?? '')
+      }
+    }
+
+    return row
   })
 
   const csvContent = [headers, ...rows]
@@ -1592,7 +1719,7 @@ async function deleteDisciplineById(disciplineId) {
   }
 
   const { count, error: countError } = await supabase
-    .from('entries')
+    .from('entry_blocks')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('discipline_id', disciplineId)
@@ -1618,7 +1745,6 @@ async function deleteDisciplineById(disciplineId) {
     return
   }
 
-  if (entryDiscipline.value === disciplineId) entryDiscipline.value = ''
   if (filterDiscipline.value === disciplineId) filterDiscipline.value = ''
   if (statsFilterDiscipline.value === disciplineId) statsFilterDiscipline.value = ''
   if (localStorage.getItem(getLastDisciplineKey(user.id)) === disciplineId) localStorage.removeItem(getLastDisciplineKey(user.id))
@@ -1641,7 +1767,7 @@ async function deleteWeaponById(weaponId) {
   }
 
   const { count, error: countError } = await supabase
-    .from('entries')
+    .from('entry_blocks')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('weapon_id', weaponId)
@@ -1667,7 +1793,6 @@ async function deleteWeaponById(weaponId) {
     return
   }
 
-  if (entryWeapon.value === weaponId) entryWeapon.value = ''
   if (filterWeapon.value === weaponId) filterWeapon.value = ''
   if (statsFilterWeapon.value === weaponId) statsFilterWeapon.value = ''
   if (localStorage.getItem(getLastWeaponKey(user.id)) === weaponId) localStorage.removeItem(getLastWeaponKey(user.id))
@@ -1687,26 +1812,17 @@ async function loadDisciplines() {
     return
   }
 
-  const lastDisciplineId = localStorage.getItem(getLastDisciplineKey(user.id)) || ''
   const currentDeleteDisciplineValue = deleteDisciplineSelect?.value || ''
-  const sortedDisciplines = [...(data || [])].sort((a, b) => naturalCompare(a.name, b.name))
-
-  entryDiscipline.innerHTML = '<option value="">Disziplin auswählen</option>'
-
-  sortedDisciplines.forEach((discipline) => {
-    const option = document.createElement('option')
-    option.value = discipline.id
-    option.textContent = discipline.name
-    if (discipline.id === lastDisciplineId && !editingEntryId) option.selected = true
-    entryDiscipline.appendChild(option)
-  })
+  disciplinesCache = [...(data || [])].sort((a, b) => naturalCompare(a.name, b.name))
 
   fillSimpleSelect(
     deleteDisciplineSelect,
     'Disziplin zum Löschen auswählen',
-    sortedDisciplines.map((discipline) => ({ value: discipline.id, label: discipline.name })),
+    disciplinesCache.map((discipline) => ({ value: discipline.id, label: discipline.name })),
     currentDeleteDisciplineValue
   )
+
+  renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
 }
 
 async function loadWeapons() {
@@ -1719,33 +1835,20 @@ async function loadWeapons() {
     return
   }
 
-  const lastWeaponId = localStorage.getItem(getLastWeaponKey(user.id)) || ''
   const currentDeleteWeaponValue = deleteWeaponSelect?.value || ''
-  const weapons = data || []
-
-  entryWeapon.innerHTML = '<option value="">Waffe auswählen</option>'
-
-  weapons.forEach((weapon) => {
-    const option = document.createElement('option')
-    option.value = weapon.id
-    const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
-    option.textContent = details ? `${weapon.name} (${details})` : weapon.name
-    if (weapon.id === lastWeaponId && !editingEntryId) option.selected = true
-    entryWeapon.appendChild(option)
-  })
+  weaponsCache = data || []
 
   fillSimpleSelect(
     deleteWeaponSelect,
     'Waffe zum Löschen auswählen',
-    weapons.map((weapon) => {
-      const details = [weapon.type, weapon.caliber].filter(Boolean).join(' | ')
-      return {
-        value: weapon.id,
-        label: details ? `${weapon.name} (${details})` : weapon.name,
-      }
-    }),
+    weaponsCache.map((weapon) => ({
+      value: weapon.id,
+      label: getWeaponDisplayName(weapon),
+    })),
     currentDeleteWeaponValue
   )
+
+  renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
 }
 
 async function deleteEntry(entryId) {
@@ -1793,13 +1896,21 @@ async function startEditEntry(entryId) {
       id,
       entry_date,
       entry_type,
-      discipline_id,
-      weapon_id,
       location,
       note,
       training_duration_minutes,
-      shots_per_series,
-      entry_series(series_number, score)
+      entry_blocks(
+        id,
+        block_order,
+        weapon_id,
+        discipline_id,
+        shots_per_series,
+        note,
+        total_score,
+        weapons(name, type, caliber),
+        disciplines(name),
+        entry_series(id, series_number, score)
+      )
     `)
     .eq('id', entryId)
     .eq('user_id', user.id)
@@ -1817,18 +1928,24 @@ async function startEditEntry(entryId) {
 
   entryDate.value = data.entry_date || todayString()
   entryType.value = data.entry_type || 'training'
-  entryDiscipline.value = data.discipline_id || ''
-  entryWeapon.value = data.weapon_id || ''
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
-  trainingDurationInput.value = data.training_duration_minutes || ''
-  shotsPerSeriesInput.value = data.shots_per_series || ''
-  updateEntryTypeDependentFields()
+  trainingDurationMinutesInput.value = data.training_duration_minutes || ''
 
-  const sortedSeries = Array.isArray(data.entry_series) ? [...data.entry_series].sort((a, b) => a.series_number - b.series_number) : []
-  const scores = sortedSeries.map((item) => item.score)
-  seriesCountInput.value = String(Math.max(sortedSeries.length || 0, 1))
-  renderSeriesInputs(scores)
+  updateTrainingDurationVisibility()
+
+  const blocks = (data.entry_blocks || [])
+    .sort((a, b) => Number(a.block_order || 0) - Number(b.block_order || 0))
+    .map((block) => ({
+      discipline_id: block.discipline_id || '',
+      weapon_id: block.weapon_id || '',
+      shots_per_series: block.shots_per_series || '',
+      note: block.note || '',
+      series_count: Math.max((block.entry_series || []).length, 1),
+      series_scores: (block.entry_series || []).sort((a, b) => a.series_number - b.series_number).map((item) => item.score),
+    }))
+
+  renderEntryBlocks(blocks.length ? blocks : [getEmptyBlockData()])
 
   activateTab('entry')
   setStatus(entryStatus, 'Bearbeitungsmodus aktiv.', 'success', { autoClear: true })
@@ -1851,14 +1968,20 @@ async function loadEntries() {
       entry_type,
       location,
       note,
-      total_score,
       training_duration_minutes,
-      shots_per_series,
-      discipline_id,
-      weapon_id,
-      disciplines(name),
-      weapons(name, type, caliber),
-      entry_series(series_number, score)
+      created_at,
+      entry_blocks(
+        id,
+        block_order,
+        weapon_id,
+        discipline_id,
+        shots_per_series,
+        note,
+        total_score,
+        weapons(name, type, caliber),
+        disciplines(name),
+        entry_series(id, series_number, score)
+      )
     `)
     .eq('user_id', user.id)
     .order('entry_date', { ascending: false })
@@ -1869,7 +1992,7 @@ async function loadEntries() {
     return
   }
 
-  allEntriesCache = data || []
+  allEntriesCache = (data || []).map(normalizeEntryForUi)
   populateAllFilterOptions(allEntriesCache)
   applyEntryFilters()
   applyStatsFilters()
@@ -1992,39 +2115,11 @@ toggleStatsFilterPanelBtn.addEventListener('click', () => {
   else openStatsFilterPanel()
 })
 
-entryType.addEventListener('change', () => {
-  updateEntryTypeDependentFields()
-})
-
-detectLocationBtn.addEventListener('click', async () => {
-  await detectCurrentLocation()
-})
-
 toggleListFilterPanelBtn.addEventListener('click', () => {
   if (listFilterPanel.style.display === 'block') closeListFilterPanel()
   else openListFilterPanel()
 })
 
-entryWeapon.addEventListener('change', async () => {
-  const user = await getCurrentUser()
-  if (user) localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value)
-})
-
-entryDiscipline.addEventListener('change', async () => {
-  const user = await getCurrentUser()
-  if (user) localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value)
-})
-
-seriesCountInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault()
-    updateSeriesInputsFromCount(true)
-  }
-})
-
-seriesCountInput.addEventListener('blur', () => {
-  updateSeriesInputsFromCount(false)
-})
 
 
 cancelEditBtn.addEventListener('click', async () => {
@@ -2098,8 +2193,6 @@ addDisciplineBtn.addEventListener('click', async () => {
 
   if (existingDiscipline) {
     setStatus(disciplineStatus, `Disziplin bereits vorhanden: ${existingDiscipline.name}`, 'info', { autoClear: true })
-    entryDiscipline.value = existingDiscipline.id
-    localStorage.setItem(getLastDisciplineKey(user.id), existingDiscipline.id)
     newDisciplineName.value = ''
     closeDisciplinePanel()
     return
@@ -2115,10 +2208,6 @@ addDisciplineBtn.addEventListener('click', async () => {
   newDisciplineName.value = ''
   await loadDisciplines()
 
-  if (data?.id) {
-    entryDiscipline.value = data.id
-    localStorage.setItem(getLastDisciplineKey(user.id), data.id)
-  }
 
   closeDisciplinePanel()
 })
@@ -2166,12 +2255,58 @@ addWeaponBtn.addEventListener('click', async () => {
 
   await loadWeapons()
 
-  if (data?.id) {
-    entryWeapon.value = data.id
-    localStorage.setItem(getLastWeaponKey(user.id), data.id)
-  }
 
   closeWeaponPanel()
+})
+
+entryType.addEventListener('change', () => {
+  updateTrainingDurationVisibility()
+
+  if (entryType.value === 'competition') {
+    const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+    renderEntryBlocks([currentBlocks[0] || getEmptyBlockData()])
+  } else {
+    renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
+  }
+})
+
+addBlockBtn.addEventListener('click', () => {
+  const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+  currentBlocks.push(getEmptyBlockData())
+  renderEntryBlocks(currentBlocks, { focusLastBlock: true })
+})
+
+useLocationBtn.addEventListener('click', async () => {
+  if (!navigator.geolocation) {
+    setStatus(entryStatus, 'Standort wird von diesem Browser nicht unterstützt.', 'error')
+    return
+  }
+
+  setStatus(entryStatus, 'Standort wird ermittelt...', 'info')
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const { latitude, longitude } = position.coords
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
+      if (!response.ok) throw new Error('Kein lesbarer Ort gefunden.')
+      const data = await response.json()
+      const address = data.address || {}
+      const readable = [
+        address.road,
+        address.village || address.town || address.city || address.municipality,
+      ].filter(Boolean).join(', ')
+      entryLocation.value = readable || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+      setStatus(entryStatus, 'Standort übernommen.', 'success', { autoClear: true })
+    } catch (error) {
+      entryLocation.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+      setStatus(entryStatus, 'Standort als Koordinaten übernommen.', 'success', { autoClear: true })
+    }
+  }, (error) => {
+    setStatus(entryStatus, `Standort konnte nicht übernommen werden: ${error.message}`, 'error')
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0,
+  })
 })
 
 saveEntryBtn.addEventListener('click', async () => {
@@ -2187,39 +2322,53 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
-  const trainingDurationMinutes = entryType.value === 'training'
-    ? Number(trainingDurationInput.value)
-    : null
+  if (entryType.value === 'training') {
+    const duration = Number(trainingDurationMinutesInput.value)
+    if (!Number.isInteger(duration) || duration < 1) {
+      setStatus(entryStatus, 'Bitte gültige Trainingsdauer in Minuten eingeben.', 'error')
+      return
+    }
+  }
 
-  if (entryType.value === 'training' && (!Number.isInteger(trainingDurationMinutes) || trainingDurationMinutes < 1)) {
-    setStatus(entryStatus, 'Bitte eine gültige Trainingsdauer in Minuten eingeben.', 'error')
+  let blocks
+  try {
+    blocks = getBlockDataFromForm()
+  } catch (error) {
+    setStatus(entryStatus, error.message, 'error')
     return
   }
 
-  const shotsPerSeries = Number(shotsPerSeriesInput.value)
-  if (!Number.isInteger(shotsPerSeries) || shotsPerSeries < 1) {
-    setStatus(entryStatus, 'Bitte gültige Schuss pro Serie eingeben.', 'error')
+  if (!blocks.length) {
+    setStatus(entryStatus, 'Bitte mindestens einen Block erfassen.', 'error')
     return
   }
 
-  const seriesData = getSeriesData()
-  const totalScore = calculateTotalScore(seriesData)
+  const entryPayload = {
+    user_id: user.id,
+    entry_date: entryDate.value,
+    entry_type: entryType.value || null,
+    location: entryLocation.value.trim() || null,
+    note: entryNote.value.trim() || null,
+    training_duration_minutes: entryType.value === 'training'
+      ? Number(trainingDurationMinutesInput.value)
+      : null,
+  }
+
+  const preserveBlocks = blocks.map((block) => ({
+    discipline_id: block.discipline_id || '',
+    weapon_id: block.weapon_id || '',
+    shots_per_series: block.shots_per_series || '',
+    note: block.note || '',
+    series_count: Math.max(block.series.length, block.series_count || 1),
+    series_scores: Array.from({ length: Math.max(block.series.length, block.series_count || 1) }, (_, idx) => block.series[idx]?.score ?? ''),
+  }))
+
+  let currentEntryId = editingEntryId
 
   if (!editingEntryId) {
     const { data: entryData, error: entryError } = await supabase
       .from('entries')
-      .insert([{
-        user_id: user.id,
-        entry_date: entryDate.value,
-        entry_type: entryType.value || null,
-        discipline_id: entryDiscipline.value || null,
-        weapon_id: entryWeapon.value || null,
-        location: entryLocation.value.trim() || null,
-        note: entryNote.value.trim() || null,
-        training_duration_minutes: entryType.value === 'training' ? trainingDurationMinutes : null,
-        total_score: totalScore,
-        shots_per_series: shotsPerSeries,
-      }])
+      .insert([entryPayload])
       .select('id')
       .single()
 
@@ -2228,85 +2377,120 @@ saveEntryBtn.addEventListener('click', async () => {
       return
     }
 
-    if (seriesData.length > 0) {
-      const seriesRows = seriesData.map((series) => ({
-        entry_id: entryData.id,
-        user_id: user.id,
-        series_number: series.series_number,
-        score: series.score,
-      }))
+    currentEntryId = entryData.id
+  } else {
+    const { error: updateError } = await supabase
+      .from('entries')
+      .update({
+        entry_date: entryPayload.entry_date,
+        entry_type: entryPayload.entry_type,
+        location: entryPayload.location,
+        note: entryPayload.note,
+        training_duration_minutes: entryPayload.training_duration_minutes,
+      })
+      .eq('id', editingEntryId)
+      .eq('user_id', user.id)
 
-      const { error: seriesError } = await supabase.from('entry_series').insert(seriesRows)
-      if (seriesError) {
-        setStatus(entryStatus, `Fehler bei Serien: ${seriesError.message}`, 'error')
+    if (updateError) {
+      setStatus(entryStatus, `Fehler beim Aktualisieren: ${updateError.message}`, 'error')
+      return
+    }
+
+    const { data: existingBlocks, error: existingBlocksError } = await supabase
+      .from('entry_blocks')
+      .select('id')
+      .eq('entry_id', editingEntryId)
+      .eq('user_id', user.id)
+
+    if (existingBlocksError) {
+      setStatus(entryStatus, `Fehler beim Laden bestehender Blöcke: ${existingBlocksError.message}`, 'error')
+      return
+    }
+
+    const existingBlockIds = (existingBlocks || []).map((block) => block.id)
+    if (existingBlockIds.length) {
+      const { error: deleteSeriesError } = await supabase
+        .from('entry_series')
+        .delete()
+        .eq('user_id', user.id)
+        .in('entry_block_id', existingBlockIds)
+
+      if (deleteSeriesError) {
+        setStatus(entryStatus, `Fehler beim Löschen bestehender Serien: ${deleteSeriesError.message}`, 'error')
         return
       }
     }
 
-    localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
-    localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
+    const { error: deleteBlocksError } = await supabase
+      .from('entry_blocks')
+      .delete()
+      .eq('entry_id', editingEntryId)
+      .eq('user_id', user.id)
 
-    setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
-    resetForm({
-      preserveDate: true,
-      preserveType: true,
-      preserveDiscipline: true,
-      preserveWeapon: true,
-      preserveShotsPerSeries: true,
-      preserveSeriesCount: true,
-    })
-    await loadFormData()
-    await loadEntries()
-    return
-  }
-
-  const { error: updateError } = await supabase
-    .from('entries')
-    .update({
-      entry_date: entryDate.value,
-      entry_type: entryType.value || null,
-      discipline_id: entryDiscipline.value || null,
-      weapon_id: entryWeapon.value || null,
-      location: entryLocation.value.trim() || null,
-      note: entryNote.value.trim() || null,
-      training_duration_minutes: entryType.value === 'training' ? trainingDurationMinutes : null,
-      total_score: totalScore,
-      shots_per_series: shotsPerSeries,
-    })
-    .eq('id', editingEntryId)
-    .eq('user_id', user.id)
-
-  if (updateError) {
-    setStatus(entryStatus, `Fehler beim Aktualisieren: ${updateError.message}`, 'error')
-    return
-  }
-
-  const { error: deleteSeriesError } = await supabase.from('entry_series').delete().eq('entry_id', editingEntryId).eq('user_id', user.id)
-  if (deleteSeriesError) {
-    setStatus(entryStatus, `Fehler beim Aktualisieren der Serien: ${deleteSeriesError.message}`, 'error')
-    return
-  }
-
-  if (seriesData.length > 0) {
-    const seriesRows = seriesData.map((series) => ({
-      entry_id: editingEntryId,
-      user_id: user.id,
-      series_number: series.series_number,
-      score: series.score,
-    }))
-
-    const { error: insertSeriesError } = await supabase.from('entry_series').insert(seriesRows)
-    if (insertSeriesError) {
-      setStatus(entryStatus, `Fehler beim Speichern der Serien: ${insertSeriesError.message}`, 'error')
+    if (deleteBlocksError) {
+      setStatus(entryStatus, `Fehler beim Aktualisieren der Blöcke: ${deleteBlocksError.message}`, 'error')
       return
     }
   }
 
-  localStorage.setItem(getLastWeaponKey(user.id), entryWeapon.value || '')
-  localStorage.setItem(getLastDisciplineKey(user.id), entryDiscipline.value || '')
+  const blockRows = blocks.map((block, index) => ({
+    user_id: user.id,
+    entry_id: currentEntryId,
+    block_order: index + 1,
+    discipline_id: block.discipline_id || null,
+    weapon_id: block.weapon_id || null,
+    shots_per_series: block.shots_per_series,
+    note: block.note || null,
+    total_score: block.total_score,
+  }))
 
-  setStatus(entryStatus, 'Eintrag aktualisiert.', 'success', { autoClear: true })
-  resetForm()
+  const { data: insertedBlocks, error: blockError } = await supabase
+    .from('entry_blocks')
+    .insert(blockRows)
+    .select('id, block_order')
+
+  if (blockError) {
+    setStatus(entryStatus, `Fehler bei Blöcken: ${blockError.message}`, 'error')
+    return
+  }
+
+  const blockIdByOrder = new Map((insertedBlocks || []).map((block) => [Number(block.block_order), block.id]))
+  const seriesRows = []
+
+  blocks.forEach((block, index) => {
+    const blockId = blockIdByOrder.get(index + 1)
+    ;(block.series || []).forEach((series) => {
+      seriesRows.push({
+        entry_id: currentEntryId,
+        entry_block_id: blockId,
+        user_id: user.id,
+        series_number: series.series_number,
+        score: series.score,
+      })
+    })
+  })
+
+  if (seriesRows.length > 0) {
+    const { error: seriesError } = await supabase.from('entry_series').insert(seriesRows)
+    if (seriesError) {
+      setStatus(entryStatus, `Fehler bei Serien: ${seriesError.message}`, 'error')
+      return
+    }
+  }
+
+  if (!editingEntryId) {
+    setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
+    resetForm({
+      preserveDate: true,
+      preserveType: true,
+      preserveDuration: true,
+      preserveBlocks: true,
+    })
+  } else {
+    setStatus(entryStatus, 'Eintrag aktualisiert.', 'success', { autoClear: true })
+    resetForm()
+  }
+
   await loadFormData()
   await loadEntries()
 })
@@ -2321,7 +2505,6 @@ async function init() {
   closeListFilterPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
-  updateEntryTypeDependentFields()
   showSplash()
 
   const { data: { session } } = await supabase.auth.getSession()
