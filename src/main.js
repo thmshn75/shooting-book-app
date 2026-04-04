@@ -57,7 +57,13 @@ document.querySelector('#app').innerHTML = `
 
                 <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
                   <label for="training-duration-minutes">Trainingsdauer (Minuten)</label>
-                  <input id="training-duration-minutes" class="uniform-input" type="number" min="1" max="1440" placeholder="Dauer in Minuten" />
+                  <select id="training-duration-minutes" class="uniform-input">
+                    <option value="">Dauer auswählen</option>
+                    <option value="30">30 Minuten</option>
+                    <option value="60">60 Minuten</option>
+                    <option value="90">90 Minuten</option>
+                    <option value="120">120 Minuten</option>
+                  </select>
                 </div>
 
                 <div class="location-input-row">
@@ -932,6 +938,19 @@ function getEmptyBlockData() {
     shots_per_series: '',
     note: '',
     series_count: 1,
+    series_scores: [''],
+  }
+}
+
+function getNextBlockDefaults(previousBlock) {
+  if (!previousBlock) return getEmptyBlockData()
+
+  return {
+    discipline_id: previousBlock.discipline_id || '',
+    weapon_id: previousBlock.weapon_id || '',
+    shots_per_series: previousBlock.shots_per_series ?? '',
+    note: previousBlock.note || '',
+    series_count: Math.min(Math.max(Number(previousBlock.series_count) || 1, 1), 20),
     series_scores: [''],
   }
 }
@@ -2272,7 +2291,8 @@ entryType.addEventListener('change', () => {
 
 addBlockBtn.addEventListener('click', () => {
   const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
-  currentBlocks.push(getEmptyBlockData())
+  const previousBlock = currentBlocks[currentBlocks.length - 1] || null
+  currentBlocks.push(getNextBlockDefaults(previousBlock))
   renderEntryBlocks(currentBlocks, { focusLastBlock: true })
 })
 
