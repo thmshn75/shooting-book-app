@@ -939,6 +939,7 @@ function getEmptyBlockData() {
     note: '',
     series_count: 1,
     series_scores: [''],
+    is_collapsed: false,
   }
 }
 
@@ -952,7 +953,25 @@ function getNextBlockDefaults(previousBlock) {
     note: previousBlock.note || '',
     series_count: Math.min(Math.max(Number(previousBlock.series_count) || 1, 1), 20),
     series_scores: [''],
+    is_collapsed: false,
   }
+}
+
+
+function getDisciplineNameById(disciplineId) {
+  return disciplinesCache.find((discipline) => String(discipline.id) === String(disciplineId))?.name || 'Ohne Disziplin'
+}
+
+function getWeaponNameById(weaponId) {
+  const weapon = weaponsCache.find((item) => String(item.id) === String(weaponId))
+  return weapon ? getWeaponDisplayName(weapon) : 'Ohne Waffe'
+}
+
+function getBlockTotalScore(block) {
+  return (block.series_scores || []).reduce((sum, value) => {
+    const score = Number(value)
+    return Number.isFinite(score) ? sum + score : sum
+  }, 0)
 }
 
 function updateTrainingDurationVisibility() {
@@ -1011,7 +1030,11 @@ function buildSeriesInputsMarkup(scores, count, blockIndex) {
 
 function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
   const { focusLastBlock = false } = options
-  const normalizedBlocks = Array.isArray(blocks) && blocks.length ? blocks : [getEmptyBlockData()]
+  const normalizedBlocks = (Array.isArray(blocks) && blocks.length ? blocks : [getEmptyBlockData()]).map((block, index, arr) => ({
+    ...getEmptyBlockData(),
+    ...block,
+    is_collapsed: arr.length > 1 ? Boolean(block?.is_collapsed) : false,
+  }))
   const allowMultipleBlocks = entryType.value === 'training'
 
   entryBlocks.innerHTML = normalizedBlocks.map((block, index) => {
@@ -1019,59 +1042,86 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
     const seriesCount = Math.min(Math.max(Number(block.series_count) || Number(block.series_scores?.length) || 1, 1), 20)
     const seriesScores = Array.from({ length: seriesCount }, (_, scoreIndex) => block.series_scores?.[scoreIndex] ?? '')
     const canDelete = allowMultipleBlocks && normalizedBlocks.length > 1
+    const isCollapsed = normalizedBlocks.length > 1 ? Boolean(block.is_collapsed) : false
+    const totalScore = getBlockTotalScore({ ...block, series_scores: seriesScores })
+    const summaryDiscipline = getDisciplineNameById(block.discipline_id)
+    const summaryWeapon = getWeaponNameById(block.weapon_id)
 
     return `
-      <div class="entry-block-card" data-block-index="${index}">
+      <div class="entry-block-card ${isCollapsed ? 'is-collapsed' : 'is-expanded is-active'}" data-block-index="${index}" data-collapsed="${isCollapsed ? '1' : '0'}">
         <div class="entry-block-top">
-          <div class="entry-block-title">Block ${blockNumber}</div>
+          <button type="button" class="block-toggle-btn" data-block-index="${index}" aria-expanded="${isCollapsed ? 'false' : 'true'}">
+            <div class="entry-block-heading-row">
+              <div class="entry-block-title">Block ${blockNumber}</div>
+              <div class="entry-block-summary-inline">${summaryDiscipline} · ${summaryWeapon}</div>
+            </div>
+            <div class="entry-block-summary-chips">
+              <span class="entry-block-chip">${seriesCount} Serien</span>
+              <span class="entry-block-chip">${totalScore} Punkte</span>
+              <span class="entry-block-chip">${isCollapsed ? 'Aufklappen' : 'Einklappen'}</span>
+            </div>
+          </button>
           ${canDelete ? `<button type="button" class="danger-soft-btn delete-block-btn" data-block-index="${index}">Block löschen</button>` : ''}
         </div>
 
-        <div class="form-grid mobile-single-grid">
-          <select class="uniform-input block-discipline-select" data-block-index="${index}">
-            ${getBlockDisciplineOptions(block.discipline_id)}
-          </select>
+        <div class="entry-block-panel" style="display:${isCollapsed ? 'none' : 'block'};">
+          <div class="form-grid mobile-single-grid">
+            <select class="uniform-input block-discipline-select" data-block-index="${index}">
+              ${getBlockDisciplineOptions(block.discipline_id)}
+            </select>
 
-          <select class="uniform-input block-weapon-select" data-block-index="${index}">
-            ${getBlockWeaponOptions(block.weapon_id)}
-          </select>
+            <select class="uniform-input block-weapon-select" data-block-index="${index}">
+              ${getBlockWeaponOptions(block.weapon_id)}
+            </select>
 
-          <input
-            class="uniform-input block-shots-input"
-            data-block-index="${index}"
-            type="number"
-            min="1"
-            max="50"
-            placeholder="Schuss pro Serie"
-            value="${block.shots_per_series ?? ''}"
-          />
+            <input
+              class="uniform-input block-shots-input"
+              data-block-index="${index}"
+              type="number"
+              min="1"
+              max="50"
+              placeholder="Schuss pro Serie"
+              value="${block.shots_per_series ?? ''}"
+            />
 
-          <input
-            class="uniform-input block-series-count-input"
-            data-block-index="${index}"
-            type="number"
-            min="1"
-            max="20"
-            value="${seriesCount}"
-          />
+            <input
+              class="uniform-input block-series-count-input"
+              data-block-index="${index}"
+              type="number"
+              min="1"
+              max="20"
+              value="${seriesCount}"
+            />
 
-          <input
-            class="uniform-input block-note-input"
-            data-block-index="${index}"
-            type="text"
-            placeholder="Block-Notiz"
-            value="${block.note ?? ''}"
-          />
-        </div>
+            <input
+              class="uniform-input block-note-input"
+              data-block-index="${index}"
+              type="text"
+              placeholder="Block-Notiz"
+              value="${block.note ?? ''}"
+            />
+          </div>
 
-        <div class="block-series-inputs" data-block-index="${index}">
-          ${buildSeriesInputsMarkup(seriesScores, seriesCount, index)}
+          <div class="block-series-inputs" data-block-index="${index}">
+            ${buildSeriesInputsMarkup(seriesScores, seriesCount, index)}
+          </div>
         </div>
       </div>
     `
   }).join('')
 
   addBlockBtn.style.display = allowMultipleBlocks ? 'inline-flex' : 'none'
+
+  document.querySelectorAll('.block-toggle-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      const blockIndex = Number(button.dataset.blockIndex)
+      const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+      currentBlocks.forEach((block, index) => {
+        block.is_collapsed = index === blockIndex ? !Boolean(block.is_collapsed) : Boolean(block.is_collapsed)
+      })
+      renderEntryBlocks(currentBlocks)
+    })
+  })
 
   document.querySelectorAll('.block-series-count-input').forEach((input) => {
     const rerenderBlock = () => {
@@ -1083,6 +1133,7 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
       if (count > 20) count = 20
       block.series_count = count
       block.series_scores = Array.from({ length: count }, (_, idx) => block.series_scores?.[idx] ?? '')
+      block.is_collapsed = false
       currentBlocks[blockIndex] = block
       renderEntryBlocks(currentBlocks)
     }
@@ -1098,10 +1149,13 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
 
   document.querySelectorAll('.delete-block-btn').forEach((button) => {
     button.addEventListener('click', () => {
+      if (!window.confirm('Diesen Block wirklich löschen?')) return
       const blockIndex = Number(button.dataset.blockIndex)
       const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
       currentBlocks.splice(blockIndex, 1)
-      renderEntryBlocks(currentBlocks.length ? currentBlocks : [getEmptyBlockData()])
+      const nextBlocks = currentBlocks.length ? currentBlocks : [getEmptyBlockData()]
+      nextBlocks[nextBlocks.length - 1].is_collapsed = false
+      renderEntryBlocks(nextBlocks)
     })
   })
 
@@ -1118,9 +1172,13 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
   })
 
   if (focusLastBlock) {
-    const lastBlock = entryBlocks.querySelector('.entry-block-card:last-child .block-discipline-select')
-    if (lastBlock) {
-      setTimeout(() => lastBlock.focus(), 0)
+    const lastCard = entryBlocks.querySelector('.entry-block-card:last-child')
+    const lastField = entryBlocks.querySelector('.entry-block-card:last-child .block-discipline-select')
+    if (lastCard) {
+      setTimeout(() => {
+        lastCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        if (lastField) lastField.focus()
+      }, 50)
     }
   }
 }
@@ -1137,6 +1195,7 @@ function getBlockDataFromForm(options = {}) {
     const note = card.querySelector('.block-note-input')?.value?.trim() || ''
     const seriesCountValue = card.querySelector('.block-series-count-input')?.value || '1'
     const seriesInputs = Array.from(card.querySelectorAll('.block-series-score-input'))
+    const isCollapsed = card.dataset.collapsed === '1'
     const series = seriesInputs
       .map((input) => {
         const value = input.value.trim()
@@ -2283,7 +2342,8 @@ entryType.addEventListener('change', () => {
 
   if (entryType.value === 'competition') {
     const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
-    renderEntryBlocks([currentBlocks[0] || getEmptyBlockData()])
+    const firstBlock = { ...(currentBlocks[0] || getEmptyBlockData()), is_collapsed: false }
+    renderEntryBlocks([firstBlock])
   } else {
     renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
   }
@@ -2292,6 +2352,9 @@ entryType.addEventListener('change', () => {
 addBlockBtn.addEventListener('click', () => {
   const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
   const previousBlock = currentBlocks[currentBlocks.length - 1] || null
+  currentBlocks.forEach((block) => {
+    block.is_collapsed = true
+  })
   currentBlocks.push(getNextBlockDefaults(previousBlock))
   renderEntryBlocks(currentBlocks, { focusLastBlock: true })
 })
