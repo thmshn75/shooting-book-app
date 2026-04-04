@@ -1064,7 +1064,7 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
             <div class="entry-block-summary-chips">
               <span class="entry-block-chip">${seriesCount} Serien</span>
               <span class="entry-block-chip">${totalScore} Punkte</span>
-              <span class="entry-block-chip">${isCollapsed ? 'Geschlossen' : 'Offen'}</span>
+              <span class="entry-block-chip">${isCollapsed ? 'Details anzeigen' : 'Details ausblenden'}</span>
             </div>
           </button>
           ${canDelete ? `<button type="button" class="danger-soft-btn delete-block-btn" data-block-index="${index}">Block löschen</button>` : ''}
@@ -1234,6 +1234,7 @@ function getBlockDataFromForm(options = {}) {
       series_scores: Array.from({ length: seriesCount }, (_, idx) => seriesInputs[idx]?.value ?? ''),
       series,
       total_score: calculateTotalScore(series),
+      is_collapsed: isCollapsed,
     })
   })
 
