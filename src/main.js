@@ -1819,12 +1819,16 @@ function buildEntriesWorkbookData(entries) {
   const blocksRows = []
   const seriesRows = []
 
-  entries.forEach((entry) => {
+  entries.forEach((entry, entryIndex) => {
     const blocks = entry.entry_blocks || []
     const totalSeriesCount = blocks.reduce((sum, block) => sum + ((block.entry_series || []).length), 0)
+    const typeShort = entry.entry_type === 'competition' ? 'B' : 'T'
+    const datePart = entry.entry_date || 'ohne-datum'
+    const runningNumber = String(entryIndex + 1).padStart(2, '0')
+    const sessionReference = `${datePart}_${typeShort}_${runningNumber}`
 
     sessionsRows.push({
-      Session_ID: entry.id,
+      Session_Referenz: sessionReference,
       Datum: entry.entry_date || '',
       Typ: formatEntryType(entry.entry_type),
       Trainingsdauer_Minuten: entry.training_duration_minutes ?? '',
@@ -1839,7 +1843,7 @@ function buildEntriesWorkbookData(entries) {
       const series = block.entry_series || []
 
       blocksRows.push({
-        Session_ID: entry.id,
+        Session_Referenz: sessionReference,
         Datum: entry.entry_date || '',
         Typ: formatEntryType(entry.entry_type),
         Blocknummer: block.block_order ?? '',
@@ -1855,7 +1859,7 @@ function buildEntriesWorkbookData(entries) {
 
       series.forEach((seriesItem) => {
         seriesRows.push({
-          Session_ID: entry.id,
+          Session_Referenz: sessionReference,
           Datum: entry.entry_date || '',
           Typ: formatEntryType(entry.entry_type),
           Blocknummer: block.block_order ?? '',
