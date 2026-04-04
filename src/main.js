@@ -1,5 +1,6 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
+import { utils, writeFileXLSX } from 'xlsx'
 
 const supabaseUrl = 'https://uvgqbnsexnwrqkxrsxib.supabase.co'
 const supabaseKey = 'sb_publishable_X0J-88ZYBNSy4HWNHyF56Q_xWCD40ex'
@@ -1813,6 +1814,103 @@ function exportEntriesCsv(entries, filename = null) {
   downloadTextFile(finalFilename, csvContent, 'text/csv;charset=utf-8')
 }
 
+function buildEntriesWorkbookData(entries) {
+  const sessionsRows = []
+  const blocksRows = []
+  const seriesRows = []
+
+  entries.forEach((entry) => {
+    const blocks = entry.entry_blocks || []
+    const totalSeriesCount = blocks.reduce((sum, block) => sum + ((block.entry_series || []).length), 0)
+
+    sessionsRows.push({
+      Session_ID: entry.id,
+      Datum: entry.entry_date || '',
+      Typ: formatEntryType(entry.entry_type),
+      Trainingsdauer_Minuten: entry.training_duration_minutes ?? '',
+      Ort: entry.location || '',
+      Notiz: entry.note || '',
+      Blockanzahl: blocks.length,
+      Serienanzahl_Gesamt: totalSeriesCount,
+      Gesamtscore: entry.total_score ?? 0,
+    })
+
+    blocks.forEach((block) => {
+      const series = block.entry_series || []
+
+      blocksRows.push({
+        Session_ID: entry.id,
+        Datum: entry.entry_date || '',
+        Typ: formatEntryType(entry.entry_type),
+        Blocknummer: block.block_order ?? '',
+        Disziplin: block.disciplines?.name || '',
+        Waffe: block.weapons?.name || '',
+        Waffentyp: block.weapons?.type || '',
+        Kaliber: block.weapons?.caliber || '',
+        Schuss_pro_Serie: block.shots_per_series ?? '',
+        Block_Notiz: block.note || '',
+        Serienanzahl_Block: series.length,
+        Blockscore: block.total_score ?? 0,
+      })
+
+      series.forEach((seriesItem) => {
+        seriesRows.push({
+          Session_ID: entry.id,
+          Datum: entry.entry_date || '',
+          Typ: formatEntryType(entry.entry_type),
+          Blocknummer: block.block_order ?? '',
+          Seriennummer: seriesItem.series_number ?? '',
+          Disziplin: block.disciplines?.name || '',
+          Waffe: block.weapons?.name || '',
+          Schuss_pro_Serie: block.shots_per_series ?? '',
+          Score: seriesItem.score ?? 0,
+        })
+      })
+    })
+  })
+
+  return { sessionsRows, blocksRows, seriesRows }
+}
+
+function exportEntriesXlsx(entries, filename = null) {
+  const { sessionsRows, blocksRows, seriesRows } = buildEntriesWorkbookData(entries)
+
+  const workbook = utils.book_new()
+
+  const sessionsSheet = utils.json_to_sheet(sessionsRows)
+  const blocksSheet = utils.json_to_sheet(blocksRows)
+  const seriesSheet = utils.json_to_sheet(seriesRows)
+
+  if (sessionsSheet['!ref']) sessionsSheet['!autofilter'] = { ref: sessionsSheet['!ref'] }
+  if (blocksSheet['!ref']) blocksSheet['!autofilter'] = { ref: blocksSheet['!ref'] }
+  if (seriesSheet['!ref']) seriesSheet['!autofilter'] = { ref: seriesSheet['!ref'] }
+
+  sessionsSheet['!cols'] = [
+    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 },
+    { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
+  ]
+
+  blocksSheet['!cols'] = [
+    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 20 },
+    { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 28 },
+    { wch: 18 }, { wch: 14 },
+  ]
+
+  seriesSheet['!cols'] = [
+    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
+    { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 12 },
+  ]
+
+  utils.book_append_sheet(workbook, sessionsSheet, 'Sessions')
+  utils.book_append_sheet(workbook, blocksSheet, 'Bloecke')
+  utils.book_append_sheet(workbook, seriesSheet, 'Serien')
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  const finalFilename = filename || `shooting-book-meine-eintraege-${stamp}.xlsx`
+
+  writeFileXLSX(workbook, finalFilename)
+}
+
 function exportStatisticsCsv(entries, options = {}) {
   const { filename = null, filterLabel = null } = options
   const sessionCount = entries.length
@@ -2352,7 +2450,7 @@ exportListFilteredBtn.addEventListener('click', () => {
   }
 
   setStatus(listExportStatus, `Export der gefilterten Einträge gestartet (${getActiveListFilterLabel()}).`, 'success', { autoClear: true })
-  exportEntriesCsv(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.csv`)
+  exportEntriesXlsx(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.xlsx`)
 })
 
 exportListAllBtn.addEventListener('click', () => {
@@ -2362,7 +2460,7 @@ exportListAllBtn.addEventListener('click', () => {
   }
 
   setStatus(listExportStatus, 'Export aller Einträge gestartet.', 'success', { autoClear: true })
-  exportEntriesCsv(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.csv`)
+  exportEntriesXlsx(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.xlsx`)
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
