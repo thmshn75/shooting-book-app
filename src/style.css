@@ -20,6 +20,11 @@
   --shadow-soft: 0 6px 16px rgba(40, 28, 15, 0.1);
   --app-bg: #35393f;
   --app-bg-2: #2f3338;
+  --state-bluegray: #66727f;
+  --state-bluegray-dark: #53606d;
+  --state-bluegray-soft: rgba(102, 114, 127, 0.12);
+  --state-bluegray-soft-2: rgba(102, 114, 127, 0.2);
+  --state-bluegray-border: rgba(102, 114, 127, 0.55);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -276,12 +281,58 @@ button[type='button']:hover {
   color: #f8f3ea;
 }
 
+.tab-btn.is-editing {
+  background: linear-gradient(180deg, rgba(117, 129, 143, 0.96) 0%, rgba(91, 104, 118, 0.98) 100%);
+  border-color: var(--state-bluegray-dark);
+  color: #f4f7fa;
+  box-shadow: 0 0 0 3px rgba(102, 114, 127, 0.2);
+}
+
+.tab-btn.is-editing:hover {
+  background: linear-gradient(180deg, rgba(102, 114, 127, 0.98) 0%, rgba(83, 96, 109, 1) 100%);
+  border-color: var(--state-bluegray-dark);
+}
+
+.tab-btn.is-editing-origin {
+  position: relative;
+}
+
+.tab-btn.is-editing-origin::after {
+  content: 'Bearbeitung';
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(102, 114, 127, 0.16);
+  color: var(--state-bluegray-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .tab-panel {
   display: none;
 }
 
 .tab-panel.active {
   display: block;
+}
+
+#entry-box.is-editing {
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(235, 239, 243, 0.88) 0%, rgba(228, 233, 238, 0.78) 100%);
+  border: 1px solid rgba(102, 114, 127, 0.38);
+  box-shadow: 0 0 0 4px rgba(102, 114, 127, 0.12);
+}
+
+#entry-box.is-editing #form-title {
+  color: var(--state-bluegray-dark);
+}
+
+#entry-box.is-editing .manage-box,
+#entry-box.is-editing .inner-manage-box {
+  border-color: rgba(102, 114, 127, 0.34);
 }
 
 .manage-box {
@@ -921,6 +972,27 @@ button[type='button']:hover {
   border-color: #b89c63;
 }
 
+#save-entry-btn.is-editing {
+  background: linear-gradient(180deg, rgba(117, 129, 143, 0.96) 0%, rgba(91, 104, 118, 0.98) 100%);
+  border-color: var(--state-bluegray-dark);
+  color: #f4f7fa;
+}
+
+#save-entry-btn.is-editing:hover {
+  background: linear-gradient(180deg, rgba(102, 114, 127, 0.98) 0%, rgba(83, 96, 109, 1) 100%);
+  border-color: var(--state-bluegray-dark);
+}
+
+#cancel-edit-btn.is-editing {
+  background: rgba(220, 227, 233, 0.96);
+  border-color: rgba(102, 114, 127, 0.4);
+  color: var(--state-bluegray-dark);
+}
+
+#cancel-edit-btn.is-editing:hover {
+  background: rgba(208, 217, 224, 0.98);
+  border-color: rgba(83, 96, 109, 0.62);
+}
 
 
 .entry-form-layout {
@@ -1551,6 +1623,17 @@ button[type='button']:hover {
 }
 
 @media (max-width: 680px) {
+  #entry-box.is-editing {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .tab-btn.is-editing-origin::after {
+    margin-left: 6px;
+    padding: 2px 6px;
+    font-size: 0.64rem;
+  }
+
   .desktop-stats-table {
     display: none;
   }
@@ -1850,9 +1933,29 @@ button[type='button']:hover {
 }
 
 .entry-block-card.is-active {
-  border-color: rgba(111, 93, 67, 0.95);
-  background: rgba(255, 248, 236, 0.98);
-  box-shadow: 0 0 0 4px rgba(111, 93, 67, 0.18), 0 14px 28px rgba(40, 28, 15, 0.16);
+  border-color: var(--state-bluegray-border);
+  background: linear-gradient(180deg, rgba(240, 244, 247, 0.98) 0%, rgba(231, 236, 241, 0.96) 100%);
+  box-shadow: 0 0 0 4px rgba(102, 114, 127, 0.18), 0 16px 30px rgba(34, 43, 52, 0.12);
+}
+
+.entry-block-card.is-active .block-toggle-btn {
+  background: rgba(223, 230, 236, 0.96) !important;
+  border-color: rgba(102, 114, 127, 0.42) !important;
+}
+
+.entry-block-card.is-active .block-toggle-btn:hover {
+  background: rgba(214, 222, 229, 0.98) !important;
+  border-color: rgba(83, 96, 109, 0.62) !important;
+}
+
+.entry-block-card.is-active .entry-block-title,
+.entry-block-card.is-active .entry-block-summary-inline {
+  color: var(--state-bluegray-dark);
+}
+
+.entry-block-card.is-active .entry-block-chip {
+  background: rgba(245, 248, 250, 0.96);
+  border-color: rgba(102, 114, 127, 0.34);
 }
 
 .entry-block-card.is-collapsed {
