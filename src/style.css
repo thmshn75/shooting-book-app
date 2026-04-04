@@ -1673,6 +1673,39 @@ button[type='button']:hover {
   min-width: 170px;
 }
 
+.entry-blocks-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.entry-card-toggle-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent !important;
+  border: 0 !important;
+  color: inherit !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+.entry-card-panel {
+  margin-top: 10px;
+}
+
+.entry-card.is-expanded {
+  border-color: rgba(111, 93, 67, 0.75);
+  box-shadow: 0 14px 28px rgba(40, 28, 15, 0.14);
+}
+
+.entry-collapse-hint {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .entry-blocks-header {
   display: flex;
   justify-content: space-between;
@@ -1751,6 +1784,7 @@ button[type='button']:hover {
 @media (max-width: 680px) {
   .location-input-row,
   .entry-blocks-header,
+  .entry-blocks-actions,
   .entry-block-top,
   .block-series-inputs {
     grid-template-columns: 1fr;
