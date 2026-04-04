@@ -1757,8 +1757,73 @@ button[type='button']:hover {
     display: grid;
   }
 
+  .entry-block-summary-chips {
+    gap: 6px;
+  }
+
+  .entry-block-chip {
+    font-size: 0.72rem;
+  }
+
   .location-btn,
   #add-block-btn {
     width: 100%;
   }
+}
+
+
+.block-toggle-btn {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  justify-items: start;
+  background: rgba(255, 255, 255, 0.42) !important;
+  border-color: rgba(173, 148, 110, 0.55) !important;
+  color: var(--text) !important;
+}
+
+.block-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: #91795a !important;
+}
+
+.entry-block-heading-row {
+  display: grid;
+  gap: 2px;
+}
+
+.entry-block-summary-inline {
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.entry-block-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entry-block-chip {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(246, 238, 226, 0.92);
+  border: 1px solid rgba(173, 148, 110, 0.45);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.entry-block-card.is-active {
+  border-color: rgba(111, 93, 67, 0.78);
+  box-shadow: 0 0 0 3px rgba(111, 93, 67, 0.08);
+}
+
+.entry-block-card.is-collapsed {
+  background: rgba(240, 231, 216, 0.72);
+}
+
+.entry-block-panel {
+  margin-top: 12px;
 }
