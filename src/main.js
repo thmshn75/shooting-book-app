@@ -637,28 +637,35 @@ function closeListFilterPanel() {
   setCollapsibleState(toggleListFilterPanelBtn, listFilterPanel, false, '− Filter ausblenden', '+ Filter anzeigen')
 }
 
-function renderStatsTable(container, rows, emptyText) {
+function renderStatsTable(container, rows, emptyText, options = {}) {
   if (!rows.length) {
     container.innerHTML = `<p>${emptyText}</p>`
     return
   }
 
+  const {
+    countLabel = 'Einträge',
+    averageLabel = 'Schnitt/Eintrag',
+    countKey = 'entries',
+    averageKey = 'averagePerEntry',
+  } = options
+
   container.innerHTML = `
     <div class="stats-table desktop-stats-table">
       <div class="stats-table-head">
         <div>Name</div>
-        <div>Einträge</div>
+        <div>${countLabel}</div>
         <div>Serien</div>
         <div>Gesamt</div>
-        <div>Schnitt/Eintrag</div>
+        <div>${averageLabel}</div>
       </div>
       ${rows.map((row) => `
         <div class="stats-table-row">
           <div>${row.name}</div>
-          <div>${row.entries}</div>
+          <div>${row[countKey] ?? 0}</div>
           <div>${row.series}</div>
           <div>${formatNumber(row.total)}</div>
-          <div>${formatNumber(row.averagePerEntry)}</div>
+          <div>${formatNumber(row[averageKey] ?? 0)}</div>
         </div>
       `).join('')}
     </div>
@@ -667,15 +674,26 @@ function renderStatsTable(container, rows, emptyText) {
         <div class="stats-mobile-card">
           <div class="stats-mobile-card-title">${row.name}</div>
           <div class="stats-mobile-card-grid">
-            <div><span>Einträge</span><strong>${row.entries}</strong></div>
+            <div><span>${countLabel}</span><strong>${row[countKey] ?? 0}</strong></div>
             <div><span>Serien</span><strong>${row.series}</strong></div>
             <div><span>Gesamt</span><strong>${formatNumber(row.total)}</strong></div>
-            <div><span>Schnitt/Eintrag</span><strong>${formatNumber(row.averagePerEntry)}</strong></div>
+            <div><span>${averageLabel}</span><strong>${formatNumber(row[averageKey] ?? 0)}</strong></div>
           </div>
         </div>
       `).join('')}
     </div>
   `
+}
+
+function getAllBlocks(entries) {
+  return entries.flatMap((entry) =>
+    (entry.entry_blocks || []).map((block) => ({
+      ...block,
+      parent_entry_id: entry.id,
+      parent_entry_date: entry.entry_date,
+      parent_entry_type: entry.entry_type,
+    }))
+  )
 }
 
 function buildGroupedStats(entries, getGroupName) {
@@ -695,6 +713,27 @@ function buildGroupedStats(entries, getGroupName) {
     .map((group) => ({
       ...group,
       averagePerEntry: group.entries > 0 ? group.total / group.entries : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+}
+
+function buildGroupedBlockStats(entries, getGroupName) {
+  const groups = new Map()
+
+  getAllBlocks(entries).forEach((block) => {
+    const name = getGroupName(block) || '-'
+    if (!groups.has(name)) groups.set(name, { name, blocks: 0, series: 0, total: 0 })
+
+    const group = groups.get(name)
+    group.blocks += 1
+    group.series += Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    group.total += Number(block.total_score || 0)
+  })
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      averagePerBlock: group.blocks > 0 ? group.total / group.blocks : 0,
     }))
     .sort((a, b) => b.total - a.total)
 }
@@ -871,18 +910,24 @@ function renderStatistics(entries) {
     return
   }
 
-  const entryCount = entries.length
+  const sessionCount = entries.length
+  const blockCount = getAllBlocks(entries).length
   const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
   const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
-  const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
+  const averagePerSession = sessionCount > 0 ? totalScore / sessionCount : 0
+  const averagePerBlock = blockCount > 0 ? totalScore / blockCount : 0
   const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
   const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
   const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
 
   statsSummary.innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">Einträge</div>
-      <div class="stat-value">${entryCount}</div>
+      <div class="stat-label">Sessions</div>
+      <div class="stat-value">${sessionCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Blöcke</div>
+      <div class="stat-value">${blockCount}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Serien</div>
@@ -893,30 +938,40 @@ function renderStatistics(entries) {
       <div class="stat-value">${formatNumber(totalScore)}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Schnitt / Eintrag</div>
-      <div class="stat-value">${formatNumber(averagePerEntry)}</div>
+      <div class="stat-label">Schnitt / Session</div>
+      <div class="stat-value">${formatNumber(averagePerSession)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Schnitt / Block</div>
+      <div class="stat-value">${formatNumber(averagePerBlock)}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Schnitt / Serie</div>
       <div class="stat-value">${formatNumber(averagePerSeries)}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Bester Eintrag</div>
+      <div class="stat-label">Beste Session</div>
       <div class="stat-value small">${bestEntryText}</div>
     </div>
   `
 
   renderCharts(entries)
   renderStatsTable(statsByType, buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)), 'Noch keine Typ-Daten vorhanden.')
-  renderStatsTable(statsByDiscipline, buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-'), 'Noch keine Disziplin-Daten vorhanden.')
+  renderStatsTable(
+    statsByDiscipline,
+    buildGroupedBlockStats(entries, (block) => block.disciplines?.name || '-'),
+    'Noch keine Disziplin-Daten vorhanden.',
+    { countLabel: 'Blöcke', averageLabel: 'Schnitt/Block', countKey: 'blocks', averageKey: 'averagePerBlock' }
+  )
   renderStatsTable(
     statsByWeapon,
-    buildGroupedStats(entries, (entry) => {
-      if (!entry.weapons?.name) return '-'
-      const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-      return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+    buildGroupedBlockStats(entries, (block) => {
+      if (!block.weapons?.name) return '-'
+      const details = [block.weapons.type, block.weapons.caliber].filter(Boolean).join(' | ')
+      return details ? `${block.weapons.name} (${details})` : block.weapons.name
     }),
-    'Noch keine Waffen-Daten vorhanden.'
+    'Noch keine Waffen-Daten vorhanden.',
+    { countLabel: 'Blöcke', averageLabel: 'Schnitt/Block', countKey: 'blocks', averageKey: 'averagePerBlock' }
   )
 }
 
@@ -1738,10 +1793,12 @@ function exportEntriesCsv(entries, filename = null) {
 
 function exportStatisticsCsv(entries, options = {}) {
   const { filename = null, filterLabel = null } = options
-  const entryCount = entries.length
+  const sessionCount = entries.length
+  const blockCount = getAllBlocks(entries).length
   const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
   const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
-  const averagePerEntry = entryCount > 0 ? totalScore / entryCount : 0
+  const averagePerSession = sessionCount > 0 ? totalScore / sessionCount : 0
+  const averagePerBlock = blockCount > 0 ? totalScore / blockCount : 0
   const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
   const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
   const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
@@ -1762,17 +1819,19 @@ function exportStatisticsCsv(entries, options = {}) {
 
   pushRow(['Überblick'])
   pushRow(['Kennzahl', 'Wert'])
-  pushRow(['Einträge', entryCount])
+  pushRow(['Sessions', sessionCount])
+  pushRow(['Blöcke', blockCount])
   pushRow(['Serien', seriesCount])
   pushRow(['Gesamtscore', formatNumber(totalScore)])
-  pushRow(['Schnitt pro Eintrag', formatNumber(averagePerEntry)])
+  pushRow(['Schnitt pro Session', formatNumber(averagePerSession)])
+  pushRow(['Schnitt pro Block', formatNumber(averagePerBlock)])
   pushRow(['Schnitt pro Serie', formatNumber(averagePerSeries)])
-  pushRow(['Bester Eintrag', bestEntryText])
+  pushRow(['Beste Session', bestEntryText])
   pushRow([])
 
   const typeRows = buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type))
   pushRow(['Nach Typ'])
-  pushRow(['Typ', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  pushRow(['Typ', 'Sessions', 'Serien', 'Gesamt', 'Schnitt pro Session'])
   if (typeRows.length) {
     typeRows.forEach((row) => {
       pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
@@ -1782,34 +1841,35 @@ function exportStatisticsCsv(entries, options = {}) {
   }
   pushRow([])
 
-  const disciplineRows = buildGroupedStats(entries, (entry) => entry.disciplines?.name || '-')
+  const disciplineRows = buildGroupedBlockStats(entries, (block) => block.disciplines?.name || '-')
   pushRow(['Nach Disziplin'])
-  pushRow(['Disziplin', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  pushRow(['Disziplin', 'Blöcke', 'Serien', 'Gesamt', 'Schnitt pro Block'])
   if (disciplineRows.length) {
     disciplineRows.forEach((row) => {
-      pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
+      pushRow([row.name, row.blocks, row.series, formatNumber(row.total), formatNumber(row.averagePerBlock)])
     })
   } else {
     pushRow(['Keine Daten'])
   }
   pushRow([])
 
-  const weaponRows = buildGroupedStats(entries, (entry) => {
-    if (!entry.weapons?.name) return '-'
-    const details = [entry.weapons.type, entry.weapons.caliber].filter(Boolean).join(' | ')
-    return details ? `${entry.weapons.name} (${details})` : entry.weapons.name
+  const weaponRows = buildGroupedBlockStats(entries, (block) => {
+    if (!block.weapons?.name) return '-'
+    const details = [block.weapons.type, block.weapons.caliber].filter(Boolean).join(' | ')
+    return details ? `${block.weapons.name} (${details})` : block.weapons.name
   })
   pushRow(['Nach Waffe'])
-  pushRow(['Waffe', 'Einträge', 'Serien', 'Gesamt', 'Schnitt pro Eintrag'])
+  pushRow(['Waffe', 'Blöcke', 'Serien', 'Gesamt', 'Schnitt pro Block'])
   if (weaponRows.length) {
     weaponRows.forEach((row) => {
-      pushRow([row.name, row.entries, row.series, formatNumber(row.total), formatNumber(row.averagePerEntry)])
+      pushRow([row.name, row.blocks, row.series, formatNumber(row.total), formatNumber(row.averagePerBlock)])
     })
   } else {
     pushRow(['Keine Daten'])
   }
 
-  const csvContent = lines.join('\n')
+  const csvContent = lines.join('
+')
   const stamp = new Date().toISOString().slice(0, 10)
   const finalFilename = filename || `shooting-book-statistik-${stamp}.csv`
   downloadTextFile(finalFilename, csvContent, 'text/csv;charset=utf-8')
