@@ -56,6 +56,11 @@ document.querySelector('#app').innerHTML = `
                   <option value="competition">Bewerb</option>
                 </select>
 
+                <div id="competition-max-score-wrap" class="training-duration-wrap" style="display:none;">
+                  <label for="competition-max-score">Max Punkte (Bewerb)</label>
+                  <input id="competition-max-score" class="uniform-input" type="number" min="1" step="1" inputmode="numeric" placeholder="z.B. 400" />
+                </div>
+
                 <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
                   <label for="training-duration-minutes">Trainingsdauer (Minuten)</label>
                   <select id="training-duration-minutes" class="uniform-input">
@@ -82,8 +87,6 @@ document.querySelector('#app').innerHTML = `
                     <p class="entry-muted-text">Jeder Block kann eigene Waffe, Disziplin, Schuss pro Serie und Serien haben.</p>
                   </div>
                   <div class="entry-blocks-actions">
-                    <button id="expand-all-blocks-btn" type="button">Alle aufklappen</button>
-                    <button id="collapse-all-blocks-btn" type="button">Alle einklappen</button>
                     <button id="add-block-btn" type="button">Weiteren Block hinzufügen</button>
                   </div>
                 </div>
@@ -374,6 +377,8 @@ const formTitle = document.getElementById('form-title')
 const entryBox = document.getElementById('entry-box')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
+const competitionMaxScoreWrap = document.getElementById('competition-max-score-wrap')
+const competitionMaxScoreInput = document.getElementById('competition-max-score')
 const entryLocation = document.getElementById('entry-location')
 const useLocationBtn = document.getElementById('use-location-btn')
 const entryNote = document.getElementById('entry-note')
@@ -381,8 +386,6 @@ const trainingDurationWrap = document.getElementById('training-duration-wrap')
 const trainingDurationMinutesInput = document.getElementById('training-duration-minutes')
 const entryBlocks = document.getElementById('entry-blocks')
 const addBlockBtn = document.getElementById('add-block-btn')
-const expandAllBlocksBtn = document.getElementById('expand-all-blocks-btn')
-const collapseAllBlocksBtn = document.getElementById('collapse-all-blocks-btn')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
@@ -1058,8 +1061,13 @@ function getBlockTotalScore(block) {
 
 function updateTrainingDurationVisibility() {
   const isTraining = entryType.value === 'training'
+  const isCompetition = entryType.value === 'competition'
+
   trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
+  competitionMaxScoreWrap.style.display = isCompetition ? 'block' : 'none'
+
   if (!isTraining) trainingDurationMinutesInput.value = ''
+  if (!isCompetition) competitionMaxScoreInput.value = ''
 }
 
 function getBlockDisciplineOptions(selectedValue = '') {
@@ -1426,6 +1434,7 @@ function resetForm(options = {}) {
   entryType.value = nextType
   entryLocation.value = ''
   entryNote.value = ''
+  competitionMaxScoreInput.value = ''
   trainingDurationMinutesInput.value = nextDuration
 
   updateTrainingDurationVisibility()
@@ -1834,6 +1843,7 @@ function buildEntriesWorkbookData(entries) {
       Trainingsdauer_Minuten: entry.training_duration_minutes ?? '',
       Ort: entry.location || '',
       Notiz: entry.note || '',
+      Maximalpunkte_Bewerb: entry.max_score ?? '',
       Blockanzahl: blocks.length,
       Serienanzahl_Gesamt: totalSeriesCount,
       Gesamtscore: entry.total_score ?? 0,
@@ -1891,7 +1901,7 @@ function exportEntriesXlsx(entries, filename = null) {
 
   sessionsSheet['!cols'] = [
     { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 },
-    { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
+    { wch: 30 }, { wch: 18 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
   ]
 
   blocksSheet['!cols'] = [
@@ -2192,6 +2202,7 @@ async function startEditEntry(entryId) {
       location,
       note,
       training_duration_minutes,
+      max_score,
       entry_blocks(
         id,
         block_order,
@@ -2223,6 +2234,7 @@ async function startEditEntry(entryId) {
   entryType.value = data.entry_type || 'training'
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
+  competitionMaxScoreInput.value = data.max_score || ''
   trainingDurationMinutesInput.value = data.training_duration_minutes || ''
 
   updateTrainingDurationVisibility()
@@ -2263,6 +2275,7 @@ async function loadEntries() {
       location,
       note,
       training_duration_minutes,
+      max_score,
       created_at,
       entry_blocks(
         id,
@@ -2577,21 +2590,6 @@ addBlockBtn.addEventListener('click', () => {
   renderEntryBlocks(currentBlocks, { focusLastBlock: true })
 })
 
-expandAllBlocksBtn.addEventListener('click', () => {
-  const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
-  currentBlocks.forEach((block) => {
-    block.is_collapsed = false
-  })
-  renderEntryBlocks(currentBlocks)
-})
-
-collapseAllBlocksBtn.addEventListener('click', () => {
-  const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
-  currentBlocks.forEach((block) => {
-    block.is_collapsed = true
-  })
-  renderEntryBlocks(currentBlocks)
-})
 
 useLocationBtn.addEventListener('click', async () => {
   if (!navigator.geolocation) {
@@ -2648,6 +2646,14 @@ saveEntryBtn.addEventListener('click', async () => {
     }
   }
 
+  if (entryType.value === 'competition') {
+    const maxScore = Number(competitionMaxScoreInput.value)
+    if (!Number.isInteger(maxScore) || maxScore < 1) {
+      setStatus(entryStatus, 'Bitte gültige maximale Punkte für den Bewerb eingeben.', 'error')
+      return
+    }
+  }
+
   let blocks
   try {
     blocks = getBlockDataFromForm()
@@ -2669,6 +2675,9 @@ saveEntryBtn.addEventListener('click', async () => {
     note: entryNote.value.trim() || null,
     training_duration_minutes: entryType.value === 'training'
       ? Number(trainingDurationMinutesInput.value)
+      : null,
+    max_score: entryType.value === 'competition'
+      ? Number(competitionMaxScoreInput.value)
       : null,
   }
 
@@ -2705,6 +2714,7 @@ saveEntryBtn.addEventListener('click', async () => {
         location: entryPayload.location,
         note: entryPayload.note,
         training_duration_minutes: entryPayload.training_duration_minutes,
+        max_score: entryPayload.max_score,
       })
       .eq('id', editingEntryId)
       .eq('user_id', user.id)
