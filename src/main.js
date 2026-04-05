@@ -56,9 +56,17 @@ document.querySelector('#app').innerHTML = `
                   <option value="competition">Bewerb</option>
                 </select>
 
-                <div id="competition-max-score-wrap" class="training-duration-wrap" style="display:none;">
-                  <label for="competition-max-score">Max Punkte (Bewerb)</label>
-                  <input id="competition-max-score" class="uniform-input" type="number" min="1" step="1" inputmode="numeric" placeholder="z.B. 400" />
+                <div id="competition-mode-wrap" style="display:none;">
+                  <label for="competition-mode">Bewerbsmodus</label>
+                  <select id="competition-mode" class="uniform-input">
+                    <option value="static">Statisch</option>
+                    <option value="dynamic">Dynamisch</option>
+                  </select>
+                </div>
+
+                <div id="competition-max-score-wrap" style="display:none;">
+                  <label for="competition-max-score">Max Punkte (nur statisch)</label>
+                  <input id="competition-max-score" class="uniform-input" type="number" min="1" placeholder="z.B. 400" />
                 </div>
 
                 <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
@@ -377,6 +385,8 @@ const formTitle = document.getElementById('form-title')
 const entryBox = document.getElementById('entry-box')
 const entryDate = document.getElementById('entry-date')
 const entryType = document.getElementById('entry-type')
+const competitionModeWrap = document.getElementById('competition-mode-wrap')
+const competitionModeInput = document.getElementById('competition-mode')
 const competitionMaxScoreWrap = document.getElementById('competition-max-score-wrap')
 const competitionMaxScoreInput = document.getElementById('competition-max-score')
 const entryLocation = document.getElementById('entry-location')
@@ -1062,12 +1072,15 @@ function getBlockTotalScore(block) {
 function updateTrainingDurationVisibility() {
   const isTraining = entryType.value === 'training'
   const isCompetition = entryType.value === 'competition'
+  const isStaticCompetition = isCompetition && competitionModeInput.value === 'static'
 
   trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
-  competitionMaxScoreWrap.style.display = isCompetition ? 'block' : 'none'
+  competitionModeWrap.style.display = isCompetition ? 'block' : 'none'
+  competitionMaxScoreWrap.style.display = isStaticCompetition ? 'block' : 'none'
 
   if (!isTraining) trainingDurationMinutesInput.value = ''
-  if (!isCompetition) competitionMaxScoreInput.value = ''
+  if (!isCompetition) competitionModeInput.value = 'static'
+  if (!isStaticCompetition) competitionMaxScoreInput.value = ''
 }
 
 function getBlockDisciplineOptions(selectedValue = '') {
@@ -1347,6 +1360,8 @@ function normalizeEntryForUi(entry) {
 
   return {
     ...entry,
+    competition_mode: entry.competition_mode || 'static',
+    max_score: entry.max_score ?? null,
     entry_blocks: blocks,
     total_score: sessionTotal,
     discipline_id: firstBlock?.discipline_id || null,
@@ -1432,9 +1447,10 @@ function resetForm(options = {}) {
 
   entryDate.value = nextDate
   entryType.value = nextType
+  competitionModeInput.value = 'static'
+  competitionMaxScoreInput.value = ''
   entryLocation.value = ''
   entryNote.value = ''
-  competitionMaxScoreInput.value = ''
   trainingDurationMinutesInput.value = nextDuration
 
   updateTrainingDurationVisibility()
@@ -1548,8 +1564,25 @@ function renderEntriesList(entries) {
       `
     }).join('')
 
+    const competitionModeLabel = entry.competition_mode === 'dynamic' ? 'Dynamisch' : 'Statisch'
+    const competitionScorePercent = entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0
+      ? ((Number(entry.total_score || 0) / Number(entry.max_score)) * 100)
+      : null
+
     const durationMarkup = entry.entry_type === 'training' && entry.training_duration_minutes
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Dauer</span><span class="entry-inline-value">${entry.training_duration_minutes} Min.</span></div>`
+      : ''
+
+    const competitionModeMarkup = entry.entry_type === 'competition'
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Bewerbsmodus</span><span class="entry-inline-value">${competitionModeLabel}</span></div>`
+      : ''
+
+    const competitionMaxScoreMarkup = entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Max Punkte</span><span class="entry-inline-value">${formatNumber(entry.max_score)}</span></div>`
+      : ''
+
+    const competitionScoreMarkup = entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && competitionScorePercent !== null
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Score</span><span class="entry-inline-value">${formatNumber(competitionScorePercent)} %</span></div>`
       : ''
 
     const locationMarkup = entry.location
@@ -1560,7 +1593,7 @@ function renderEntriesList(entries) {
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Notiz</span><span class="entry-inline-value">${entry.note}</span></div>`
       : ''
 
-    const optionalInfoMarkup = [durationMarkup, locationMarkup, noteMarkup].filter(Boolean).join('')
+    const optionalInfoMarkup = [durationMarkup, competitionModeMarkup, competitionMaxScoreMarkup, competitionScoreMarkup, locationMarkup, noteMarkup].filter(Boolean).join('')
     const blockCount = (entry.entry_blocks || []).length
     const seriesCount = (entry.entry_blocks || []).reduce((sum, block) => sum + (block.entry_series || []).length, 0)
 
@@ -1582,6 +1615,8 @@ function renderEntriesList(entries) {
             <div class="entry-summary-item entry-summary-total">
               <span class="entry-summary-label">Gesamt</span>
               <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
+              ${entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0 ? `<span class="entry-summary-subvalue">${formatNumber(entry.max_score)} Max · ${formatNumber((Number(entry.total_score || 0) / Number(entry.max_score)) * 100)} %</span>` : ''}
+              ${entry.entry_type === 'competition' && entry.competition_mode === 'dynamic' ? `<span class="entry-summary-subvalue">Dynamisch</span>` : ''}
             </div>
             <div class="entry-summary-item">
               <span class="entry-summary-label">Blöcke</span>
@@ -1840,10 +1875,14 @@ function buildEntriesWorkbookData(entries) {
       Session_Referenz: sessionReference,
       Datum: entry.entry_date || '',
       Typ: formatEntryType(entry.entry_type),
+      Bewerbsmodus: entry.entry_type === 'competition' ? (entry.competition_mode === 'dynamic' ? 'Dynamisch' : 'Statisch') : '',
+      Max_Punkte: entry.entry_type === 'competition' ? (entry.max_score ?? '') : '',
+      Bewerb_Score_Prozent: entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0
+        ? Number((((Number(entry.total_score || 0) / Number(entry.max_score)) * 100).toFixed(2)))
+        : '',
       Trainingsdauer_Minuten: entry.training_duration_minutes ?? '',
       Ort: entry.location || '',
       Notiz: entry.note || '',
-      Maximalpunkte_Bewerb: entry.max_score ?? '',
       Blockanzahl: blocks.length,
       Serienanzahl_Gesamt: totalSeriesCount,
       Gesamtscore: entry.total_score ?? 0,
@@ -1900,8 +1939,8 @@ function exportEntriesXlsx(entries, filename = null) {
   if (seriesSheet['!ref']) seriesSheet['!autofilter'] = { ref: seriesSheet['!ref'] }
 
   sessionsSheet['!cols'] = [
-    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 },
-    { wch: 30 }, { wch: 18 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
+    { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 18 },
+    { wch: 22 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
   ]
 
   blocksSheet['!cols'] = [
@@ -2202,6 +2241,7 @@ async function startEditEntry(entryId) {
       location,
       note,
       training_duration_minutes,
+      competition_mode,
       max_score,
       entry_blocks(
         id,
@@ -2232,9 +2272,10 @@ async function startEditEntry(entryId) {
 
   entryDate.value = data.entry_date || todayString()
   entryType.value = data.entry_type || 'training'
+  competitionModeInput.value = data.competition_mode || 'static'
+  competitionMaxScoreInput.value = data.max_score || ''
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
-  competitionMaxScoreInput.value = data.max_score || ''
   trainingDurationMinutesInput.value = data.training_duration_minutes || ''
 
   updateTrainingDurationVisibility()
@@ -2275,6 +2316,7 @@ async function loadEntries() {
       location,
       note,
       training_duration_minutes,
+      competition_mode,
       max_score,
       created_at,
       entry_blocks(
@@ -2580,6 +2622,10 @@ entryType.addEventListener('change', () => {
   }
 })
 
+competitionModeInput.addEventListener('change', () => {
+  updateTrainingDurationVisibility()
+})
+
 addBlockBtn.addEventListener('click', () => {
   const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
   const previousBlock = currentBlocks[currentBlocks.length - 1] || null
@@ -2589,7 +2635,6 @@ addBlockBtn.addEventListener('click', () => {
   currentBlocks.push(getNextBlockDefaults(previousBlock))
   renderEntryBlocks(currentBlocks, { focusLastBlock: true })
 })
-
 
 useLocationBtn.addEventListener('click', async () => {
   if (!navigator.geolocation) {
@@ -2646,10 +2691,10 @@ saveEntryBtn.addEventListener('click', async () => {
     }
   }
 
-  if (entryType.value === 'competition') {
+  if (entryType.value === 'competition' && competitionModeInput.value === 'static') {
     const maxScore = Number(competitionMaxScoreInput.value)
     if (!Number.isInteger(maxScore) || maxScore < 1) {
-      setStatus(entryStatus, 'Bitte gültige maximale Punkte für den Bewerb eingeben.', 'error')
+      setStatus(entryStatus, 'Bitte gültige Max Punkte für einen statischen Bewerb eingeben.', 'error')
       return
     }
   }
@@ -2676,7 +2721,10 @@ saveEntryBtn.addEventListener('click', async () => {
     training_duration_minutes: entryType.value === 'training'
       ? Number(trainingDurationMinutesInput.value)
       : null,
-    max_score: entryType.value === 'competition'
+    competition_mode: entryType.value === 'competition'
+      ? (competitionModeInput.value || 'static')
+      : null,
+    max_score: entryType.value === 'competition' && competitionModeInput.value === 'static'
       ? Number(competitionMaxScoreInput.value)
       : null,
   }
@@ -2714,6 +2762,7 @@ saveEntryBtn.addEventListener('click', async () => {
         location: entryPayload.location,
         note: entryPayload.note,
         training_duration_minutes: entryPayload.training_duration_minutes,
+        competition_mode: entryPayload.competition_mode,
         max_score: entryPayload.max_score,
       })
       .eq('id', editingEntryId)
