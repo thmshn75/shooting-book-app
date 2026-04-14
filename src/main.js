@@ -2,8 +2,8 @@ import './style.css'
 import { createClient } from '@supabase/supabase-js'
 import { utils, writeFileXLSX } from 'xlsx'
 
-const supabaseUrl = 'https://uvgqbnsexnwrqkxrsxib.supabase.co'
-const supabaseKey = 'sb_publishable_X0J-88ZYBNSy4HWNHyF56Q_xWCD40ex'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 document.querySelector('#app').innerHTML = `
