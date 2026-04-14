@@ -1,6 +1,6 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
-import { utils, writeFileXLSX } from 'xlsx'
+import ExcelJS from 'exceljs'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -1981,44 +1981,35 @@ function buildEntriesWorkbookData(entries) {
   return { sessionsRows, blocksRows, seriesRows }
 }
 
-function exportEntriesXlsx(entries, filename = null) {
+async function exportEntriesXlsx(entries, filename = null) {
   const { sessionsRows, blocksRows, seriesRows } = buildEntriesWorkbookData(entries)
 
-  const workbook = utils.book_new()
+  const workbook = new ExcelJS.Workbook()
 
-  const sessionsSheet = utils.json_to_sheet(sessionsRows)
-  const blocksSheet = utils.json_to_sheet(blocksRows)
-  const seriesSheet = utils.json_to_sheet(seriesRows)
+  function addSheet(name, rows, colWidths) {
+    const sheet = workbook.addWorksheet(name)
+    if (!rows.length) return
+    const keys = Object.keys(rows[0])
+    sheet.columns = keys.map((key, i) => ({ header: key, key, width: colWidths[i] || 12 }))
+    rows.forEach(row => sheet.addRow(row))
+    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: keys.length } }
+  }
 
-  if (sessionsSheet['!ref']) sessionsSheet['!autofilter'] = { ref: sessionsSheet['!ref'] }
-  if (blocksSheet['!ref']) blocksSheet['!autofilter'] = { ref: blocksSheet['!ref'] }
-  if (seriesSheet['!ref']) seriesSheet['!autofilter'] = { ref: seriesSheet['!ref'] }
-
-  sessionsSheet['!cols'] = [
-    { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 16 },
-    { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 30 },
-    { wch: 12 }, { wch: 18 }, { wch: 14 },
-  ]
-
-  blocksSheet['!cols'] = [
-    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 20 },
-    { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 28 },
-    { wch: 18 }, { wch: 14 },
-  ]
-
-  seriesSheet['!cols'] = [
-    { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
-    { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 12 },
-  ]
-
-  utils.book_append_sheet(workbook, sessionsSheet, 'Sessions')
-  utils.book_append_sheet(workbook, blocksSheet, 'Bloecke')
-  utils.book_append_sheet(workbook, seriesSheet, 'Serien')
+  addSheet('Sessions', sessionsRows, [18, 14, 16, 12, 16, 20, 18, 22, 20, 30, 12, 18, 14])
+  addSheet('Bloecke', blocksRows, [18, 14, 12, 12, 20, 20, 18, 14, 18, 28, 18, 14])
+  addSheet('Serien', seriesRows, [18, 14, 12, 12, 14, 20, 20, 18, 12])
 
   const stamp = new Date().toISOString().slice(0, 10)
   const finalFilename = filename || `shooting-book-meine-eintraege-${stamp}.xlsx`
 
-  writeFileXLSX(workbook, finalFilename)
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = finalFilename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function exportStatisticsCsv(entries, options = {}) {
@@ -2561,7 +2552,7 @@ deleteWeaponBtn.addEventListener('click', async () => {
   await deleteWeaponById(deleteWeaponSelect.value)
 })
 
-exportListFilteredBtn.addEventListener('click', () => {
+exportListFilteredBtn.addEventListener('click', async () => {
   const exportEntries = getFilteredEntries()
   if (!exportEntries.length) {
     setStatus(listExportStatus, 'Keine gefilterten Einträge für den Export vorhanden.', 'error')
@@ -2569,17 +2560,17 @@ exportListFilteredBtn.addEventListener('click', () => {
   }
 
   setStatus(listExportStatus, `Export der gefilterten Einträge gestartet (${getActiveListFilterLabel()}).`, 'success', { autoClear: true })
-  exportEntriesXlsx(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  await exportEntriesXlsx(exportEntries, `shooting-book-meine-eintraege-gefiltert-${new Date().toISOString().slice(0, 10)}.xlsx`)
 })
 
-exportListAllBtn.addEventListener('click', () => {
+exportListAllBtn.addEventListener('click', async () => {
   if (!allEntriesCache.length) {
     setStatus(listExportStatus, 'Keine Einträge für den Export vorhanden.', 'error')
     return
   }
 
   setStatus(listExportStatus, 'Export aller Einträge gestartet.', 'success', { autoClear: true })
-  exportEntriesXlsx(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  await exportEntriesXlsx(allEntriesCache, `shooting-book-meine-eintraege-alle-${new Date().toISOString().slice(0, 10)}.xlsx`)
 })
 
 addDisciplineBtn.addEventListener('click', async () => {
