@@ -32,6 +32,9 @@ document.querySelector('#app').innerHTML = `
             <button id="register-btn">Registrieren</button>
             <button id="login-btn">Login</button>
           </div>
+          <div class="auth-forgot-row">
+            <button id="forgot-password-btn" type="button" class="link-btn">Passwort vergessen?</button>
+          </div>
           <p id="auth-status"></p>
         </div>
 
@@ -121,6 +124,16 @@ document.querySelector('#app').innerHTML = `
                         <button id="delete-discipline-btn" type="button" class="danger-soft-btn">Disziplin löschen</button>
                       </div>
                     </div>
+                    <div class="sub-manage-block">
+                      <h4 class="mini-section-title">Disziplin umbenennen</h4>
+                      <div class="form-grid mobile-single-grid">
+                        <select id="edit-discipline-select" class="uniform-input">
+                          <option value="">Disziplin auswählen</option>
+                        </select>
+                        <input id="edit-discipline-name" class="uniform-input" type="text" placeholder="Neuer Name" />
+                        <button id="edit-discipline-btn" type="button">Umbenennen</button>
+                      </div>
+                    </div>
                     <p id="discipline-status"></p>
                   </div>
                 </div>
@@ -149,6 +162,19 @@ document.querySelector('#app').innerHTML = `
                           <option value="">Waffe auswählen</option>
                         </select>
                         <button id="delete-weapon-btn" type="button" class="danger-soft-btn">Waffe löschen</button>
+                      </div>
+                    </div>
+                    <div class="sub-manage-block">
+                      <h4 class="mini-section-title">Waffe bearbeiten</h4>
+                      <div class="form-grid mobile-single-grid">
+                        <select id="edit-weapon-select" class="uniform-input">
+                          <option value="">Waffe auswählen</option>
+                        </select>
+                        <input id="edit-weapon-name" class="uniform-input" type="text" placeholder="Name" />
+                        <input id="edit-weapon-type" class="uniform-input" type="text" placeholder="Typ" />
+                        <input id="edit-weapon-caliber" class="uniform-input" type="text" placeholder="Kaliber" />
+                        <input id="edit-weapon-notes" class="uniform-input" type="text" placeholder="Notizen" />
+                        <button id="edit-weapon-btn" type="button">Änderungen speichern</button>
                       </div>
                     </div>
                     <p id="weapon-status"></p>
@@ -245,7 +271,9 @@ document.querySelector('#app').innerHTML = `
                       <select id="stats-filter-type" class="uniform-input">
                         <option value="">Alle Typen</option>
                         <option value="training">Training</option>
-                        <option value="competition">Bewerb</option>
+                        <option value="competition">Bewerb (alle)</option>
+                        <option value="competition:static">Bewerb – Statisch</option>
+                        <option value="competition:dynamic">Bewerb – Dynamisch</option>
                       </select>
 
                       <select id="stats-filter-discipline" class="uniform-input">
@@ -344,6 +372,16 @@ document.querySelector('#app').innerHTML = `
               <div id="entries-list"></div>
             </div>
           </section>
+
+          <div id="confirm-modal" class="confirm-modal" style="display:none;" role="dialog" aria-modal="true">
+            <div class="confirm-modal-inner">
+              <p id="confirm-modal-message" class="confirm-modal-message"></p>
+              <div class="confirm-modal-actions">
+                <button id="confirm-modal-ok-btn" type="button" class="danger-soft-btn">Ja, löschen</button>
+                <button id="confirm-modal-cancel-btn" type="button">Abbrechen</button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -358,6 +396,7 @@ const emailInput = document.getElementById('email')
 const passwordInput = document.getElementById('password')
 const registerBtn = document.getElementById('register-btn')
 const loginBtn = document.getElementById('login-btn')
+const forgotPasswordBtn = document.getElementById('forgot-password-btn')
 const logoutBtn = document.getElementById('logout-btn')
 const authStatus = document.getElementById('auth-status')
 const authBox = document.getElementById('auth-box')
@@ -440,6 +479,9 @@ const newDisciplineName = document.getElementById('new-discipline-name')
 const addDisciplineBtn = document.getElementById('add-discipline-btn')
 const deleteDisciplineSelect = document.getElementById('delete-discipline-select')
 const deleteDisciplineBtn = document.getElementById('delete-discipline-btn')
+const editDisciplineSelect = document.getElementById('edit-discipline-select')
+const editDisciplineName = document.getElementById('edit-discipline-name')
+const editDisciplineBtn = document.getElementById('edit-discipline-btn')
 const disciplineStatus = document.getElementById('discipline-status')
 
 const toggleWeaponPanelBtn = document.getElementById('toggle-weapon-panel-btn')
@@ -451,12 +493,23 @@ const newWeaponNotes = document.getElementById('new-weapon-notes')
 const addWeaponBtn = document.getElementById('add-weapon-btn')
 const deleteWeaponSelect = document.getElementById('delete-weapon-select')
 const deleteWeaponBtn = document.getElementById('delete-weapon-btn')
+const editWeaponSelect = document.getElementById('edit-weapon-select')
+const editWeaponName = document.getElementById('edit-weapon-name')
+const editWeaponType = document.getElementById('edit-weapon-type')
+const editWeaponCaliber = document.getElementById('edit-weapon-caliber')
+const editWeaponNotes = document.getElementById('edit-weapon-notes')
+const editWeaponBtn = document.getElementById('edit-weapon-btn')
 const weaponStatus = document.getElementById('weapon-status')
 
 const toggleStatsFilterPanelBtn = document.getElementById('toggle-stats-filter-panel-btn')
 const statsFilterPanel = document.getElementById('stats-filter-panel')
 const toggleListFilterPanelBtn = document.getElementById('toggle-list-filter-panel-btn')
 const listFilterPanel = document.getElementById('list-filter-panel')
+
+const confirmModal = document.getElementById('confirm-modal')
+const confirmModalMessage = document.getElementById('confirm-modal-message')
+const confirmModalOkBtn = document.getElementById('confirm-modal-ok-btn')
+const confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn')
 
 let editingEntryId = null
 let editingOriginTab = 'entry'
@@ -465,6 +518,22 @@ let disciplinesCache = []
 let weaponsCache = []
 
 const statusResetTimers = new WeakMap()
+
+function showConfirm(message) {
+  return new Promise((resolve) => {
+    confirmModalMessage.textContent = message
+    confirmModal.style.display = 'flex'
+    const onOk = () => { cleanup(); resolve(true) }
+    const onCancel = () => { cleanup(); resolve(false) }
+    function cleanup() {
+      confirmModal.style.display = 'none'
+      confirmModalOkBtn.removeEventListener('click', onOk)
+      confirmModalCancelBtn.removeEventListener('click', onCancel)
+    }
+    confirmModalOkBtn.addEventListener('click', onOk)
+    confirmModalCancelBtn.addEventListener('click', onCancel)
+  })
+}
 
 function clearStatus(element) {
   if (!element) return
@@ -788,6 +857,54 @@ function buildGroupedBlockStats(entries, getGroupName) {
     .sort((a, b) => b.total - a.total)
 }
 
+function renderStatsByType(container, entries) {
+  const trainingEntries = entries.filter((e) => e.entry_type === 'training')
+  const staticEntries = entries.filter((e) => e.entry_type === 'competition' && e.competition_mode !== 'dynamic')
+  const dynamicEntries = entries.filter((e) => e.entry_type === 'competition' && e.competition_mode === 'dynamic')
+
+  const trainingAvg = trainingEntries.length
+    ? trainingEntries.reduce((s, e) => s + Number(e.total_score || 0), 0) / trainingEntries.length
+    : null
+
+  const staticWithPct = staticEntries.filter((e) => getCompetitionScorePercent(e) !== null)
+  const staticAvg = staticWithPct.length
+    ? staticWithPct.reduce((s, e) => s + getCompetitionScorePercent(e), 0) / staticWithPct.length
+    : null
+
+  const dynamicWithScore = dynamicEntries.filter((e) => getDynamicCompetitionScore(e) !== null)
+  const dynamicAvg = dynamicWithScore.length
+    ? dynamicWithScore.reduce((s, e) => s + getDynamicCompetitionScore(e), 0) / dynamicWithScore.length
+    : null
+
+  const rows = [
+    { label: 'Training', count: trainingEntries.length, metricLabel: 'Ø Score', metric: trainingAvg !== null ? formatNumber(trainingAvg) : '-' },
+    { label: 'Bewerb – Statisch', count: staticEntries.length, metricLabel: 'Ø % Score', metric: staticAvg !== null ? `${formatNumber(staticAvg)} %` : '-' },
+    { label: 'Bewerb – Dynamisch', count: dynamicEntries.length, metricLabel: 'Ø Dyn. Score', metric: dynamicAvg !== null ? formatNumber(dynamicAvg) : '-' },
+  ]
+
+  container.innerHTML = `
+    <div class="stats-table desktop-stats-table">
+      <div class="stats-table-head">
+        <div>Typ</div><div>Sessions</div><div>Kennzahl</div><div>Wert</div>
+      </div>
+      ${rows.map((r) => `
+        <div class="stats-table-row">
+          <div>${r.label}</div><div>${r.count}</div><div>${r.metricLabel}</div><div>${r.metric}</div>
+        </div>`).join('')}
+    </div>
+    <div class="stats-mobile-cards">
+      ${rows.map((r) => `
+        <div class="stats-mobile-card">
+          <div class="stats-mobile-card-title">${r.label}</div>
+          <div class="stats-mobile-card-grid">
+            <div><span>Sessions</span><strong>${r.count}</strong></div>
+            <div><span>${r.metricLabel}</span><strong>${r.metric}</strong></div>
+          </div>
+        </div>`).join('')}
+    </div>
+  `
+}
+
 function renderBarChart(container, items, emptyText) {
   if (!items.length) {
     container.innerHTML = `<p>${emptyText}</p>`
@@ -847,21 +964,33 @@ function renderLineChart(container, points, emptyText) {
 
   const polylinePoints = coordinates.map((point) => `${point.x},${point.y}`).join(' ')
 
+  const yTicks = [
+    maxValue,
+    minValue + valueRange * (2 / 3),
+    minValue + valueRange * (1 / 3),
+    minValue,
+  ].map((v) => formatNumber(v))
+
   container.innerHTML = `
-    <div class="svg-chart-wrapper">
-      <svg viewBox="0 0 ${width} ${height}" class="svg-chart" preserveAspectRatio="none" aria-label="Diagramm">
-        <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis"></line>
-        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis"></line>
-        <polyline fill="none" points="${polylinePoints}" class="chart-line"></polyline>
-        ${coordinates.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>`).join('')}
-      </svg>
-      <div class="chart-label-row">
-        ${points.map((point) => `
-          <div class="chart-label-item">
-            <span class="chart-label-text">${point.label}</span>
-            <span class="chart-label-value">${formatNumber(point.value)}</span>
-          </div>
-        `).join('')}
+    <div class="svg-chart-outer">
+      <div class="y-axis-labels">
+        ${yTicks.map((t) => `<span>${t}</span>`).join('')}
+      </div>
+      <div class="svg-chart-wrapper">
+        <svg viewBox="0 0 ${width} ${height}" class="svg-chart" preserveAspectRatio="none" aria-label="Diagramm">
+          <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis"></line>
+          <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis"></line>
+          <polyline fill="none" points="${polylinePoints}" class="chart-line"></polyline>
+          ${coordinates.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-point"></circle>`).join('')}
+        </svg>
+        <div class="chart-label-row">
+          ${points.map((point) => `
+            <div class="chart-label-item">
+              <span class="chart-label-text">${point.label}</span>
+              <span class="chart-label-value">${formatNumber(point.value)}</span>
+            </div>
+          `).join('')}
+        </div>
       </div>
     </div>
   `
@@ -875,7 +1004,13 @@ function getFilteredStatsEntries() {
 
     if (statsFilterYear.value && entryYear !== statsFilterYear.value) return false
     if (statsFilterMonth.value && entryMonth !== statsFilterMonth.value) return false
-    if (statsFilterType.value && entry.entry_type !== statsFilterType.value) return false
+    if (statsFilterType.value) {
+      const v = statsFilterType.value
+      if (v === 'training' && entry.entry_type !== 'training') return false
+      if (v === 'competition' && entry.entry_type !== 'competition') return false
+      if (v === 'competition:static' && (entry.entry_type !== 'competition' || entry.competition_mode === 'dynamic')) return false
+      if (v === 'competition:dynamic' && (entry.entry_type !== 'competition' || entry.competition_mode !== 'dynamic')) return false
+    }
     if (!entryMatchesDiscipline(entry, statsFilterDiscipline.value)) return false
     if (!entryMatchesWeapon(entry, statsFilterWeapon.value)) return false
 
@@ -1085,7 +1220,7 @@ function renderStatistics(entries) {
   `
 
   renderCharts(entries)
-  renderStatsTable(statsByType, buildGroupedStats(entries, (entry) => formatEntryType(entry.entry_type)), 'Noch keine Typ-Daten vorhanden.')
+  renderStatsByType(statsByType, entries)
   renderStatsTable(
     statsByDiscipline,
     buildGroupedBlockStats(entries, (block) => block.disciplines?.name || '-'),
@@ -1367,8 +1502,8 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
   })
 
   document.querySelectorAll('.delete-block-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      if (!window.confirm('Diesen Block wirklich löschen?')) return
+    button.addEventListener('click', async () => {
+      if (!(await showConfirm('Diesen Block wirklich löschen?'))) return
       const blockIndex = Number(button.dataset.blockIndex)
       const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
       currentBlocks.splice(blockIndex, 1)
@@ -1872,7 +2007,15 @@ function getActiveStatsFilterLabel() {
     parts.push(`Monat ${monthLabel}`)
   }
 
-  if (statsFilterType.value) parts.push(formatEntryType(statsFilterType.value))
+  if (statsFilterType.value) {
+    const typeLabels = {
+      training: 'Training',
+      competition: 'Bewerb (alle)',
+      'competition:static': 'Bewerb Statisch',
+      'competition:dynamic': 'Bewerb Dynamisch',
+    }
+    parts.push(typeLabels[statsFilterType.value] || statsFilterType.value)
+  }
 
   if (statsFilterDiscipline.value) {
     const disciplineLabel = statsFilterDiscipline.options[statsFilterDiscipline.selectedIndex]?.textContent || ''
@@ -2215,7 +2358,7 @@ async function deleteDisciplineById(disciplineId) {
     return
   }
 
-  if (!window.confirm('Disziplin wirklich löschen?')) {
+  if (!(await showConfirm('Disziplin wirklich löschen?'))) {
     clearStatus(disciplineStatus)
     return
   }
@@ -2263,7 +2406,7 @@ async function deleteWeaponById(weaponId) {
     return
   }
 
-  if (!window.confirm('Waffe wirklich löschen?')) {
+  if (!(await showConfirm('Waffe wirklich löschen?'))) {
     clearStatus(weaponStatus)
     return
   }
@@ -2294,6 +2437,7 @@ async function loadDisciplines() {
   }
 
   const currentDeleteDisciplineValue = deleteDisciplineSelect?.value || ''
+  const currentEditDisciplineValue = editDisciplineSelect?.value || ''
   disciplinesCache = [...(data || [])].sort((a, b) => naturalCompare(a.name, b.name))
 
   fillSimpleSelect(
@@ -2301,6 +2445,13 @@ async function loadDisciplines() {
     'Disziplin zum Löschen auswählen',
     disciplinesCache.map((discipline) => ({ value: discipline.id, label: discipline.name })),
     currentDeleteDisciplineValue
+  )
+
+  fillSimpleSelect(
+    editDisciplineSelect,
+    'Disziplin auswählen',
+    disciplinesCache.map((discipline) => ({ value: discipline.id, label: discipline.name })),
+    currentEditDisciplineValue
   )
 
   renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
@@ -2317,6 +2468,7 @@ async function loadWeapons() {
   }
 
   const currentDeleteWeaponValue = deleteWeaponSelect?.value || ''
+  const currentEditWeaponValue = editWeaponSelect?.value || ''
   weaponsCache = data || []
 
   fillSimpleSelect(
@@ -2329,11 +2481,21 @@ async function loadWeapons() {
     currentDeleteWeaponValue
   )
 
+  fillSimpleSelect(
+    editWeaponSelect,
+    'Waffe auswählen',
+    weaponsCache.map((weapon) => ({
+      value: weapon.id,
+      label: getWeaponDisplayName(weapon),
+    })),
+    currentEditWeaponValue
+  )
+
   renderEntryBlocks(getBlockDataFromForm({ allowIncomplete: true }))
 }
 
 async function deleteEntry(entryId) {
-  if (!window.confirm('Eintrag wirklich löschen?')) return
+  if (!(await showConfirm('Eintrag wirklich löschen?'))) return
 
   setStatus(entryStatus, 'Lösche Eintrag...', 'info')
   const user = await getCurrentUser()
@@ -2544,6 +2706,21 @@ loginBtn.addEventListener('click', async () => {
   await loadEntries()
 })
 
+forgotPasswordBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim()
+  if (!email) {
+    setStatus(authStatus, 'Bitte zuerst E-Mail-Adresse eingeben.', 'error')
+    return
+  }
+  setStatus(authStatus, 'Reset-Link wird gesendet...', 'info')
+  const { error } = await supabase.auth.resetPasswordForEmail(email)
+  if (error) {
+    setStatus(authStatus, `Fehler: ${error.message}`, 'error')
+    return
+  }
+  setStatus(authStatus, 'Reset-Link wurde an deine E-Mail gesendet.', 'success')
+})
+
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut()
   setStatus(authStatus, 'Ausgeloggt.', 'success', { autoClear: true })
@@ -2644,6 +2821,47 @@ deleteDisciplineBtn.addEventListener('click', async () => {
 
 deleteWeaponBtn.addEventListener('click', async () => {
   await deleteWeaponById(deleteWeaponSelect.value)
+})
+
+editWeaponSelect.addEventListener('change', () => {
+  const weapon = weaponsCache.find((w) => String(w.id) === editWeaponSelect.value)
+  editWeaponName.value = weapon?.name || ''
+  editWeaponType.value = weapon?.type || ''
+  editWeaponCaliber.value = weapon?.caliber || ''
+  editWeaponNotes.value = weapon?.notes || ''
+})
+
+editDisciplineBtn.addEventListener('click', async () => {
+  const id = editDisciplineSelect.value
+  const newName = editDisciplineName.value.trim()
+  if (!id) { setStatus(disciplineStatus, 'Bitte Disziplin auswählen.', 'error'); return }
+  if (!newName) { setStatus(disciplineStatus, 'Bitte neuen Namen eingeben.', 'error'); return }
+  const user = await getCurrentUser()
+  if (!user) { setStatus(disciplineStatus, 'Nicht eingeloggt.', 'error'); return }
+  const { error } = await supabase.from('disciplines').update({ name: newName })
+    .eq('id', id).eq('user_id', user.id)
+  if (error) { setStatus(disciplineStatus, `Fehler: ${error.message}`, 'error'); return }
+  setStatus(disciplineStatus, 'Disziplin umbenannt.', 'success', { autoClear: true })
+  editDisciplineName.value = ''
+  await loadDisciplines()
+})
+
+editWeaponBtn.addEventListener('click', async () => {
+  const id = editWeaponSelect.value
+  if (!id) { setStatus(weaponStatus, 'Bitte Waffe auswählen.', 'error'); return }
+  const name = editWeaponName.value.trim()
+  if (!name) { setStatus(weaponStatus, 'Bitte Namen eingeben.', 'error'); return }
+  const user = await getCurrentUser()
+  if (!user) { setStatus(weaponStatus, 'Nicht eingeloggt.', 'error'); return }
+  const { error } = await supabase.from('weapons').update({
+    name,
+    type: editWeaponType.value.trim() || null,
+    caliber: editWeaponCaliber.value.trim() || null,
+    notes: editWeaponNotes.value.trim() || null,
+  }).eq('id', id).eq('user_id', user.id)
+  if (error) { setStatus(weaponStatus, `Fehler: ${error.message}`, 'error'); return }
+  setStatus(weaponStatus, 'Waffe gespeichert.', 'success', { autoClear: true })
+  await loadWeapons()
 })
 
 exportListFilteredBtn.addEventListener('click', async () => {
@@ -3027,7 +3245,6 @@ async function init() {
   closeListFilterPanel()
   activateTab('entry')
   activateStatsSubTab('summary')
-  showSplash()
 
   const { data: { session } } = await supabase.auth.getSession()
 
@@ -3036,6 +3253,8 @@ async function init() {
     showLoggedInUI(session)
     await loadFormData()
     await loadEntries()
+  } else {
+    showSplash()
   }
 }
 
