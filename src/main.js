@@ -69,11 +69,6 @@ document.querySelector('#app').innerHTML = `
                   <input id="competition-max-score" class="uniform-input" type="number" min="1" placeholder="z.B. 400" />
                 </div>
 
-                <div id="dynamic-time-seconds-wrap" style="display:none;">
-                  <label for="dynamic-time-seconds">Zeit in Sekunden</label>
-                  <input id="dynamic-time-seconds" class="uniform-input" type="number" min="0" step="0.01" inputmode="decimal" placeholder="z.B. 18.40" />
-                </div>
-
                 <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
                   <label for="training-duration-minutes">Trainingsdauer (Minuten)</label>
                   <select id="training-duration-minutes" class="uniform-input">
@@ -394,8 +389,6 @@ const competitionModeWrap = document.getElementById('competition-mode-wrap')
 const competitionModeInput = document.getElementById('competition-mode')
 const competitionMaxScoreWrap = document.getElementById('competition-max-score-wrap')
 const competitionMaxScoreInput = document.getElementById('competition-max-score')
-const dynamicTimeSecondsWrap = document.getElementById('dynamic-time-seconds-wrap')
-const dynamicTimeSecondsInput = document.getElementById('dynamic-time-seconds')
 const entryLocation = document.getElementById('entry-location')
 const useLocationBtn = document.getElementById('use-location-btn')
 const entryNote = document.getElementById('entry-note')
@@ -644,7 +637,8 @@ function getCompetitionScorePercent(entry) {
 function getDynamicCompetitionScore(entry, factor = 0.5) {
   if (entry?.entry_type !== 'competition' || entry?.competition_mode !== 'dynamic') return null
   const hitPercent = getCompetitionScorePercent(entry)
-  const timeSeconds = Number(entry?.dynamic_time_seconds)
+  const firstBlock = Array.isArray(entry?.entry_blocks) ? entry.entry_blocks[0] : null
+  const timeSeconds = Number(firstBlock?.dynamic_time_seconds ?? entry?.dynamic_time_seconds)
   if (!Number.isFinite(hitPercent) || !Number.isFinite(timeSeconds) || timeSeconds < 0) return null
   return hitPercent - (timeSeconds * factor)
 }
@@ -943,15 +937,120 @@ function renderCharts(entries) {
     'Noch keine Monatsdaten vorhanden.'
   )
 
-  const sortedByDate = [...entries]
-    .filter((entry) => entry.entry_date)
-    .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
-    .map((entry) => ({
-      label: formatDate(entry.entry_date),
-      value: Number(entry.total_score || 0),
-    }))
+  const sorted = (subset) =>
+    [...subset]
+      .filter((e) => e.entry_date)
+      .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
 
-  renderLineChart(chartScoreTrend, sortedByDate, 'Noch keine Score-Daten vorhanden.')
+  const trainingEntries = sorted(entries.filter((e) => e.entry_type === 'training'))
+  const staticEntries = sorted(entries.filter((e) => e.entry_type === 'competition' && (e.competition_mode === 'static' || !e.competition_mode)))
+  const dynamicEntries = sorted(entries.filter((e) => e.entry_type === 'competition' && e.competition_mode === 'dynamic'))
+
+  const trainingTrend = trainingEntries.map((e) => ({ label: formatDate(e.entry_date), value: Number(e.total_score || 0) }))
+  const staticTrend = staticEntries
+    .filter((e) => getCompetitionScorePercent(e) !== null)
+    .map((e) => ({ label: formatDate(e.entry_date), value: Number(getCompetitionScorePercent(e).toFixed(2)) }))
+  const dynamicTrend = dynamicEntries
+    .filter((e) => getDynamicCompetitionScore(e) !== null)
+    .map((e) => ({ label: formatDate(e.entry_date), value: Number(getDynamicCompetitionScore(e).toFixed(2)) }))
+
+  chartScoreTrend.innerHTML = ''
+
+  const trainingDiv = document.createElement('div')
+  trainingDiv.innerHTML = '<h4 class="chart-sub-title">Training (Punkte)</h4>'
+  const trainingChart = document.createElement('div')
+  trainingDiv.appendChild(trainingChart)
+  chartScoreTrend.appendChild(trainingDiv)
+  renderLineChart(trainingChart, trainingTrend, 'Noch keine Training-Daten vorhanden.')
+
+  const staticDiv = document.createElement('div')
+  staticDiv.innerHTML = '<h4 class="chart-sub-title">Bewerb – Statisch (% Score)</h4>'
+  const staticChart = document.createElement('div')
+  staticDiv.appendChild(staticChart)
+  chartScoreTrend.appendChild(staticDiv)
+  renderLineChart(staticChart, staticTrend, 'Noch keine Daten für statische Bewerbe vorhanden.')
+
+  const dynamicDiv = document.createElement('div')
+  dynamicDiv.innerHTML = '<h4 class="chart-sub-title">Bewerb – Dynamisch (Dyn. Score)</h4>'
+  const dynamicChart = document.createElement('div')
+  dynamicDiv.appendChild(dynamicChart)
+  chartScoreTrend.appendChild(dynamicDiv)
+  renderLineChart(dynamicChart, dynamicTrend, 'Noch keine Daten für dynamische Bewerbe vorhanden.')
+}
+
+function renderStatsSectionCards(sectionEntries, type) {
+  if (!sectionEntries.length) {
+    return '<p class="stats-empty-note">Noch keine Einträge vorhanden.</p>'
+  }
+
+  if (type === 'training') {
+    const sessionCount = sectionEntries.length
+    const blockCount = getAllBlocks(sectionEntries).length
+    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
+    const totalScore = sectionEntries.reduce((sum, e) => sum + Number(e.total_score || 0), 0)
+    const avgPerSession = sessionCount > 0 ? totalScore / sessionCount : 0
+    const avgPerBlock = blockCount > 0 ? totalScore / blockCount : 0
+    const avgPerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
+    const best = [...sectionEntries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
+    const bestText = best ? `${formatNumber(best.total_score || 0)} am ${formatDate(best.entry_date)}` : '-'
+
+    return `
+      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Blöcke</div><div class="stat-value">${blockCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Serien</div><div class="stat-value">${seriesCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Gesamtscore</div><div class="stat-value">${formatNumber(totalScore)}</div></div>
+      <div class="stat-card"><div class="stat-label">Schnitt / Session</div><div class="stat-value">${formatNumber(avgPerSession)}</div></div>
+      <div class="stat-card"><div class="stat-label">Schnitt / Block</div><div class="stat-value">${formatNumber(avgPerBlock)}</div></div>
+      <div class="stat-card"><div class="stat-label">Schnitt / Serie</div><div class="stat-value">${formatNumber(avgPerSeries)}</div></div>
+      <div class="stat-card"><div class="stat-label">Beste Session</div><div class="stat-value small">${bestText}</div></div>
+    `
+  }
+
+  if (type === 'static') {
+    const withPercent = sectionEntries.filter((e) => getCompetitionScorePercent(e) !== null)
+    const sessionCount = sectionEntries.length
+    if (!withPercent.length) {
+      return `
+        <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
+        <p class="stats-empty-note">Kein Eintrag mit gültigem Max-Score vorhanden.</p>
+      `
+    }
+    const percents = withPercent.map((e) => getCompetitionScorePercent(e))
+    const avgPercent = percents.reduce((s, v) => s + v, 0) / percents.length
+    const bestEntry = withPercent.reduce((best, e) => getCompetitionScorePercent(e) > getCompetitionScorePercent(best) ? e : best)
+    const bestPercent = getCompetitionScorePercent(bestEntry)
+    const bestText = `${formatNumber(bestPercent)} % am ${formatDate(bestEntry.entry_date)}`
+
+    return `
+      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Ø % Score</div><div class="stat-value">${formatNumber(avgPercent)} %</div></div>
+      <div class="stat-card"><div class="stat-label">Bester % Score</div><div class="stat-value small">${bestText}</div></div>
+    `
+  }
+
+  if (type === 'dynamic') {
+    const withScore = sectionEntries.filter((e) => getDynamicCompetitionScore(e) !== null)
+    const sessionCount = sectionEntries.length
+    if (!withScore.length) {
+      return `
+        <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
+        <p class="stats-empty-note">Kein Eintrag mit gültigem Score und Zeit vorhanden.</p>
+      `
+    }
+    const scores = withScore.map((e) => getDynamicCompetitionScore(e))
+    const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length
+    const bestEntry = withScore.reduce((best, e) => getDynamicCompetitionScore(e) > getDynamicCompetitionScore(best) ? e : best)
+    const bestScore = getDynamicCompetitionScore(bestEntry)
+    const bestText = `${formatNumber(bestScore)} am ${formatDate(bestEntry.entry_date)}`
+
+    return `
+      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Ø Dyn. Score</div><div class="stat-value">${formatNumber(avgScore)}</div></div>
+      <div class="stat-card"><div class="stat-label">Bester Dyn. Score</div><div class="stat-value small">${bestText}</div></div>
+    `
+  }
+
+  return ''
 }
 
 function renderStatistics(entries) {
@@ -966,48 +1065,22 @@ function renderStatistics(entries) {
     return
   }
 
-  const sessionCount = entries.length
-  const blockCount = getAllBlocks(entries).length
-  const seriesCount = entries.reduce((sum, entry) => sum + (Array.isArray(entry.entry_series) ? entry.entry_series.length : 0), 0)
-  const totalScore = entries.reduce((sum, entry) => sum + Number(entry.total_score || 0), 0)
-  const averagePerSession = sessionCount > 0 ? totalScore / sessionCount : 0
-  const averagePerBlock = blockCount > 0 ? totalScore / blockCount : 0
-  const averagePerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
-  const bestEntry = [...entries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
-  const bestEntryText = bestEntry ? `${formatNumber(bestEntry.total_score || 0)} am ${formatDate(bestEntry.entry_date)}` : '-'
+  const trainingEntries = entries.filter((e) => e.entry_type === 'training')
+  const staticEntries = entries.filter((e) => e.entry_type === 'competition' && (e.competition_mode === 'static' || !e.competition_mode))
+  const dynamicEntries = entries.filter((e) => e.entry_type === 'competition' && e.competition_mode === 'dynamic')
 
   statsSummary.innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Sessions</div>
-      <div class="stat-value">${sessionCount}</div>
+    <div class="stats-type-section">
+      <h3 class="stats-type-heading">Training</h3>
+      <div class="stats-grid">${renderStatsSectionCards(trainingEntries, 'training')}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Blöcke</div>
-      <div class="stat-value">${blockCount}</div>
+    <div class="stats-type-section">
+      <h3 class="stats-type-heading">Bewerb – Statisch</h3>
+      <div class="stats-grid">${renderStatsSectionCards(staticEntries, 'static')}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Serien</div>
-      <div class="stat-value">${seriesCount}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Gesamtscore</div>
-      <div class="stat-value">${formatNumber(totalScore)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Schnitt / Session</div>
-      <div class="stat-value">${formatNumber(averagePerSession)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Schnitt / Block</div>
-      <div class="stat-value">${formatNumber(averagePerBlock)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Schnitt / Serie</div>
-      <div class="stat-value">${formatNumber(averagePerSeries)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Beste Session</div>
-      <div class="stat-value small">${bestEntryText}</div>
+    <div class="stats-type-section">
+      <h3 class="stats-type-heading">Bewerb – Dynamisch</h3>
+      <div class="stats-grid">${renderStatsSectionCards(dynamicEntries, 'dynamic')}</div>
     </div>
   `
 
@@ -1057,6 +1130,7 @@ function getEmptyBlockData() {
     series_count: 1,
     series_scores: [''],
     is_collapsed: false,
+    dynamic_time_seconds: '',
   }
 }
 
@@ -1071,6 +1145,7 @@ function getNextBlockDefaults(previousBlock) {
     series_count: Math.min(Math.max(Number(previousBlock.series_count) || 1, 1), 20),
     series_scores: [''],
     is_collapsed: false,
+    dynamic_time_seconds: '',
   }
 }
 
@@ -1091,23 +1166,24 @@ function getBlockTotalScore(block) {
   }, 0)
 }
 
-function updateTrainingDurationVisibility() {
+function updateTrainingDurationVisibility({ rerenderBlocks = true } = {}) {
   const isTraining = entryType.value === 'training'
   const isCompetition = entryType.value === 'competition'
-  const isDynamicCompetition = isCompetition && competitionModeInput.value === 'dynamic'
 
   trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
   competitionModeWrap.style.display = isCompetition ? 'block' : 'none'
   competitionMaxScoreWrap.style.display = isCompetition ? 'block' : 'none'
-  dynamicTimeSecondsWrap.style.display = isDynamicCompetition ? 'block' : 'none'
 
   if (!isTraining) trainingDurationMinutesInput.value = ''
   if (!isCompetition) {
     competitionModeInput.value = 'static'
     competitionMaxScoreInput.value = ''
-    dynamicTimeSecondsInput.value = ''
   }
-  if (isCompetition && !isDynamicCompetition) dynamicTimeSecondsInput.value = ''
+
+  if (rerenderBlocks) {
+    const currentBlocks = getBlockDataFromForm({ allowIncomplete: true })
+    renderEntryBlocks(currentBlocks)
+  }
 }
 
 function getBlockDisciplineOptions(selectedValue = '') {
@@ -1166,6 +1242,8 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
     is_collapsed: arr.length > 1 ? Boolean(block?.is_collapsed) : false,
   }))
   const allowMultipleBlocks = entryType.value === 'training'
+
+  const isDynamic = entryType.value === 'competition' && competitionModeInput.value === 'dynamic'
 
   entryBlocks.innerHTML = normalizedBlocks.map((block, index) => {
     const blockNumber = index + 1
@@ -1230,6 +1308,17 @@ function renderEntryBlocks(blocks = [getEmptyBlockData()], options = {}) {
               placeholder="Block-Notiz"
               value="${block.note ?? ''}"
             />
+
+            ${isDynamic ? `<input
+              class="uniform-input block-dynamic-time-input"
+              data-block-index="${index}"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="Zeit (Sekunden)"
+              value="${block.dynamic_time_seconds ?? ''}"
+            />` : ''}
           </div>
 
           <div class="block-series-inputs" data-block-index="${index}">
@@ -1324,6 +1413,7 @@ function getBlockDataFromForm(options = {}) {
     const shotsValue = card.querySelector('.block-shots-input')?.value || ''
     const note = card.querySelector('.block-note-input')?.value?.trim() || ''
     const seriesCountValue = card.querySelector('.block-series-count-input')?.value || '1'
+    const dynamicTimeValue = card.querySelector('.block-dynamic-time-input')?.value || ''
     const seriesInputs = Array.from(card.querySelectorAll('.block-series-score-input'))
     const isCollapsed = card.dataset.collapsed === '1'
     const series = seriesInputs
@@ -1348,6 +1438,7 @@ function getBlockDataFromForm(options = {}) {
       }
     }
 
+    const dynamicTimeParsed = dynamicTimeValue !== '' ? Number(dynamicTimeValue) : null
     blocks.push({
       block_order: blockIndex + 1,
       discipline_id: disciplineId || null,
@@ -1359,6 +1450,7 @@ function getBlockDataFromForm(options = {}) {
       series,
       total_score: calculateTotalScore(series),
       is_collapsed: isCollapsed,
+      dynamic_time_seconds: Number.isFinite(dynamicTimeParsed) && dynamicTimeParsed >= 0 ? dynamicTimeParsed : null,
     })
   })
 
@@ -1380,6 +1472,7 @@ function normalizeEntryForUi(entry) {
   blocks.forEach((block) => {
     block.entry_series = Array.isArray(block.entry_series) ? [...block.entry_series].sort((a, b) => a.series_number - b.series_number) : []
     block.total_score = Number(block.total_score || calculateTotalScore(block.entry_series))
+    block.dynamic_time_seconds = block.dynamic_time_seconds ?? null
   })
 
   const sessionTotal = calculateSessionTotalScore(blocks)
@@ -1389,7 +1482,6 @@ function normalizeEntryForUi(entry) {
     ...entry,
     competition_mode: entry.competition_mode || 'static',
     max_score: entry.max_score ?? null,
-    dynamic_time_seconds: entry.dynamic_time_seconds ?? null,
     entry_blocks: blocks,
     total_score: sessionTotal,
     discipline_id: firstBlock?.discipline_id || null,
@@ -1477,7 +1569,6 @@ function resetForm(options = {}) {
   entryType.value = nextType
   competitionModeInput.value = 'static'
   competitionMaxScoreInput.value = ''
-  dynamicTimeSecondsInput.value = ''
   entryLocation.value = ''
   entryNote.value = ''
   trainingDurationMinutesInput.value = nextDuration
@@ -1609,8 +1700,9 @@ function renderEntriesList(entries) {
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Max Punkte</span><span class="entry-inline-value">${formatNumber(entry.max_score)}</span></div>`
       : ''
 
-    const dynamicTimeMarkup = entry.entry_type === 'competition' && entry.competition_mode === 'dynamic' && Number(entry.dynamic_time_seconds) >= 0
-      ? `<div class="entry-inline-info"><span class="entry-inline-label">Zeit</span><span class="entry-inline-value">${formatNumber(entry.dynamic_time_seconds)} s</span></div>`
+    const firstBlockTime = Array.isArray(entry.entry_blocks) ? entry.entry_blocks[0]?.dynamic_time_seconds : null
+    const dynamicTimeMarkup = entry.entry_type === 'competition' && entry.competition_mode === 'dynamic' && firstBlockTime != null && Number(firstBlockTime) >= 0
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Zeit</span><span class="entry-inline-value">${formatNumber(firstBlockTime)} s</span></div>`
       : ''
 
     const competitionScoreMarkup = entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && competitionScorePercent !== null
@@ -1927,9 +2019,6 @@ function buildEntriesWorkbookData(entries) {
       Typ: formatEntryType(entry.entry_type),
       Bewerbsmodus: entry.entry_type === 'competition' ? (entry.competition_mode === 'dynamic' ? 'Dynamisch' : 'Statisch') : '',
       Max_Punkte: entry.entry_type === 'competition' ? (entry.max_score ?? '') : '',
-      Dynamik_Zeit_Sekunden: entry.entry_type === 'competition' && entry.competition_mode === 'dynamic'
-        ? (entry.dynamic_time_seconds ?? '')
-        : '',
       Bewerb_Score_Prozent: entry.entry_type === 'competition' && getCompetitionScorePercent(entry) !== null
         ? Number(getCompetitionScorePercent(entry).toFixed(2))
         : '',
@@ -1958,6 +2047,9 @@ function buildEntriesWorkbookData(entries) {
         Kaliber: block.weapons?.caliber || '',
         Schuss_pro_Serie: block.shots_per_series ?? '',
         Block_Notiz: block.note || '',
+        Dynamik_Zeit_Sekunden: entry.entry_type === 'competition' && entry.competition_mode === 'dynamic'
+          ? (block.dynamic_time_seconds ?? '')
+          : '',
         Serienanzahl_Block: series.length,
         Blockscore: block.total_score ?? 0,
       })
@@ -2300,6 +2392,7 @@ async function startEditEntry(entryId) {
         shots_per_series,
         note,
         total_score,
+        dynamic_time_seconds,
         weapons(name, type, caliber),
         disciplines(name),
         entry_series(id, series_number, score)
@@ -2323,12 +2416,11 @@ async function startEditEntry(entryId) {
   entryType.value = data.entry_type || 'training'
   competitionModeInput.value = data.competition_mode || 'static'
   competitionMaxScoreInput.value = data.max_score || ''
-  dynamicTimeSecondsInput.value = data.dynamic_time_seconds || ''
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
   trainingDurationMinutesInput.value = data.training_duration_minutes || ''
 
-  updateTrainingDurationVisibility()
+  updateTrainingDurationVisibility({ rerenderBlocks: false })
 
   const blocks = (data.entry_blocks || [])
     .sort((a, b) => Number(a.block_order || 0) - Number(b.block_order || 0))
@@ -2339,6 +2431,7 @@ async function startEditEntry(entryId) {
       note: block.note || '',
       series_count: Math.max((block.entry_series || []).length, 1),
       series_scores: (block.entry_series || []).sort((a, b) => a.series_number - b.series_number).map((item) => item.score),
+      dynamic_time_seconds: block.dynamic_time_seconds ?? '',
     }))
 
   renderEntryBlocks(blocks.length ? blocks : [getEmptyBlockData()])
@@ -2378,6 +2471,7 @@ async function loadEntries() {
         shots_per_series,
         note,
         total_score,
+        dynamic_time_seconds,
         weapons(name, type, caliber),
         disciplines(name),
         entry_series(id, series_number, score)
@@ -2749,13 +2843,6 @@ saveEntryBtn.addEventListener('click', async () => {
       return
     }
 
-    if (competitionModeInput.value === 'dynamic') {
-      const dynamicTimeSeconds = Number(dynamicTimeSecondsInput.value)
-      if (!Number.isFinite(dynamicTimeSeconds) || dynamicTimeSeconds < 0) {
-        setStatus(entryStatus, 'Bitte gültige Zeit in Sekunden für den dynamischen Bewerb eingeben.', 'error')
-        return
-      }
-    }
   }
 
   let blocks
@@ -2785,9 +2872,6 @@ saveEntryBtn.addEventListener('click', async () => {
       : null,
     max_score: entryType.value === 'competition'
       ? Number(competitionMaxScoreInput.value)
-      : null,
-    dynamic_time_seconds: entryType.value === 'competition' && competitionModeInput.value === 'dynamic'
-      ? Number(dynamicTimeSecondsInput.value)
       : null,
   }
 
@@ -2826,7 +2910,6 @@ saveEntryBtn.addEventListener('click', async () => {
         training_duration_minutes: entryPayload.training_duration_minutes,
         competition_mode: entryPayload.competition_mode,
         max_score: entryPayload.max_score,
-        dynamic_time_seconds: entryPayload.dynamic_time_seconds,
       })
       .eq('id', editingEntryId)
       .eq('user_id', user.id)
@@ -2882,6 +2965,7 @@ saveEntryBtn.addEventListener('click', async () => {
     shots_per_series: block.shots_per_series,
     note: block.note || null,
     total_score: block.total_score,
+    dynamic_time_seconds: block.dynamic_time_seconds || null,
   }))
 
   const { data: insertedBlocks, error: blockError } = await supabase

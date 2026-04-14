@@ -2024,3 +2024,31 @@ button[type='button']:hover {
 .entry-block-panel {
   margin-top: 12px;
 }
+
+/* Stats type sections */
+.stats-type-section {
+  margin-bottom: 24px;
+}
+
+.stats-type-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-empty-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 4px 0;
+}
+
+/* Chart sub-titles */
+.chart-sub-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 16px 0 6px 0;
+}
