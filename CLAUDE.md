@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Arbeitsweise (verbindlich)
 
-1. **Claude plant** — Analyse, Recherche, detaillierter Implementierungsplan
-2. **Codex setzt um** — Code-Änderungen werden von Codex ausgeführt
-3. **Claude prüft, committet und pusht** — Review der Änderungen, dann `git commit` + `git push`
+1. **Claude plant** — Codebase analysieren, Implementierungsplan erstellen
+2. **Claude schreibt `CODEX_TASK.md`** — exakte Änderungsanweisungen (Datei, Zeile, Code) in die Datei `CODEX_TASK.md` im Projektroot schreiben, dann dem User melden dass Codex loslegen kann
+3. **Codex setzt um** — Codex liest `CODEX_TASK.md` und führt alle Änderungen aus
+4. **Claude prüft, committet und pusht** — Änderungen reviewen, dann `git commit` + `git push`, danach `CODEX_TASK.md` löschen
 
 Claude schreibt keinen Code selbst, außer für triviale Einzeiler oder Korrekturen nach dem Codex-Durchlauf.
+
+Der User übergibt Codex den Auftrag mit: *"Lies `CODEX_TASK.md` und setze alles darin um."*
 
 ## Commands
 
