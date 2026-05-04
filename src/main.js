@@ -72,6 +72,17 @@ document.querySelector('#app').innerHTML = `
                   <input id="competition-max-score" class="uniform-input" type="number" min="1" placeholder="z.B. 400" />
                 </div>
 
+                <div id="competition-photo-wrapper" style="display:none;">
+                  <div>
+                    <label for="entry-photo-input">Foto (optional)</label>
+                    <input type="file" id="entry-photo-input" accept="image/*" capture="environment" class="uniform-input">
+                  </div>
+                  <div id="entry-photo-preview" class="photo-preview-box" style="display:none;">
+                    <img id="entry-photo-preview-img" src="" alt="Vorschau">
+                    <button type="button" id="remove-entry-photo-btn" class="btn-small btn-danger">Foto entfernen</button>
+                  </div>
+                </div>
+
                 <div id="training-duration-wrap" class="training-duration-wrap" style="display:none;">
                   <label for="training-duration-minutes">Trainingsdauer (Minuten)</label>
                   <select id="training-duration-minutes" class="uniform-input">
@@ -201,7 +212,7 @@ document.querySelector('#app').innerHTML = `
               </div>
 
               <section id="stats-sub-summary" class="tab-panel active">
-                <div id="stats-summary" class="stats-grid"></div>
+                <div id="stats-summary"></div>
               </section>
 
               <section id="stats-sub-charts" class="tab-panel">
@@ -438,6 +449,11 @@ const addBlockBtn = document.getElementById('add-block-btn')
 const saveEntryBtn = document.getElementById('save-entry-btn')
 const cancelEditBtn = document.getElementById('cancel-edit-btn')
 const entryStatus = document.getElementById('entry-status')
+const competitionPhotoWrapper = document.getElementById('competition-photo-wrapper')
+const entryPhotoInput = document.getElementById('entry-photo-input')
+const entryPhotoPreview = document.getElementById('entry-photo-preview')
+const entryPhotoPreviewImg = document.getElementById('entry-photo-preview-img')
+const removeEntryPhotoBtn = document.getElementById('remove-entry-photo-btn')
 const entriesList = document.getElementById('entries-list')
 
 const statsSummary = document.getElementById('stats-summary')
@@ -1130,14 +1146,24 @@ function renderStatsSectionCards(sectionEntries, type) {
     const bestText = best ? `${formatNumber(best.total_score || 0)} am ${formatDate(best.entry_date)}` : '-'
 
     return `
-      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Blöcke</div><div class="stat-value">${blockCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Serien</div><div class="stat-value">${seriesCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Gesamtscore</div><div class="stat-value">${formatNumber(totalScore)}</div></div>
-      <div class="stat-card"><div class="stat-label">Schnitt / Session</div><div class="stat-value">${formatNumber(avgPerSession)}</div></div>
-      <div class="stat-card"><div class="stat-label">Schnitt / Block</div><div class="stat-value">${formatNumber(avgPerBlock)}</div></div>
-      <div class="stat-card"><div class="stat-label">Schnitt / Serie</div><div class="stat-value">${formatNumber(avgPerSeries)}</div></div>
-      <div class="stat-card"><div class="stat-label">Beste Session</div><div class="stat-value small">${bestText}</div></div>
+      <div class="stats-highlight-row">
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Ø / Session</div>
+          <div class="stats-hl-value">${formatNumber(avgPerSession)}</div>
+        </div>
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Beste Session</div>
+          <div class="stats-hl-value">${formatNumber(best?.total_score || 0)}</div>
+          <div class="stats-hl-meta">${best ? formatDate(best.entry_date) : '-'}</div>
+        </div>
+      </div>
+      <div class="stats-secondary-row">
+        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Serien: <strong>${seriesCount}</strong></span>
+        <span>Gesamtscore: <strong>${formatNumber(totalScore)}</strong></span>
+        <span>Ø/Block: <strong>${formatNumber(avgPerBlock)}</strong></span>
+        <span>Ø/Serie: <strong>${formatNumber(avgPerSeries)}</strong></span>
+      </div>
     `
   }
 
@@ -1157,9 +1183,17 @@ function renderStatsSectionCards(sectionEntries, type) {
     const bestText = `${formatNumber(bestPercent)} % am ${formatDate(bestEntry.entry_date)}`
 
     return `
-      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Ø % Score</div><div class="stat-value">${formatNumber(avgPercent)} %</div></div>
-      <div class="stat-card"><div class="stat-label">Bester % Score</div><div class="stat-value small">${bestText}</div></div>
+      <div class="stats-highlight-row">
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Ø Score</div>
+          <div class="stats-hl-value">${formatNumber(avgPercent)} %</div>
+        </div>
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Bester Score</div>
+          <div class="stats-hl-value">${formatNumber(bestPercent)} %</div>
+          <div class="stats-hl-meta">${formatDate(bestEntry.entry_date)}</div>
+        </div>
+      </div>
     `
   }
 
@@ -1179,9 +1213,17 @@ function renderStatsSectionCards(sectionEntries, type) {
     const bestText = `${formatNumber(bestScore)} am ${formatDate(bestEntry.entry_date)}`
 
     return `
-      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${sessionCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Ø Dyn. Score</div><div class="stat-value">${formatNumber(avgScore)}</div></div>
-      <div class="stat-card"><div class="stat-label">Bester Dyn. Score</div><div class="stat-value small">${bestText}</div></div>
+      <div class="stats-highlight-row">
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Ø Dyn. Score</div>
+          <div class="stats-hl-value">${formatNumber(avgScore)}</div>
+        </div>
+        <div class="stats-highlight-card">
+          <div class="stats-hl-label">Bester Score</div>
+          <div class="stats-hl-value">${formatNumber(bestScore)}</div>
+          <div class="stats-hl-meta">${formatDate(bestEntry.entry_date)}</div>
+        </div>
+      </div>
     `
   }
 
@@ -1204,18 +1246,33 @@ function renderStatistics(entries) {
   const staticEntries = entries.filter((e) => e.entry_type === 'competition' && (e.competition_mode === 'static' || !e.competition_mode))
   const dynamicEntries = entries.filter((e) => e.entry_type === 'competition' && e.competition_mode === 'dynamic')
 
+  const allDates = entries.map((e) => e.entry_date).sort()
+  const dateRange = allDates.length >= 2
+    ? `${formatDate(allDates[0])} – ${formatDate(allDates[allDates.length - 1])}`
+    : allDates.length === 1 ? formatDate(allDates[0]) : '-'
+  const competitionCount = staticEntries.length + dynamicEntries.length
+
   statsSummary.innerHTML = `
-    <div class="stats-type-section">
-      <h3 class="stats-type-heading">Training</h3>
-      <div class="stats-grid">${renderStatsSectionCards(trainingEntries, 'training')}</div>
+    <div class="stats-summary-header">
+      <span><strong>${entries.length}</strong> Sessions gesamt</span>
+      <span>Training: <strong>${trainingEntries.length}</strong></span>
+      <span>Bewerb: <strong>${competitionCount}</strong></span>
+      <span class="stats-header-period">${dateRange}</span>
     </div>
-    <div class="stats-type-section">
-      <h3 class="stats-type-heading">Bewerb – Statisch</h3>
-      <div class="stats-grid">${renderStatsSectionCards(staticEntries, 'static')}</div>
+
+    <div class="manage-box stats-section-box">
+      <h3 class="stats-section-heading">Training <span class="stats-count-badge">${trainingEntries.length}</span></h3>
+      ${renderStatsSectionCards(trainingEntries, 'training')}
     </div>
-    <div class="stats-type-section">
-      <h3 class="stats-type-heading">Bewerb – Dynamisch</h3>
-      <div class="stats-grid">${renderStatsSectionCards(dynamicEntries, 'dynamic')}</div>
+
+    <div class="manage-box stats-section-box">
+      <h3 class="stats-section-heading">Bewerb – Statisch <span class="stats-count-badge">${staticEntries.length}</span></h3>
+      ${renderStatsSectionCards(staticEntries, 'static')}
+    </div>
+
+    <div class="manage-box stats-section-box">
+      <h3 class="stats-section-heading">Bewerb – Dynamisch <span class="stats-count-badge">${dynamicEntries.length}</span></h3>
+      ${renderStatsSectionCards(dynamicEntries, 'dynamic')}
     </div>
   `
 
@@ -1301,6 +1358,29 @@ function getBlockTotalScore(block) {
   }, 0)
 }
 
+async function uploadEntryPhoto(file, userId) {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('entry-photos').upload(path, file)
+  if (error) throw error
+  const { data } = supabase.storage.from('entry-photos').getPublicUrl(path)
+  return data.publicUrl
+}
+
+entryPhotoInput.addEventListener('change', () => {
+  const file = entryPhotoInput.files[0]
+  if (file) {
+    entryPhotoPreviewImg.src = URL.createObjectURL(file)
+    entryPhotoPreview.style.display = ''
+  }
+})
+
+removeEntryPhotoBtn.addEventListener('click', () => {
+  entryPhotoInput.value = ''
+  entryPhotoPreview.style.display = 'none'
+  entryPhotoPreviewImg.src = ''
+})
+
 function updateTrainingDurationVisibility({ rerenderBlocks = true } = {}) {
   const isTraining = entryType.value === 'training'
   const isCompetition = entryType.value === 'competition'
@@ -1308,11 +1388,15 @@ function updateTrainingDurationVisibility({ rerenderBlocks = true } = {}) {
   trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
   competitionModeWrap.style.display = isCompetition ? 'block' : 'none'
   competitionMaxScoreWrap.style.display = isCompetition ? 'block' : 'none'
+  competitionPhotoWrapper.style.display = isCompetition ? 'block' : 'none'
 
   if (!isTraining) trainingDurationMinutesInput.value = ''
   if (!isCompetition) {
     competitionModeInput.value = 'static'
     competitionMaxScoreInput.value = ''
+    entryPhotoInput.value = ''
+    entryPhotoPreview.style.display = 'none'
+    entryPhotoPreviewImg.src = ''
   }
 
   if (rerenderBlocks) {
@@ -1707,6 +1791,9 @@ function resetForm(options = {}) {
   entryLocation.value = ''
   entryNote.value = ''
   trainingDurationMinutesInput.value = nextDuration
+  entryPhotoInput.value = ''
+  entryPhotoPreview.style.display = 'none'
+  entryPhotoPreviewImg.src = ''
 
   updateTrainingDurationVisibility()
   renderEntryBlocks(nextBlocks, { focusLastBlock: false })
@@ -1908,6 +1995,7 @@ function renderEntriesList(entries) {
 
         <div class="entry-card-panel" style="display:none;">
           ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
+          ${entry.photo_url ? `<div class="entry-photo-thumb"><img src="${entry.photo_url}" alt="Foto" loading="lazy"></div>` : ''}
           <div class="entry-block-summary-list">${blocksMarkup}</div>
 
           <div class="entry-card-actions compact-entry-actions compact-action-row">
@@ -2546,6 +2634,7 @@ async function startEditEntry(entryId) {
       competition_mode,
       max_score,
       dynamic_time_seconds,
+      photo_url,
       entry_blocks(
         id,
         block_order,
@@ -2581,6 +2670,15 @@ async function startEditEntry(entryId) {
   entryLocation.value = data.location || ''
   entryNote.value = data.note || ''
   trainingDurationMinutesInput.value = data.training_duration_minutes || ''
+
+  entryPhotoInput.value = ''
+  if (data.photo_url && data.entry_type === 'competition') {
+    entryPhotoPreviewImg.src = data.photo_url
+    entryPhotoPreview.style.display = ''
+  } else {
+    entryPhotoPreview.style.display = 'none'
+    entryPhotoPreviewImg.src = ''
+  }
 
   updateTrainingDurationVisibility({ rerenderBlocks: false })
 
@@ -2624,6 +2722,7 @@ async function loadEntries() {
       competition_mode,
       max_score,
       dynamic_time_seconds,
+      photo_url,
       created_at,
       entry_blocks(
         id,
@@ -3076,6 +3175,21 @@ saveEntryBtn.addEventListener('click', async () => {
     return
   }
 
+  let photoUrl = null
+  const photoFile = entryPhotoInput.files[0]
+  if (photoFile && entryType.value === 'competition') {
+    try {
+      photoUrl = await uploadEntryPhoto(photoFile, user.id)
+    } catch (uploadError) {
+      setStatus(entryStatus, `Foto-Upload fehlgeschlagen: ${uploadError.message}`, 'error')
+      return
+    }
+  }
+
+  const existingPhotoUrl = editingEntryId
+    ? (entryPhotoPreviewImg.src && !entryPhotoInput.files[0] ? entryPhotoPreviewImg.src : null)
+    : null
+
   const entryPayload = {
     user_id: user.id,
     entry_date: entryDate.value,
@@ -3090,6 +3204,9 @@ saveEntryBtn.addEventListener('click', async () => {
       : null,
     max_score: entryType.value === 'competition'
       ? Number(competitionMaxScoreInput.value)
+      : null,
+    photo_url: entryType.value === 'competition'
+      ? (photoUrl || existingPhotoUrl)
       : null,
   }
 
@@ -3128,6 +3245,7 @@ saveEntryBtn.addEventListener('click', async () => {
         training_duration_minutes: entryPayload.training_duration_minutes,
         competition_mode: entryPayload.competition_mode,
         max_score: entryPayload.max_score,
+        photo_url: entryPayload.photo_url,
       })
       .eq('id', editingEntryId)
       .eq('user_id', user.id)
