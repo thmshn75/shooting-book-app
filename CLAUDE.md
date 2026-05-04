@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Arbeitsweise (verbindlich)
+
+1. **Claude plant** — Analyse, Recherche, detaillierter Implementierungsplan
+2. **Codex setzt um** — Code-Änderungen werden von Codex ausgeführt
+3. **Claude prüft, committet und pusht** — Review der Änderungen, dann `git commit` + `git push`
+
+Claude schreibt keinen Code selbst, außer für triviale Einzeiler oder Korrekturen nach dem Codex-Durchlauf.
+
 ## Commands
 
 ```bash

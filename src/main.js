@@ -396,6 +396,10 @@ document.querySelector('#app').innerHTML = `
         </div>
       </main>
     </div>
+    <div id="photo-lightbox" class="photo-lightbox" style="display:none;" role="dialog" aria-modal="true">
+      <button type="button" id="photo-lightbox-close" class="photo-lightbox-close" aria-label="Schließen">✕</button>
+      <img id="photo-lightbox-img" src="" alt="Foto Vollbild">
+    </div>
   </div>
 `
 
@@ -455,6 +459,9 @@ const entryPhotoPreview = document.getElementById('entry-photo-preview')
 const entryPhotoPreviewImg = document.getElementById('entry-photo-preview-img')
 const removeEntryPhotoBtn = document.getElementById('remove-entry-photo-btn')
 const entriesList = document.getElementById('entries-list')
+const photoLightbox = document.getElementById('photo-lightbox')
+const photoLightboxImg = document.getElementById('photo-lightbox-img')
+const photoLightboxClose = document.getElementById('photo-lightbox-close')
 
 const statsSummary = document.getElementById('stats-summary')
 const statsByType = document.getElementById('stats-by-type')
@@ -717,6 +724,16 @@ function getCompetitionScorePercent(entry) {
   const maxScore = Number(entry?.max_score)
   if (!Number.isFinite(maxScore) || maxScore <= 0) return null
   return (Number(entry?.total_score || 0) / maxScore) * 100
+}
+
+function getTrainingMaxScore(entry) {
+  if (!Array.isArray(entry.entry_blocks)) return null
+  const max = entry.entry_blocks.reduce((sum, block) => {
+    const seriesPlayed = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    const sps = Number(block.shots_per_series) || 0
+    return sum + sps * 10 * seriesPlayed
+  }, 0)
+  return max > 0 ? max : null
 }
 
 function getDynamicCompetitionScore(entry, factor = 0.5) {
@@ -1909,6 +1926,8 @@ function renderEntriesList(entries) {
     const competitionModeLabel = entry.competition_mode === 'dynamic' ? 'Dynamisch' : 'Statisch'
     const competitionScorePercent = getCompetitionScorePercent(entry)
     const dynamicCompetitionScore = getDynamicCompetitionScore(entry)
+    const trainingMaxScore = entry.entry_type === 'training' ? getTrainingMaxScore(entry) : null
+    const trainingScorePercent = trainingMaxScore ? (Number(entry.total_score || 0) / trainingMaxScore) * 100 : null
 
     const durationMarkup = entry.entry_type === 'training' && entry.training_duration_minutes
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Dauer</span><span class="entry-inline-value">${entry.training_duration_minutes} Min.</span></div>`
@@ -1981,6 +2000,9 @@ function renderEntriesList(entries) {
               <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
               ${entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0 ? `<span class="entry-summary-subvalue">${formatNumber(entry.max_score)} Max · ${formatNumber(competitionScorePercent)} %</span>` : ''}
               ${entry.entry_type === 'competition' && entry.competition_mode === 'dynamic' ? `<span class="entry-summary-subvalue">${Number(entry.max_score) > 0 ? `${formatNumber(entry.max_score)} Max` : 'Dynamisch'}${dynamicCompetitionScore !== null ? ` · Score ${formatNumber(dynamicCompetitionScore)}` : ''}</span>` : ''}
+              ${entry.entry_type === 'training' && trainingMaxScore != null
+                ? `<span class="entry-summary-subvalue">${formatNumber(trainingMaxScore)} Max · ${formatNumber(trainingScorePercent)} %</span>`
+                : ''}
             </div>
             <div class="entry-summary-item">
               <span class="entry-summary-label">Blöcke</span>
@@ -2036,6 +2058,29 @@ function renderEntriesList(entries) {
     })
   })
 }
+
+function closeLightbox() {
+  photoLightbox.style.display = 'none'
+  photoLightboxImg.src = ''
+  document.body.style.overflow = ''
+}
+
+entriesList.addEventListener('click', (e) => {
+  const img = e.target.closest('.entry-photo-thumb img')
+  if (!img) return
+  photoLightboxImg.src = img.src
+  photoLightbox.style.display = 'flex'
+  document.body.style.overflow = 'hidden'
+})
+
+photoLightboxClose.addEventListener('click', closeLightbox)
+photoLightbox.addEventListener('click', (e) => {
+  if (e.target === photoLightbox) closeLightbox()
+})
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && photoLightbox.style.display !== 'none') closeLightbox()
+})
 
 function applyEntryFilters() {
   clearStatus(listExportStatus)
