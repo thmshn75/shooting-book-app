@@ -858,6 +858,14 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
     return `<div class="stats-block-detail-mobile hidden" data-group-detail-mobile="${escapedName}">${items}</div>`
   }
 
+  const formatAvg = (row) => {
+    const avgPct = row.totalMaxScore > 0 ? (row.total / row.totalMaxScore) * 100 : null
+    if (avgPct !== null) {
+      return `<span class="${scoreColorClass(avgPct)}">${formatNumber(avgPct)} %</span> <small>(${formatNumber(row[averageKey] ?? 0)} Pkt)</small>`
+    }
+    return formatNumber(row[averageKey] ?? 0)
+  }
+
   container.innerHTML = `
     <div class="stats-table desktop-stats-table">
       <div class="stats-table-head">
@@ -877,7 +885,7 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
             <div>${row[countKey] ?? 0}</div>
             <div>${row.series}</div>
             <div>${formatNumber(row.total)}</div>
-            <div>${formatNumber(row[averageKey] ?? 0)}</div>
+            <div>${formatAvg(row)}</div>
             <div>${hasBlocks ? `<button class="stats-expand-btn" data-group="${escapedName}">▶</button>` : ''}</div>
           </div>
           ${blockDetailRows(row)}
@@ -895,7 +903,7 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
               <div><span>${countLabel}</span><strong>${row[countKey] ?? 0}</strong></div>
               <div><span>Serien</span><strong>${row.series}</strong></div>
               <div><span>Gesamt</span><strong>${formatNumber(row.total)}</strong></div>
-              <div><span>${averageLabel}</span><strong>${formatNumber(row[averageKey] ?? 0)}</strong></div>
+              <div><span>${averageLabel}</span><strong>${formatAvg(row)}</strong></div>
             </div>
             ${blockDetailMobile(row)}
           </div>
@@ -955,20 +963,23 @@ function buildGroupedBlockStats(entries, getGroupName) {
 
   getAllBlocks(entries).forEach((block) => {
     const name = getGroupName(block) || '-'
-    if (!groups.has(name)) groups.set(name, { name, blocks: 0, series: 0, total: 0, blockList: [] })
+    if (!groups.has(name)) groups.set(name, { name, blocks: 0, series: 0, total: 0, totalMaxScore: 0, blockList: [] })
 
     const group = groups.get(name)
     group.blocks += 1
     group.series += Array.isArray(block.entry_series) ? block.entry_series.length : 0
     group.total += Number(block.total_score || 0)
+    const sps = Number(block.shots_per_series) || 0
+    const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    if (sps > 0 && sc > 0) group.totalMaxScore += sps * 10 * sc
     group.blockList.push({
       date: block.parent_entry_date,
       seriesScores: (block.entry_series || [])
         .sort((a, b) => a.series_number - b.series_number)
         .map((s) => s.score),
       total: Number(block.total_score || 0),
-      shotsPerSeries: Number(block.shots_per_series) || 0,
-      seriesCount: Array.isArray(block.entry_series) ? block.entry_series.length : 0,
+      shotsPerSeries: sps,
+      seriesCount: sc,
     })
   })
 
@@ -1077,7 +1088,7 @@ function renderLineChart(container, points, emptyText) {
   if (points.length === 1) {
     container.innerHTML = `
       <div class="single-point-chart">
-        <div class="single-point-value">${formatNumber(points[0].value)}</div>
+        <div class="single-point-value ${points[0].colorClass || ''}">${formatNumber(points[0].value)}</div>
         <div class="single-point-label">${points[0].label}</div>
       </div>
     `
@@ -1124,7 +1135,7 @@ function renderLineChart(container, points, emptyText) {
           ${points.map((point) => `
             <div class="chart-label-item">
               <span class="chart-label-text">${point.label}</span>
-              <span class="chart-label-value">${formatNumber(point.value)}</span>
+              <span class="chart-label-value ${point.colorClass || ''}">${formatNumber(point.value)}</span>
             </div>
           `).join('')}
         </div>
@@ -1218,18 +1229,28 @@ function renderCharts(entries) {
   const staticEntries = sorted(entries.filter((e) => e.entry_type === 'competition' && (e.competition_mode === 'static' || !e.competition_mode)))
   const dynamicEntries = sorted(entries.filter((e) => e.entry_type === 'competition' && e.competition_mode === 'dynamic'))
 
-  const trainingTrend = trainingEntries.map((e) => ({ label: formatDate(e.entry_date), value: Number(e.total_score || 0) }))
+  const trainingTrendAll = trainingEntries.map((e) => {
+    const pct = getTrainingScorePercent(e)
+    if (pct !== null) return { label: formatDate(e.entry_date), value: Number(pct.toFixed(2)), colorClass: scoreColorClass(pct) }
+    return { label: formatDate(e.entry_date), value: Number(e.total_score || 0), colorClass: '' }
+  })
+  const trainingUsePct = trainingEntries.some((e) => getTrainingScorePercent(e) !== null)
+  const trainingTrend = trainingTrendAll
+
   const staticTrend = staticEntries
     .filter((e) => getCompetitionScorePercent(e) !== null)
-    .map((e) => ({ label: formatDate(e.entry_date), value: Number(getCompetitionScorePercent(e).toFixed(2)) }))
+    .map((e) => {
+      const pct = Number(getCompetitionScorePercent(e).toFixed(2))
+      return { label: formatDate(e.entry_date), value: pct, colorClass: scoreColorClass(pct) }
+    })
   const dynamicTrend = dynamicEntries
     .filter((e) => getDynamicCompetitionScore(e) !== null)
-    .map((e) => ({ label: formatDate(e.entry_date), value: Number(getDynamicCompetitionScore(e).toFixed(2)) }))
+    .map((e) => ({ label: formatDate(e.entry_date), value: Number(getDynamicCompetitionScore(e).toFixed(2)), colorClass: '' }))
 
   chartScoreTrend.innerHTML = ''
 
   const trainingDiv = document.createElement('div')
-  trainingDiv.innerHTML = '<h4 class="chart-sub-title">Training (Punkte)</h4>'
+  trainingDiv.innerHTML = `<h4 class="chart-sub-title">Training (${trainingUsePct ? '% Score' : 'Punkte'})</h4>`
   const trainingChart = document.createElement('div')
   trainingDiv.appendChild(trainingChart)
   chartScoreTrend.appendChild(trainingDiv)
@@ -1248,6 +1269,42 @@ function renderCharts(entries) {
   dynamicDiv.appendChild(dynamicChart)
   chartScoreTrend.appendChild(dynamicDiv)
   renderLineChart(dynamicChart, dynamicTrend, 'Noch keine Daten für dynamische Bewerbe vorhanden.')
+}
+
+function renderSectionBlockList(sectionEntries, sectionKey) {
+  const blocks = getAllBlocks(sectionEntries).sort((a, b) =>
+    (b.parent_entry_date || '').localeCompare(a.parent_entry_date || '')
+  )
+  if (!blocks.length) return ''
+
+  const items = blocks.map((block) => {
+    const sps = Number(block.shots_per_series) || 0
+    const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    const maxScore = sps > 0 && sc > 0 ? sps * 10 * sc : 0
+    const pct = maxScore > 0 ? (Number(block.total_score || 0) / maxScore) * 100 : null
+    const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total_score || 0)} Pkt`
+    const colorClass = pct !== null ? scoreColorClass(pct) : ''
+    const scores = (block.entry_series || [])
+      .sort((a, b) => a.series_number - b.series_number)
+      .map((s) => s.score)
+      .join(' · ') || '–'
+    const discipline = block.disciplines?.name || '–'
+    const weapon = block.weapons?.name || '–'
+    return `
+      <div class="stats-section-block-item">
+        <div class="stats-section-block-date">${formatDate(block.parent_entry_date)}</div>
+        <div class="stats-section-block-meta">${discipline} · ${weapon}</div>
+        <div class="stats-section-block-scores">${scores}</div>
+        <div class="stats-section-block-score ${colorClass}">${pctText}</div>
+      </div>
+    `
+  }).join('')
+
+  return `
+    <div class="stats-section-block-list hidden" data-section-blocks="${sectionKey}">
+      ${items}
+    </div>
+  `
 }
 
 function renderStatsSectionCards(sectionEntries, type) {
@@ -1296,12 +1353,13 @@ function renderStatsSectionCards(sectionEntries, type) {
         </div>
       </div>
       <div class="stats-secondary-row">
-        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Blöcke: <strong>${blockCount}</strong> <button class="stats-expand-btn stats-section-expand-btn" data-section="training">▶</button></span>
         <span>Serien: <strong>${seriesCount}</strong></span>
         <span>Gesamtscore: <strong>${formatNumber(totalScore)}</strong></span>
         <span>Ø/Block: <strong>${formatNumber(avgPerBlock)}</strong></span>
         <span>Ø/Serie: <strong>${formatNumber(avgPerSeries)}</strong></span>
       </div>
+      ${renderSectionBlockList(sectionEntries, 'training')}
     `
   }
 
@@ -1335,10 +1393,11 @@ function renderStatsSectionCards(sectionEntries, type) {
         </div>
       </div>
       <div class="stats-secondary-row">
-        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Blöcke: <strong>${blockCount}</strong> <button class="stats-expand-btn stats-section-expand-btn" data-section="static">▶</button></span>
         <span>Serien: <strong>${seriesCount}</strong></span>
         <span>Gesamt: <strong>${formatNumber(totalRawScore)} Pkt</strong></span>
       </div>
+      ${renderSectionBlockList(sectionEntries, 'static')}
     `
   }
 
@@ -1371,9 +1430,10 @@ function renderStatsSectionCards(sectionEntries, type) {
         </div>
       </div>
       <div class="stats-secondary-row">
-        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Blöcke: <strong>${blockCount}</strong> <button class="stats-expand-btn stats-section-expand-btn" data-section="dynamic">▶</button></span>
         <span>Serien: <strong>${seriesCount}</strong></span>
       </div>
+      ${renderSectionBlockList(sectionEntries, 'dynamic')}
     `
   }
 
@@ -1425,6 +1485,18 @@ function renderStatistics(entries) {
       ${renderStatsSectionCards(dynamicEntries, 'dynamic')}
     </div>
   `
+
+  statsSummary.onclick = (e) => {
+    const btn = e.target.closest('.stats-section-expand-btn')
+    if (!btn) return
+    const section = btn.dataset.section
+    const list = statsSummary.querySelector(`[data-section-blocks="${section}"]`)
+    if (!list) return
+    const isOpen = !btn.classList.contains('expanded')
+    btn.classList.toggle('expanded', isOpen)
+    btn.textContent = isOpen ? '▼' : '▶'
+    list.classList.toggle('hidden', !isOpen)
+  }
 
   renderCharts(entries)
   renderStatsByType(statsByType, entries)
