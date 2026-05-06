@@ -745,6 +745,19 @@ function getDynamicCompetitionScore(entry, factor = 0.5) {
   return hitPercent - (timeSeconds * factor)
 }
 
+function scoreColorClass(percent) {
+  if (percent === null || percent === undefined || !Number.isFinite(percent)) return ''
+  if (percent >= 90) return 'score-good'
+  if (percent >= 70) return 'score-medium'
+  return 'score-weak'
+}
+
+function getTrainingScorePercent(entry) {
+  const maxScore = getTrainingMaxScore(entry)
+  if (!maxScore) return null
+  return (Number(entry.total_score || 0) / maxScore) * 100
+}
+
 function naturalCompare(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'de', {
     numeric: true,
@@ -802,6 +815,49 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
     averageKey = 'averagePerEntry',
   } = options
 
+  function blockDetailRows(row) {
+    if (!Array.isArray(row.blockList) || !row.blockList.length) return ''
+    return row.blockList.map((block) => {
+      const maxScore = block.shotsPerSeries > 0 ? block.shotsPerSeries * 10 * block.seriesCount : 0
+      const pct = maxScore > 0 ? (block.total / maxScore) * 100 : null
+      const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total)} Pkt`
+      const colorClass = pct !== null ? scoreColorClass(pct) : ''
+      const scoresText = block.seriesScores.length ? block.seriesScores.join(' · ') : '–'
+      const escapedName = row.name.replace(/"/g, '&quot;')
+      return `
+        <div class="stats-block-detail hidden" data-group-detail="${escapedName}">
+          <div>${formatDate(block.date)}</div>
+          <div>${block.seriesCount} Serie${block.seriesCount !== 1 ? 'n' : ''}</div>
+          <div class="stats-block-series-scores">${scoresText}</div>
+          <div>${formatNumber(block.total)} Pkt</div>
+          <div class="${colorClass}">${pctText}</div>
+          <div></div>
+        </div>
+      `
+    }).join('')
+  }
+
+  function blockDetailMobile(row) {
+    if (!Array.isArray(row.blockList) || !row.blockList.length) return ''
+    const escapedName = row.name.replace(/"/g, '&quot;')
+    const items = row.blockList.map((block) => {
+      const maxScore = block.shotsPerSeries > 0 ? block.shotsPerSeries * 10 * block.seriesCount : 0
+      const pct = maxScore > 0 ? (block.total / maxScore) * 100 : null
+      const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total)} Pkt`
+      const colorClass = pct !== null ? scoreColorClass(pct) : ''
+      const scoresText = block.seriesScores.length ? block.seriesScores.join(' · ') : '–'
+      return `
+        <div class="stats-block-detail-mini">
+          <div><span>Datum</span><strong>${formatDate(block.date)}</strong></div>
+          <div><span>Score</span><strong class="${colorClass}">${pctText}</strong></div>
+          <div><span>Serien</span><strong>${block.seriesCount}</strong></div>
+          <div><span>Punkte</span><strong>${scoresText}</strong></div>
+        </div>
+      `
+    }).join('')
+    return `<div class="stats-block-detail-mobile hidden" data-group-detail-mobile="${escapedName}">${items}</div>`
+  }
+
   container.innerHTML = `
     <div class="stats-table desktop-stats-table">
       <div class="stats-table-head">
@@ -810,31 +866,56 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
         <div>Serien</div>
         <div>Gesamt</div>
         <div>${averageLabel}</div>
+        <div></div>
       </div>
-      ${rows.map((row) => `
-        <div class="stats-table-row">
-          <div>${row.name}</div>
-          <div>${row[countKey] ?? 0}</div>
-          <div>${row.series}</div>
-          <div>${formatNumber(row.total)}</div>
-          <div>${formatNumber(row[averageKey] ?? 0)}</div>
-        </div>
-      `).join('')}
+      ${rows.map((row) => {
+        const escapedName = row.name.replace(/"/g, '&quot;')
+        const hasBlocks = Array.isArray(row.blockList) && row.blockList.length > 0
+        return `
+          <div class="stats-table-row">
+            <div>${row.name}</div>
+            <div>${row[countKey] ?? 0}</div>
+            <div>${row.series}</div>
+            <div>${formatNumber(row.total)}</div>
+            <div>${formatNumber(row[averageKey] ?? 0)}</div>
+            <div>${hasBlocks ? `<button class="stats-expand-btn" data-group="${escapedName}">▶</button>` : ''}</div>
+          </div>
+          ${blockDetailRows(row)}
+        `
+      }).join('')}
     </div>
     <div class="stats-mobile-cards">
-      ${rows.map((row) => `
-        <div class="stats-mobile-card">
-          <div class="stats-mobile-card-title">${row.name}</div>
-          <div class="stats-mobile-card-grid">
-            <div><span>${countLabel}</span><strong>${row[countKey] ?? 0}</strong></div>
-            <div><span>Serien</span><strong>${row.series}</strong></div>
-            <div><span>Gesamt</span><strong>${formatNumber(row.total)}</strong></div>
-            <div><span>${averageLabel}</span><strong>${formatNumber(row[averageKey] ?? 0)}</strong></div>
+      ${rows.map((row) => {
+        const escapedName = row.name.replace(/"/g, '&quot;')
+        const hasBlocks = Array.isArray(row.blockList) && row.blockList.length > 0
+        return `
+          <div class="stats-mobile-card">
+            <div class="stats-mobile-card-title">${row.name}${hasBlocks ? ` <button class="stats-expand-btn" data-group="${escapedName}">▶</button>` : ''}</div>
+            <div class="stats-mobile-card-grid">
+              <div><span>${countLabel}</span><strong>${row[countKey] ?? 0}</strong></div>
+              <div><span>Serien</span><strong>${row.series}</strong></div>
+              <div><span>Gesamt</span><strong>${formatNumber(row.total)}</strong></div>
+              <div><span>${averageLabel}</span><strong>${formatNumber(row[averageKey] ?? 0)}</strong></div>
+            </div>
+            ${blockDetailMobile(row)}
           </div>
-        </div>
-      `).join('')}
+        `
+      }).join('')}
     </div>
   `
+
+  container.onclick = (e) => {
+    const btn = e.target.closest('.stats-expand-btn')
+    if (!btn) return
+    const group = btn.dataset.group
+    const details = container.querySelectorAll(`[data-group-detail="${CSS.escape(group)}"]`)
+    const detailsMobile = container.querySelectorAll(`[data-group-detail-mobile="${CSS.escape(group)}"]`)
+    const isOpen = !btn.classList.contains('expanded')
+    btn.classList.toggle('expanded', isOpen)
+    btn.textContent = isOpen ? '▼' : '▶'
+    details.forEach((d) => d.classList.toggle('hidden', !isOpen))
+    detailsMobile.forEach((d) => d.classList.toggle('hidden', !isOpen))
+  }
 }
 
 function getAllBlocks(entries) {
@@ -874,18 +955,28 @@ function buildGroupedBlockStats(entries, getGroupName) {
 
   getAllBlocks(entries).forEach((block) => {
     const name = getGroupName(block) || '-'
-    if (!groups.has(name)) groups.set(name, { name, blocks: 0, series: 0, total: 0 })
+    if (!groups.has(name)) groups.set(name, { name, blocks: 0, series: 0, total: 0, blockList: [] })
 
     const group = groups.get(name)
     group.blocks += 1
     group.series += Array.isArray(block.entry_series) ? block.entry_series.length : 0
     group.total += Number(block.total_score || 0)
+    group.blockList.push({
+      date: block.parent_entry_date,
+      seriesScores: (block.entry_series || [])
+        .sort((a, b) => a.series_number - b.series_number)
+        .map((s) => s.score),
+      total: Number(block.total_score || 0),
+      shotsPerSeries: Number(block.shots_per_series) || 0,
+      seriesCount: Array.isArray(block.entry_series) ? block.entry_series.length : 0,
+    })
   })
 
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
       averagePerBlock: group.blocks > 0 ? group.total / group.blocks : 0,
+      blockList: group.blockList.sort((a, b) => b.date.localeCompare(a.date)),
     }))
     .sort((a, b) => b.total - a.total)
 }
@@ -899,6 +990,11 @@ function renderStatsByType(container, entries) {
     ? trainingEntries.reduce((s, e) => s + Number(e.total_score || 0), 0) / trainingEntries.length
     : null
 
+  const trainingWithPct = trainingEntries.filter((e) => getTrainingScorePercent(e) !== null)
+  const trainingAvgPct = trainingWithPct.length
+    ? trainingWithPct.reduce((s, e) => s + getTrainingScorePercent(e), 0) / trainingWithPct.length
+    : null
+
   const staticWithPct = staticEntries.filter((e) => getCompetitionScorePercent(e) !== null)
   const staticAvg = staticWithPct.length
     ? staticWithPct.reduce((s, e) => s + getCompetitionScorePercent(e), 0) / staticWithPct.length
@@ -909,9 +1005,17 @@ function renderStatsByType(container, entries) {
     ? dynamicWithScore.reduce((s, e) => s + getDynamicCompetitionScore(e), 0) / dynamicWithScore.length
     : null
 
+  const trainingMetric = trainingAvgPct !== null
+    ? `<span class="${scoreColorClass(trainingAvgPct)}">${formatNumber(trainingAvgPct)} %</span> <small>(Ø ${formatNumber(trainingAvg)} Pkt)</small>`
+    : (trainingAvg !== null ? formatNumber(trainingAvg) : '-')
+
+  const staticMetric = staticAvg !== null
+    ? `<span class="${scoreColorClass(staticAvg)}">${formatNumber(staticAvg)} %</span>`
+    : '-'
+
   const rows = [
-    { label: 'Training', count: trainingEntries.length, metricLabel: 'Ø Score', metric: trainingAvg !== null ? formatNumber(trainingAvg) : '-' },
-    { label: 'Bewerb – Statisch', count: staticEntries.length, metricLabel: 'Ø % Score', metric: staticAvg !== null ? `${formatNumber(staticAvg)} %` : '-' },
+    { label: 'Training', count: trainingEntries.length, metricLabel: 'Ø Score', metric: trainingMetric },
+    { label: 'Bewerb – Statisch', count: staticEntries.length, metricLabel: 'Ø % Score', metric: staticMetric },
     { label: 'Bewerb – Dynamisch', count: dynamicEntries.length, metricLabel: 'Ø Dyn. Score', metric: dynamicAvg !== null ? formatNumber(dynamicAvg) : '-' },
   ]
 
@@ -1159,19 +1263,36 @@ function renderStatsSectionCards(sectionEntries, type) {
     const avgPerSession = sessionCount > 0 ? totalScore / sessionCount : 0
     const avgPerBlock = blockCount > 0 ? totalScore / blockCount : 0
     const avgPerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
-    const best = [...sectionEntries].sort((a, b) => Number(b.total_score || 0) - Number(a.total_score || 0))[0]
-    const bestText = best ? `${formatNumber(best.total_score || 0)} am ${formatDate(best.entry_date)}` : '-'
+
+    const withPct = sectionEntries.filter((e) => getTrainingScorePercent(e) !== null)
+    const avgPercent = withPct.length
+      ? withPct.reduce((s, e) => s + getTrainingScorePercent(e), 0) / withPct.length
+      : null
+    const best = [...sectionEntries].sort((a, b) => {
+      const pa = getTrainingScorePercent(a) ?? Number(a.total_score || 0)
+      const pb = getTrainingScorePercent(b) ?? Number(b.total_score || 0)
+      return pb - pa
+    })[0]
+    const bestPercent = best ? getTrainingScorePercent(best) : null
+    const bestRaw = best ? Number(best.total_score || 0) : 0
+
+    const avgValueHtml = avgPercent !== null
+      ? `<div class="stats-hl-value ${scoreColorClass(avgPercent)}">${formatNumber(avgPercent)} %</div><div class="stats-hl-meta">Ø ${formatNumber(avgPerSession)} Pkt</div>`
+      : `<div class="stats-hl-value">${formatNumber(avgPerSession)}</div>`
+
+    const bestValueHtml = bestPercent !== null
+      ? `<div class="stats-hl-value ${scoreColorClass(bestPercent)}">${formatNumber(bestPercent)} %</div><div class="stats-hl-meta">${best ? formatDate(best.entry_date) : '-'} · ${formatNumber(bestRaw)} Pkt</div>`
+      : `<div class="stats-hl-value">${formatNumber(bestRaw)}</div><div class="stats-hl-meta">${best ? formatDate(best.entry_date) : '-'}</div>`
 
     return `
       <div class="stats-highlight-row">
         <div class="stats-highlight-card">
-          <div class="stats-hl-label">Ø / Session</div>
-          <div class="stats-hl-value">${formatNumber(avgPerSession)}</div>
+          <div class="stats-hl-label">Ø Score</div>
+          ${avgValueHtml}
         </div>
         <div class="stats-highlight-card">
           <div class="stats-hl-label">Beste Session</div>
-          <div class="stats-hl-value">${formatNumber(best?.total_score || 0)}</div>
-          <div class="stats-hl-meta">${best ? formatDate(best.entry_date) : '-'}</div>
+          ${bestValueHtml}
         </div>
       </div>
       <div class="stats-secondary-row">
@@ -1197,19 +1318,26 @@ function renderStatsSectionCards(sectionEntries, type) {
     const avgPercent = percents.reduce((s, v) => s + v, 0) / percents.length
     const bestEntry = withPercent.reduce((best, e) => getCompetitionScorePercent(e) > getCompetitionScorePercent(best) ? e : best)
     const bestPercent = getCompetitionScorePercent(bestEntry)
-    const bestText = `${formatNumber(bestPercent)} % am ${formatDate(bestEntry.entry_date)}`
+    const blockCount = getAllBlocks(sectionEntries).length
+    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
+    const totalRawScore = sectionEntries.reduce((sum, e) => sum + Number(e.total_score || 0), 0)
 
     return `
       <div class="stats-highlight-row">
         <div class="stats-highlight-card">
           <div class="stats-hl-label">Ø Score</div>
-          <div class="stats-hl-value">${formatNumber(avgPercent)} %</div>
+          <div class="stats-hl-value ${scoreColorClass(avgPercent)}">${formatNumber(avgPercent)} %</div>
         </div>
         <div class="stats-highlight-card">
           <div class="stats-hl-label">Bester Score</div>
-          <div class="stats-hl-value">${formatNumber(bestPercent)} %</div>
+          <div class="stats-hl-value ${scoreColorClass(bestPercent)}">${formatNumber(bestPercent)} %</div>
           <div class="stats-hl-meta">${formatDate(bestEntry.entry_date)}</div>
         </div>
+      </div>
+      <div class="stats-secondary-row">
+        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Serien: <strong>${seriesCount}</strong></span>
+        <span>Gesamt: <strong>${formatNumber(totalRawScore)} Pkt</strong></span>
       </div>
     `
   }
@@ -1227,7 +1355,8 @@ function renderStatsSectionCards(sectionEntries, type) {
     const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length
     const bestEntry = withScore.reduce((best, e) => getDynamicCompetitionScore(e) > getDynamicCompetitionScore(best) ? e : best)
     const bestScore = getDynamicCompetitionScore(bestEntry)
-    const bestText = `${formatNumber(bestScore)} am ${formatDate(bestEntry.entry_date)}`
+    const blockCount = getAllBlocks(sectionEntries).length
+    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
 
     return `
       <div class="stats-highlight-row">
@@ -1240,6 +1369,10 @@ function renderStatsSectionCards(sectionEntries, type) {
           <div class="stats-hl-value">${formatNumber(bestScore)}</div>
           <div class="stats-hl-meta">${formatDate(bestEntry.entry_date)}</div>
         </div>
+      </div>
+      <div class="stats-secondary-row">
+        <span>Blöcke: <strong>${blockCount}</strong></span>
+        <span>Serien: <strong>${seriesCount}</strong></span>
       </div>
     `
   }
