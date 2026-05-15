@@ -1365,7 +1365,8 @@ function renderStatsSectionCards(sectionEntries, type) {
   if (type === 'training') {
     const sessionCount = sectionEntries.length
     const blockCount = getAllBlocks(sectionEntries).length
-    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
+    const seriesCount = sectionEntries.reduce((sum, e) =>
+      sum + (e.entry_blocks || []).reduce((s, b) => s + (Array.isArray(b.entry_series) ? b.entry_series.length : 0), 0), 0)
     const totalScore = sectionEntries.reduce((sum, e) => sum + Number(e.total_score || 0), 0)
     const avgPerSession = sessionCount > 0 ? totalScore / sessionCount : 0
     const avgPerBlock = blockCount > 0 ? totalScore / blockCount : 0
@@ -1437,7 +1438,8 @@ function renderStatsSectionCards(sectionEntries, type) {
     const bestEntry = withPercent.reduce((best, e) => getCompetitionScorePercent(e) > getCompetitionScorePercent(best) ? e : best)
     const bestPercent = getCompetitionScorePercent(bestEntry)
     const blockCount = getAllBlocks(sectionEntries).length
-    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
+    const seriesCount = sectionEntries.reduce((sum, e) =>
+      sum + (e.entry_blocks || []).reduce((s, b) => s + (Array.isArray(b.entry_series) ? b.entry_series.length : 0), 0), 0)
     const totalRawScore = sectionEntries.reduce((sum, e) => sum + Number(e.total_score || 0), 0)
 
     return `
@@ -1475,7 +1477,8 @@ function renderStatsSectionCards(sectionEntries, type) {
     const bestEntry = withScore.reduce((best, e) => getDynamicCompetitionScore(e) > getDynamicCompetitionScore(best) ? e : best)
     const bestScore = getDynamicCompetitionScore(bestEntry)
     const blockCount = getAllBlocks(sectionEntries).length
-    const seriesCount = sectionEntries.reduce((sum, e) => sum + (Array.isArray(e.entry_series) ? e.entry_series.length : 0), 0)
+    const seriesCount = sectionEntries.reduce((sum, e) =>
+      sum + (e.entry_blocks || []).reduce((s, b) => s + (Array.isArray(b.entry_series) ? b.entry_series.length : 0), 0), 0)
 
     return `
       <div class="stats-highlight-row">
