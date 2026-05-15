@@ -539,6 +539,28 @@ let editingOriginTab = 'entry'
 let allEntriesCache = []
 let disciplinesCache = []
 let weaponsCache = []
+let lastUsedBlockDefaults = null
+
+function loadLastUsedBlockDefaults(userId) {
+  const disciplineId = localStorage.getItem(getLastDisciplineKey(userId)) || ''
+  const weaponId = localStorage.getItem(getLastWeaponKey(userId)) || ''
+  const shots = localStorage.getItem(getLastShotsKey(userId)) || ''
+  lastUsedBlockDefaults = disciplineId || weaponId || shots
+    ? { discipline_id: disciplineId, weapon_id: weaponId, shots_per_series: shots }
+    : null
+}
+
+function saveLastUsedBlockDefaults(userId, block) {
+  if (!block) return
+  if (block.discipline_id) localStorage.setItem(getLastDisciplineKey(userId), String(block.discipline_id))
+  if (block.weapon_id) localStorage.setItem(getLastWeaponKey(userId), String(block.weapon_id))
+  if (block.shots_per_series) localStorage.setItem(getLastShotsKey(userId), String(block.shots_per_series))
+  lastUsedBlockDefaults = {
+    discipline_id: block.discipline_id || '',
+    weapon_id: block.weapon_id || '',
+    shots_per_series: block.shots_per_series || '',
+  }
+}
 
 const statusResetTimers = new WeakMap()
 
@@ -712,6 +734,10 @@ function getLastDisciplineKey(userId) {
   return `shooting_book_last_discipline_${userId}`
 }
 
+function getLastShotsKey(userId) {
+  return `shooting_book_last_shots_${userId}`
+}
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('de-AT', {
     minimumFractionDigits: 0,
@@ -756,6 +782,17 @@ function getTrainingScorePercent(entry) {
   const maxScore = getTrainingMaxScore(entry)
   if (!maxScore) return null
   return (Number(entry.total_score || 0) / maxScore) * 100
+}
+
+function getTotalShotsForEntry(entry) {
+  if (!Array.isArray(entry.entry_blocks)) return null
+  let total = 0
+  entry.entry_blocks.forEach(block => {
+    const sps = Number(block.shots_per_series) || 0
+    const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    total += sps * sc
+  })
+  return total > 0 ? total : null
 }
 
 function naturalCompare(a, b) {
@@ -1321,6 +1358,15 @@ function renderStatsSectionCards(sectionEntries, type) {
     const avgPerBlock = blockCount > 0 ? totalScore / blockCount : 0
     const avgPerSeries = seriesCount > 0 ? totalScore / seriesCount : 0
 
+    const allBlocksForMax = getAllBlocks(sectionEntries)
+    const totalMaxScore = allBlocksForMax.reduce((sum, block) => {
+      const sps = Number(block.shots_per_series) || 0
+      const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+      return sum + sps * 10 * sc
+    }, 0)
+    const avgBlockMax = blockCount > 0 && totalMaxScore > 0 ? totalMaxScore / blockCount : null
+    const avgSeriesMax = seriesCount > 0 && totalMaxScore > 0 ? totalMaxScore / seriesCount : null
+
     const withPct = sectionEntries.filter((e) => getTrainingScorePercent(e) !== null)
     const avgPercent = withPct.length
       ? withPct.reduce((s, e) => s + getTrainingScorePercent(e), 0) / withPct.length
@@ -1355,10 +1401,12 @@ function renderStatsSectionCards(sectionEntries, type) {
       <div class="stats-secondary-row">
         <span>Blöcke: <strong>${blockCount}</strong> <button class="stats-expand-btn stats-section-expand-btn" data-section="training">▶</button></span>
         <span>Serien: <strong>${seriesCount}</strong></span>
+        <span>Schüsse: <strong>${formatNumber(sectionEntries.reduce((sum, e) => sum + (getTotalShotsForEntry(e) || 0), 0))}</strong></span>
         <span>Gesamtscore: <strong>${formatNumber(totalScore)}</strong></span>
-        <span>Ø/Block: <strong>${formatNumber(avgPerBlock)}</strong></span>
-        <span>Ø/Serie: <strong>${formatNumber(avgPerSeries)}</strong></span>
+        <span>Ø/Block: <strong>${formatNumber(avgPerBlock)}${avgBlockMax !== null ? ` / ${formatNumber(avgBlockMax)} Pkt` : ''}</strong></span>
+        <span>Ø/Serie: <strong>${formatNumber(avgPerSeries)}${avgSeriesMax !== null ? ` / ${formatNumber(avgSeriesMax)} Pkt` : ''}</strong></span>
       </div>
+      ${renderBlockPositionStats(sectionEntries)}
       ${renderSectionBlockList(sectionEntries, 'training')}
     `
   }
@@ -1438,6 +1486,44 @@ function renderStatsSectionCards(sectionEntries, type) {
   }
 
   return ''
+}
+
+function renderBlockPositionStats(trainingEntries) {
+  const positionData = new Map()
+
+  trainingEntries.forEach(entry => {
+    ;(entry.entry_blocks || []).forEach(block => {
+      const pos = block.block_order || 1
+      const sps = Number(block.shots_per_series) || 0
+      const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+      if (sps <= 0 || sc <= 0) return
+      const pct = (Number(block.total_score || 0) / (sps * 10 * sc)) * 100
+      if (!positionData.has(pos)) positionData.set(pos, [])
+      positionData.get(pos).push(pct)
+    })
+  })
+
+  if (positionData.size < 2) return ''
+
+  const positions = Array.from(positionData.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([pos, pcts]) => {
+      const avg = pcts.reduce((s, v) => s + v, 0) / pcts.length
+      return { label: `Block ${pos}`, value: avg, count: pcts.length, colorClass: scoreColorClass(avg) }
+    })
+
+  return `
+    <div class="stats-block-position-wrap">
+      <div class="stats-section-subheading">Ø Score nach Block-Position</div>
+      <div class="stats-position-grid">
+        ${positions.map(p => `
+          <div class="stats-position-card">
+            <div class="stats-position-name">${p.label}</div>
+            <div class="stats-position-value ${p.colorClass}">${formatNumber(p.value)} %</div>
+            <div class="stats-position-count">${p.count} Sessions</div>
+          </div>`).join('')}
+      </div>
+    </div>`
 }
 
 function renderStatistics(entries) {
@@ -1610,15 +1696,12 @@ function updateTrainingDurationVisibility({ rerenderBlocks = true } = {}) {
   trainingDurationWrap.style.display = isTraining ? 'block' : 'none'
   competitionModeWrap.style.display = isCompetition ? 'block' : 'none'
   competitionMaxScoreWrap.style.display = isCompetition ? 'block' : 'none'
-  competitionPhotoWrapper.style.display = isCompetition ? 'block' : 'none'
+  competitionPhotoWrapper.style.display = 'block'
 
   if (!isTraining) trainingDurationMinutesInput.value = ''
   if (!isCompetition) {
     competitionModeInput.value = 'static'
     competitionMaxScoreInput.value = ''
-    entryPhotoInput.value = ''
-    entryPhotoPreview.style.display = 'none'
-    entryPhotoPreviewImg.src = ''
   }
 
   if (rerenderBlocks) {
@@ -1997,7 +2080,9 @@ function resetForm(options = {}) {
   const nextDate = preserveDate ? entryDate.value || todayString() : todayString()
   const nextType = preserveType ? entryType.value || 'training' : 'training'
   const nextDuration = preserveDuration ? trainingDurationMinutesInput.value || '' : ''
-  const nextBlocks = preserveBlocks ? getBlockDataFromForm({ allowIncomplete: true }) : [getEmptyBlockData()]
+  const nextBlocks = preserveBlocks
+    ? getBlockDataFromForm({ allowIncomplete: true })
+    : [{ ...getEmptyBlockData(), ...(lastUsedBlockDefaults || {}) }]
 
   editingEntryId = null
   editingOriginTab = 'entry'
@@ -2093,6 +2178,32 @@ function renderListSummary(entries) {
   `
 }
 
+function renderIntraSessionChart(entry) {
+  const blocks = (entry.entry_blocks || []).filter(b => {
+    const sps = Number(b.shots_per_series) || 0
+    const sc = Array.isArray(b.entry_series) ? b.entry_series.length : 0
+    return sps > 0 && sc > 0
+  })
+  if (blocks.length < 2) return ''
+
+  const bars = blocks.map((block) => {
+    const sps = Number(block.shots_per_series) || 0
+    const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+    const pct = (Number(block.total_score || 0) / (sps * 10 * sc)) * 100
+    const colorClass = scoreColorClass(pct)
+    return `
+      <div class="intra-bar-row">
+        <div class="intra-bar-label">B${block.block_order}</div>
+        <div class="intra-bar-track">
+          <div class="intra-bar-fill ${colorClass}" style="width:${Math.min(pct, 100).toFixed(1)}%"></div>
+        </div>
+        <div class="intra-bar-value ${colorClass}">${formatNumber(pct)} %</div>
+      </div>`
+  }).join('')
+
+  return `<div class="intra-session-chart"><div class="intra-chart-label">Block-Verlauf</div>${bars}</div>`
+}
+
 function renderEntriesList(entries) {
   if (!entries.length) {
     entriesList.innerHTML = '<p>Keine Einträge für den aktuellen Filter.</p>'
@@ -2111,11 +2222,20 @@ function renderEntriesList(entries) {
         </div>
       `).join('')
 
+      const blockSps = Number(block.shots_per_series) || 0
+      const blockSc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
+      const blockMaxScore = blockSps > 0 && blockSc > 0 ? blockSps * 10 * blockSc : 0
+      const blockPct = blockMaxScore > 0 ? (Number(block.total_score || 0) / blockMaxScore) * 100 : null
+      const blockColorClass = blockPct !== null ? scoreColorClass(blockPct) : ''
+      const blockScoreText = blockMaxScore > 0
+        ? `${formatNumber(block.total_score || 0)} / ${blockMaxScore} Pkt`
+        : `${formatNumber(block.total_score || 0)} Pkt`
+
       return `
         <div class="entry-block-summary">
           <div class="entry-block-summary-top">
             <strong>Block ${block.block_order}</strong>
-            <span>${formatNumber(block.total_score || 0)}</span>
+            <span class="${blockColorClass}">${blockScoreText}</span>
           </div>
           <div class="entry-block-summary-meta">
             <span>${block.disciplines?.name || 'Ohne Disziplin'}</span>
@@ -2163,6 +2283,10 @@ function renderEntriesList(entries) {
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Score</span><span class="entry-inline-value">${formatNumber(dynamicCompetitionScore)}</span></div>`
       : ''
 
+    const totalShotsMarkup = getTotalShotsForEntry(entry) !== null
+      ? `<div class="entry-inline-info"><span class="entry-inline-label">Schüsse</span><span class="entry-inline-value">${getTotalShotsForEntry(entry)}</span></div>`
+      : ''
+
     const locationMarkup = entry.location
       ? `<div class="entry-inline-info"><span class="entry-inline-label">Ort</span><span class="entry-inline-value">${entry.location}</span></div>`
       : ''
@@ -2173,6 +2297,7 @@ function renderEntriesList(entries) {
 
     const optionalInfoMarkup = [
       durationMarkup,
+      totalShotsMarkup,
       competitionModeMarkup,
       competitionMaxScoreMarkup,
       dynamicTimeMarkup,
@@ -2203,10 +2328,10 @@ function renderEntriesList(entries) {
             <div class="entry-summary-item entry-summary-total">
               <span class="entry-summary-label">Gesamt</span>
               <strong class="entry-summary-value">${formatNumber(entry.total_score || 0)}</strong>
-              ${entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0 ? `<span class="entry-summary-subvalue">${formatNumber(entry.max_score)} Max · ${formatNumber(competitionScorePercent)} %</span>` : ''}
+              ${entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' && Number(entry.max_score) > 0 ? `<span class="entry-summary-subvalue">${formatNumber(entry.max_score)} Max</span>` : ''}
               ${entry.entry_type === 'competition' && entry.competition_mode === 'dynamic' ? `<span class="entry-summary-subvalue">${Number(entry.max_score) > 0 ? `${formatNumber(entry.max_score)} Max` : 'Dynamisch'}${dynamicCompetitionScore !== null ? ` · Score ${formatNumber(dynamicCompetitionScore)}` : ''}</span>` : ''}
               ${entry.entry_type === 'training' && trainingMaxScore != null
-                ? `<span class="entry-summary-subvalue">${formatNumber(trainingMaxScore)} Max · ${formatNumber(trainingScorePercent)} %</span>`
+                ? `<span class="entry-summary-subvalue">${formatNumber(trainingMaxScore)} Max</span>`
                 : ''}
             </div>
             <div class="entry-summary-item">
@@ -2217,6 +2342,14 @@ function renderEntriesList(entries) {
               <span class="entry-summary-label">Serien</span>
               <strong class="entry-summary-value">${seriesCount}</strong>
             </div>
+            ${(() => {
+              const scorePercent = trainingScorePercent ?? (entry.entry_type === 'competition' && entry.competition_mode !== 'dynamic' ? competitionScorePercent : null)
+              return scorePercent !== null ? `
+            <div class="entry-summary-item">
+              <span class="entry-summary-label">Score</span>
+              <strong class="entry-summary-value ${scoreColorClass(scorePercent)}">${formatNumber(scorePercent)} %</strong>
+            </div>` : ''
+            })()}
           </div>
         </button>
 
@@ -2224,6 +2357,7 @@ function renderEntriesList(entries) {
           ${optionalInfoMarkup ? `<div class="entry-inline-info-row compact-inline-info-row">${optionalInfoMarkup}</div>` : ''}
           ${entry.photo_url ? `<div class="entry-photo-thumb"><img src="${entry.photo_url}" alt="Foto" loading="lazy"></div>` : ''}
           <div class="entry-block-summary-list">${blocksMarkup}</div>
+          ${renderIntraSessionChart(entry)}
 
           <div class="entry-card-actions compact-entry-actions compact-action-row">
             <button class="edit-entry-btn compact-action-btn compact-small-action-btn" data-entry-id="${entry.id}">Bearbeiten</button>
@@ -2922,7 +3056,7 @@ async function startEditEntry(entryId) {
   trainingDurationMinutesInput.value = data.training_duration_minutes || ''
 
   entryPhotoInput.value = ''
-  if (data.photo_url && data.entry_type === 'competition') {
+  if (data.photo_url) {
     entryPhotoPreviewImg.src = data.photo_url
     entryPhotoPreview.style.display = ''
   } else {
@@ -3044,6 +3178,7 @@ loginBtn.addEventListener('click', async () => {
 
   setStatus(authStatus, 'Login erfolgreich.', 'success', { autoClear: true })
   showLoggedInUI(data.session)
+  loadLastUsedBlockDefaults(data.session.user.id)
   resetForm()
   closeDisciplinePanel()
   closeWeaponPanel()
@@ -3427,7 +3562,7 @@ saveEntryBtn.addEventListener('click', async () => {
 
   let photoUrl = null
   const photoFile = entryPhotoInput.files[0]
-  if (photoFile && entryType.value === 'competition') {
+  if (photoFile) {
     try {
       photoUrl = await uploadEntryPhoto(photoFile, user.id)
     } catch (uploadError) {
@@ -3455,9 +3590,7 @@ saveEntryBtn.addEventListener('click', async () => {
     max_score: entryType.value === 'competition'
       ? Number(competitionMaxScoreInput.value)
       : null,
-    photo_url: entryType.value === 'competition'
-      ? (photoUrl || existingPhotoUrl)
-      : null,
+    photo_url: photoUrl || existingPhotoUrl,
   }
 
   const preserveBlocks = blocks.map((block) => ({
@@ -3588,9 +3721,10 @@ saveEntryBtn.addEventListener('click', async () => {
     }
   }
 
-  const returnTab = wasEditing && editingOriginTab === 'list' ? 'list' : 'entry'
+  const returnTab = wasEditing ? (editingOriginTab === 'list' ? 'list' : 'entry') : 'list'
 
   if (!wasEditing) {
+    saveLastUsedBlockDefaults(user.id, blocks[0])
     setStatus(entryStatus, 'Eintrag gespeichert.', 'success', { autoClear: true })
     resetForm()
   } else {
@@ -3619,6 +3753,8 @@ async function init() {
   if (session) {
     showStage()
     showLoggedInUI(session)
+    loadLastUsedBlockDefaults(session.user.id)
+    resetForm()
     await loadFormData()
     await loadEntries()
   } else {

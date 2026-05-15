@@ -2448,3 +2448,111 @@ button[type='button']:hover {
     grid-row: 2;
   }
 }
+
+/* --- Intra-Session Block-Chart (Listenansicht) --- */
+.intra-session-chart {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.intra-chart-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.intra-bar-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.intra-bar-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.intra-bar-track {
+  height: 11px;
+  background: var(--surface-3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.intra-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--primary);
+}
+
+.intra-bar-fill.score-good {
+  background: #4a7c59;
+}
+
+.intra-bar-fill.score-medium {
+  background: #8a7030;
+}
+
+.intra-bar-fill.score-weak {
+  background: var(--danger);
+}
+
+.intra-bar-value {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* --- Block-Position-Statistik (Stats-Überblick) --- */
+.stats-block-position-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.stats-section-subheading {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.stats-position-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stats-position-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 80px;
+}
+
+.stats-position-name {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.stats-position-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.stats-position-count {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
