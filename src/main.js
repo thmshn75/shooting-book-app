@@ -856,17 +856,21 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
     if (!Array.isArray(row.blockList) || !row.blockList.length) return ''
     return row.blockList.map((block) => {
       const maxScore = block.shotsPerSeries > 0 ? block.shotsPerSeries * 10 * block.seriesCount : 0
+      const totalShots = block.shotsPerSeries > 0 && block.seriesCount > 0 ? block.shotsPerSeries * block.seriesCount : null
       const pct = maxScore > 0 ? (block.total / maxScore) * 100 : null
       const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total)} Pkt`
       const colorClass = pct !== null ? scoreColorClass(pct) : ''
       const scoresText = block.seriesScores.length ? block.seriesScores.join(' · ') : '–'
       const escapedName = row.name.replace(/"/g, '&quot;')
+      const scoreText = maxScore > 0
+        ? `${formatNumber(block.total)} / ${maxScore} Pkt`
+        : `${formatNumber(block.total)} Pkt`
       return `
         <div class="stats-block-detail hidden" data-group-detail="${escapedName}">
           <div>${formatDate(block.date)}</div>
-          <div>${block.seriesCount} Serie${block.seriesCount !== 1 ? 'n' : ''}</div>
+          <div>${block.seriesCount} Serie${block.seriesCount !== 1 ? 'n' : ''}${totalShots !== null ? ` · ${totalShots} Schüsse` : ''}</div>
           <div class="stats-block-series-scores">${scoresText}</div>
-          <div>${formatNumber(block.total)} Pkt</div>
+          <div>${scoreText}</div>
           <div class="${colorClass}">${pctText}</div>
           <div></div>
         </div>
@@ -879,16 +883,20 @@ function renderStatsTable(container, rows, emptyText, options = {}) {
     const escapedName = row.name.replace(/"/g, '&quot;')
     const items = row.blockList.map((block) => {
       const maxScore = block.shotsPerSeries > 0 ? block.shotsPerSeries * 10 * block.seriesCount : 0
+      const totalShots = block.shotsPerSeries > 0 && block.seriesCount > 0 ? block.shotsPerSeries * block.seriesCount : null
       const pct = maxScore > 0 ? (block.total / maxScore) * 100 : null
       const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total)} Pkt`
       const colorClass = pct !== null ? scoreColorClass(pct) : ''
       const scoresText = block.seriesScores.length ? block.seriesScores.join(' · ') : '–'
+      const scoreText = maxScore > 0
+        ? `${formatNumber(block.total)} / ${maxScore} Pkt`
+        : `${formatNumber(block.total)} Pkt`
       return `
         <div class="stats-block-detail-mini">
           <div><span>Datum</span><strong>${formatDate(block.date)}</strong></div>
           <div><span>Score</span><strong class="${colorClass}">${pctText}</strong></div>
-          <div><span>Serien</span><strong>${block.seriesCount}</strong></div>
-          <div><span>Punkte</span><strong>${scoresText}</strong></div>
+          <div><span>Serien · Schüsse</span><strong>${block.seriesCount} · ${totalShots !== null ? `${totalShots} Sch.` : '–'}</strong></div>
+          <div><span>Punkte</span><strong>${scoreText}</strong></div>
         </div>
       `
     }).join('')
@@ -1318,9 +1326,13 @@ function renderSectionBlockList(sectionEntries, sectionKey) {
     const sps = Number(block.shots_per_series) || 0
     const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
     const maxScore = sps > 0 && sc > 0 ? sps * 10 * sc : 0
+    const totalShots = sps > 0 && sc > 0 ? sps * sc : null
     const pct = maxScore > 0 ? (Number(block.total_score || 0) / maxScore) * 100 : null
     const pctText = pct !== null ? `${formatNumber(pct)} %` : `${formatNumber(block.total_score || 0)} Pkt`
     const colorClass = pct !== null ? scoreColorClass(pct) : ''
+    const blockScoreText = maxScore > 0
+      ? `${formatNumber(block.total_score || 0)} / ${maxScore} Pkt`
+      : `${formatNumber(block.total_score || 0)} Pkt`
     const scores = (block.entry_series || [])
       .sort((a, b) => a.series_number - b.series_number)
       .map((s) => s.score)
@@ -1331,8 +1343,9 @@ function renderSectionBlockList(sectionEntries, sectionKey) {
       <div class="stats-section-block-item">
         <div class="stats-section-block-date">${formatDate(block.parent_entry_date)}</div>
         <div class="stats-section-block-meta">${discipline} · ${weapon}</div>
+        ${totalShots !== null ? `<div class="stats-section-block-shots">${totalShots} Schüsse · ${maxScore} Max</div>` : ''}
         <div class="stats-section-block-scores">${scores}</div>
-        <div class="stats-section-block-score ${colorClass}">${pctText}</div>
+        <div class="stats-section-block-score ${colorClass}">${blockScoreText} · ${pctText}</div>
       </div>
     `
   }).join('')

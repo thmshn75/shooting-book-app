@@ -2556,3 +2556,10 @@ button[type='button']:hover {
   color: var(--muted);
   margin-top: 2px;
 }
+
+/* --- Stats Section Block Shots Info --- */
+.stats-section-block-shots {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: -2px;
+}
