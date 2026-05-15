@@ -1419,7 +1419,6 @@ function renderStatsSectionCards(sectionEntries, type) {
         <span>Ø/Block: <strong>${formatNumber(avgPerBlock)}${avgBlockMax !== null ? ` / ${formatNumber(avgBlockMax)} Pkt` : ''}</strong></span>
         <span>Ø/Serie: <strong>${formatNumber(avgPerSeries)}${avgSeriesMax !== null ? ` / ${formatNumber(avgSeriesMax)} Pkt` : ''}</strong></span>
       </div>
-      ${renderBlockPositionStats(sectionEntries)}
       ${renderSectionBlockList(sectionEntries, 'training')}
     `
   }
@@ -1501,43 +1500,6 @@ function renderStatsSectionCards(sectionEntries, type) {
   return ''
 }
 
-function renderBlockPositionStats(trainingEntries) {
-  const positionData = new Map()
-
-  trainingEntries.forEach(entry => {
-    ;(entry.entry_blocks || []).forEach(block => {
-      const pos = block.block_order || 1
-      const sps = Number(block.shots_per_series) || 0
-      const sc = Array.isArray(block.entry_series) ? block.entry_series.length : 0
-      if (sps <= 0 || sc <= 0) return
-      const pct = (Number(block.total_score || 0) / (sps * 10 * sc)) * 100
-      if (!positionData.has(pos)) positionData.set(pos, [])
-      positionData.get(pos).push(pct)
-    })
-  })
-
-  if (positionData.size < 2) return ''
-
-  const positions = Array.from(positionData.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([pos, pcts]) => {
-      const avg = pcts.reduce((s, v) => s + v, 0) / pcts.length
-      return { label: `Block ${pos}`, value: avg, count: pcts.length, colorClass: scoreColorClass(avg) }
-    })
-
-  return `
-    <div class="stats-block-position-wrap">
-      <div class="stats-section-subheading">Ø Score nach Block-Position</div>
-      <div class="stats-position-grid">
-        ${positions.map(p => `
-          <div class="stats-position-card">
-            <div class="stats-position-name">${p.label}</div>
-            <div class="stats-position-value ${p.colorClass}">${formatNumber(p.value)} %</div>
-            <div class="stats-position-count">${p.count} Sessions</div>
-          </div>`).join('')}
-      </div>
-    </div>`
-}
 
 function renderStatistics(entries) {
   renderStatsFilterSummary(entries)
