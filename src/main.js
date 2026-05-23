@@ -25,17 +25,62 @@ document.querySelector('#app').innerHTML = `
 
       <main class="container">
         <div id="auth-box">
-          <h2>Login / Registrierung</h2>
-          <input id="email" type="email" placeholder="E-Mail" />
-          <input id="password" type="password" placeholder="Passwort" />
-          <div class="row auth-actions">
-            <button id="register-btn">Registrieren</button>
-            <button id="login-btn">Login</button>
-          </div>
-          <div class="auth-forgot-row">
+          <h2>Login</h2>
+          <form id="login-form" autocomplete="on">
+            <label for="login-email" class="sr-only">E-Mail</label>
+            <input
+              id="login-email"
+              name="username"
+              type="email"
+              placeholder="E-Mail"
+              autocomplete="username"
+              inputmode="email"
+              required
+            />
+            <label for="login-password" class="sr-only">Passwort</label>
+            <input
+              id="login-password"
+              name="password"
+              type="password"
+              placeholder="Passwort"
+              autocomplete="current-password"
+              required
+            />
+            <button id="login-btn" type="submit">Login</button>
+          </form>
+          <div class="auth-secondary-actions">
+            <button id="show-register-btn" type="button" class="link-btn">Neues Konto erstellen</button>
             <button id="forgot-password-btn" type="button" class="link-btn">Passwort vergessen?</button>
           </div>
           <p id="auth-status"></p>
+        </div>
+
+        <div id="register-box" style="display:none;">
+          <h2>Registrierung</h2>
+          <form id="register-form" autocomplete="on">
+            <label for="register-email" class="sr-only">E-Mail</label>
+            <input
+              id="register-email"
+              name="username"
+              type="email"
+              placeholder="E-Mail"
+              autocomplete="username"
+              inputmode="email"
+              required
+            />
+            <label for="register-password" class="sr-only">Passwort</label>
+            <input
+              id="register-password"
+              name="new-password"
+              type="password"
+              placeholder="Passwort"
+              autocomplete="new-password"
+              required
+            />
+            <button id="register-btn" type="submit">Registrieren</button>
+          </form>
+          <button id="show-login-btn" type="button" class="link-btn">Zurück zum Login</button>
+          <p id="register-status"></p>
         </div>
 
         <hr id="auth-divider" />
@@ -407,11 +452,19 @@ const splashScreen = document.getElementById('splash-screen')
 const startAppBtn = document.getElementById('start-app-btn')
 const mainStage = document.getElementById('main-stage')
 
-const emailInput = document.getElementById('email')
-const passwordInput = document.getElementById('password')
-const registerBtn = document.getElementById('register-btn')
+const loginForm = document.getElementById('login-form')
+const loginEmailInput = document.getElementById('login-email')
+const loginPasswordInput = document.getElementById('login-password')
 const loginBtn = document.getElementById('login-btn')
+const showRegisterBtn = document.getElementById('show-register-btn')
 const forgotPasswordBtn = document.getElementById('forgot-password-btn')
+const registerBox = document.getElementById('register-box')
+const registerForm = document.getElementById('register-form')
+const registerEmailInput = document.getElementById('register-email')
+const registerPasswordInput = document.getElementById('register-password')
+const registerBtn = document.getElementById('register-btn')
+const showLoginBtn = document.getElementById('show-login-btn')
+const registerStatus = document.getElementById('register-status')
 const logoutBtn = document.getElementById('logout-btn')
 const authStatus = document.getElementById('auth-status')
 const authBox = document.getElementById('auth-box')
@@ -679,8 +732,6 @@ function showLoggedInUI(session) {
 
   topbarUserArea.style.display = 'flex'
   logoutBtn.style.display = 'inline-flex'
-  loginBtn.style.display = 'none'
-  registerBtn.style.display = 'none'
 
   userBadge.textContent = session?.user?.email || ''
 }
@@ -693,8 +744,7 @@ function showLoggedOutUI() {
 
   topbarUserArea.style.display = 'none'
   logoutBtn.style.display = 'none'
-  loginBtn.style.display = 'inline-flex'
-  registerBtn.style.display = 'inline-flex'
+  registerBox.style.display = 'none'
 
   allEntriesCache = []
   entriesList.innerHTML = ''
@@ -3127,26 +3177,28 @@ startAppBtn.addEventListener('click', () => {
   showLoggedOutUI()
 })
 
-registerBtn.addEventListener('click', async () => {
-  setStatus(authStatus, 'Registrierung läuft...', 'info')
+registerForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  setStatus(registerStatus, 'Registrierung läuft...', 'info')
   const { error } = await supabase.auth.signUp({
-    email: emailInput.value,
-    password: passwordInput.value,
+    email: registerEmailInput.value,
+    password: registerPasswordInput.value,
   })
 
   if (error) {
-    setStatus(authStatus, `Fehler: ${error.message}`, 'error')
+    setStatus(registerStatus, `Fehler: ${error.message}`, 'error')
     return
   }
 
-  setStatus(authStatus, 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.', 'success')
+  setStatus(registerStatus, 'Registrierung erfolgreich. Bitte E-Mail bestätigen, falls aktiviert.', 'success')
 })
 
-loginBtn.addEventListener('click', async () => {
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
   setStatus(authStatus, 'Login läuft...', 'info')
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: emailInput.value,
-    password: passwordInput.value,
+    email: loginEmailInput.value,
+    password: loginPasswordInput.value,
   })
 
   if (error) {
@@ -3169,7 +3221,7 @@ loginBtn.addEventListener('click', async () => {
 })
 
 forgotPasswordBtn.addEventListener('click', async () => {
-  const email = emailInput.value.trim()
+  const email = loginEmailInput.value.trim()
   if (!email) {
     setStatus(authStatus, 'Bitte zuerst E-Mail-Adresse eingeben.', 'error')
     return
@@ -3181,6 +3233,16 @@ forgotPasswordBtn.addEventListener('click', async () => {
     return
   }
   setStatus(authStatus, 'Reset-Link wurde an deine E-Mail gesendet.', 'success')
+})
+
+showRegisterBtn.addEventListener('click', () => {
+  authBox.style.display = 'none'
+  registerBox.style.display = 'block'
+})
+
+showLoginBtn.addEventListener('click', () => {
+  registerBox.style.display = 'none'
+  authBox.style.display = 'block'
 })
 
 logoutBtn.addEventListener('click', async () => {
