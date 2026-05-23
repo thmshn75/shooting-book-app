@@ -83,3 +83,25 @@ Three module-level caches hold the data in memory:
 ### PWA
 
 The app is configured as an installable PWA via [public/site.webmanifest](public/site.webmanifest) with standalone display mode and theme color `#35393f`.
+
+### Auth / Login
+
+Login and registration are two separate views within the same screen area, toggled via JS (`display` swap). The login view is shown by default.
+
+**Login view** (`#auth-box`): A native `<form id="login-form" autocomplete="on">` with:
+- Email input: `name="username"`, `autocomplete="username"`, `type="email"`
+- Password input: `name="password"`, `autocomplete="current-password"`, `type="password"`
+- Submit button: `id="login-btn"`, `type="submit"`
+- Secondary link buttons: "Neues Konto erstellen" (→ register view), "Passwort vergessen?"
+- Status paragraph: `#auth-status`
+
+**Register view** (`#register-box`, hidden by default): A native `<form id="register-form" autocomplete="on">` with:
+- Email input: `name="username"`, `autocomplete="username"`
+- Password input: `name="new-password"`, `autocomplete="new-password"`
+- Submit button: `id="register-btn"`, `type="submit"`
+- Link button: "Zurück zum Login" (→ login view)
+- Status paragraph: `#register-status`
+
+Event listeners use `form.addEventListener('submit', ...)` with `event.preventDefault()` — not button click handlers. This enables native browser autofill and Enter-key submission.
+
+The `forgotPasswordBtn` reads from `loginEmailInput` (pre-filled from the login form).
