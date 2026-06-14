@@ -109,6 +109,19 @@ git push
 
 ---
 
+## Supabase Keepalive
+
+Supabase Free Tier pausiert Projekte nach 7 Tagen Inaktivität. Ein GitHub Actions Workflow pingt das Projekt täglich automatisch — läuft in der Cloud, unabhängig vom Mac.
+
+- **Workflow**: `.github/workflows/supabase-keepalive.yml`
+- **Schedule**: täglich 06:00 UTC (`cron: '0 6 * * *'`), zusätzlich manuell auslösbar über GitHub Actions → "Run workflow"
+- **Pings**: Auth-Health-Endpoint (`/auth/v1/health`, erwartet 200) + REST-Query auf `disciplines` (erwartet 401 durch RLS — zählt trotzdem als Aktivität)
+- **Verlauf prüfen**: GitHub Repo → Tab "Actions" → "Supabase Keepalive"
+
+Hinweis: Der frühere Ansatz (lokaler LaunchAgent `com.shootingbook.supabase-keepalive`, Script in `scripts/`) wurde am 14.06.2026 entfernt — lief nur einmal, mit veraltetem Key (HTTP 401) und abhängig davon, dass der Mac zum Intervall-Zeitpunkt wach ist.
+
+---
+
 ## Offene Punkte / Mögliche nächste Schritte
 
 - [ ] Bundle-Größe optimieren (aktuell ~1.2 MB, Vite-Warnung bei >500 KB)
