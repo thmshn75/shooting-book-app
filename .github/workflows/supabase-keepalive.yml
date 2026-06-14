@@ -1,0 +1,21 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Auth + REST API
+        run: |
+          # Publishable anon key — same value already shipped in the client bundle (VITE_SUPABASE_ANON_KEY)
+          KEY="sb_publishable_X0J-88ZYBNSy4HWNHyF56Q_xWCD40ex"
+          curl -s -o /dev/null -w "Auth health: %{http_code}\n" \
+            "https://uvgqbnsexnwrqkxrsxib.supabase.co/auth/v1/health" \
+            -H "apikey: ${KEY}"
+          curl -s -o /dev/null -w "REST query: %{http_code}\n" \
+            "https://uvgqbnsexnwrqkxrsxib.supabase.co/rest/v1/disciplines?select=id&limit=1" \
+            -H "apikey: ${KEY}"
