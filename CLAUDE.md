@@ -23,6 +23,8 @@ npm run preview    # Preview the production build locally
 
 No test suite exists. No linter is configured.
 
+Context7 (`find-docs` skill) is active for this project — usage rule in `~/Claude/CLAUDE.md` (use only when actually needed, not for trivial/stable API questions).
+
 ## Environment
 
 Copy `.env.example` to `.env` and fill in the two variables before running locally:
