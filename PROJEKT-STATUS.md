@@ -109,19 +109,19 @@ git push
 
 ---
 
-## Supabase Keepalive
+## Supabase Keepalive — funktioniert NICHT zuverlässig, Status: akzeptiert
 
-Supabase Free Tier pausiert Projekte nach 7 Tagen Inaktivität. Ein GitHub Actions Workflow pingt das Projekt täglich automatisch — läuft in der Cloud, unabhängig vom Mac.
+Supabase Free Tier pausiert Projekte nach 7 Tagen Inaktivität. **Wichtig:** Automatisierte API-Pings verhindern das nachweislich nicht zuverlässig — siehe Vorfälle unten. Laut Supabase-Doku ist nur das Pro-Plan-Upgrade offiziell garantiert ("Upgrading to the Pro Plan guarantees your project will not be paused for inactivity"). Entscheidung (29.06.2026): kein Pro-Upgrade, stattdessen manuelles Reaktivieren bei Bedarf.
 
-- **Workflow**: `.github/workflows/supabase-keepalive.yml`
-- **Schedule**: täglich 06:00 UTC (`cron: '0 6 * * *'`), zusätzlich manuell auslösbar über GitHub Actions → "Run workflow"
-- **Pings**: Auth-Health-Endpoint (`/auth/v1/health`, erwartet 200) + REST-Query auf `disciplines` (erwartet 401 durch RLS — zählt trotzdem als Aktivität)
-- **Robustheit**: `curl --retry 2 --retry-delay 5` + `|| true` — ein einzelner transienter Fehler (z. B. DNS während eines Pause/Restore-Übergangs) lässt den Job nicht fehlschlagen und löst keine "all jobs failed"-Mail aus
+- **Workflow** (läuft weiter, aber ohne Garantie): `.github/workflows/supabase-keepalive.yml`, täglich 06:00 UTC, pingt `/auth/v1/health` + REST-Query auf `disciplines`
+- **Bei Pause-Mail oder tatsächlicher Pause**: Supabase MCP → `restore_project(project_id: "uvgqbnsexnwrqkxrsxib")` — dauert ~1–2 Min (`COMING_UP` → `RESTORING` → `ACTIVE_HEALTHY`), keine Rückfrage nötig, einfach ausführen
 - **Verlauf prüfen**: GitHub Repo → Tab "Actions" → "Supabase Keepalive"
 
 Hinweis: Der frühere Ansatz (lokaler LaunchAgent `com.shootingbook.supabase-keepalive`, Script in `scripts/`) wurde am 14.06.2026 entfernt — lief nur einmal, mit veraltetem Key (HTTP 401) und abhängig davon, dass der Mac zum Intervall-Zeitpunkt wach ist.
 
-**Vorfall 15.06.2026:** Projekt wurde trotz Workflow pausiert (Status `INACTIVE`) — die Pause war laut Supabase-Warnmail bereits vor dem ersten Workflow-Lauf am 14.06. "scheduled" und ließ sich durch den Ping nicht mehr verhindern. Der erste tägliche Cron-Lauf danach scheiterte mit DNS-Fehler (Domain eines pausierten Projekts löst nicht auf) und löste die Fehler-Mail aus. Projekt über `restore_project` (Supabase MCP) reaktiviert (`ACTIVE_HEALTHY`), Workflow danach robuster gemacht (s. o.). Ab jetzt sollte tägliche Aktivität ein erneutes "Scheduling" verhindern, bevor die 7-Tage-Schwelle erreicht wird.
+**Vorfall 15.06.2026:** Projekt trotz (damals neuem) Workflow pausiert. Pause war laut Warnmail bereits vor dem ersten Lauf "scheduled". Cron-Lauf danach scheiterte mit DNS-Fehler (Domain eines pausierten Projekts löst nicht auf) → Fehler-Mail. Reaktiviert via `restore_project`, Workflow robuster gemacht (`curl --retry` + `|| true`).
+
+**Vorfall 29.06.2026:** Trotz 14 Tagen lückenlos erfolgreichem täglichem Cron (belegt über Supabase-Logs: echte 200er auf `/auth/v1/health`, echte Postgres-Connections) kam die Warnmail erneut. Schluss: automatisierte Pings zählen offenbar nicht als "Aktivität" im Sinne der Supabase-Inaktivitätserkennung — nur echte App-/Dashboard-Nutzung tut das vermutlich. Workflow bleibt aktiv (kostet nichts, schadet nicht), aber ohne Erwartung, dass er die Pause verhindert.
 
 ---
 
